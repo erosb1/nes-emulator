@@ -19,7 +19,7 @@
 #define TRUE 1
 #define FALSE 0
 
-size_t readFile(unsigned char **buffer, const char *path) {
+size_t load_rom(unsigned char **buffer, const char *path) {
   FILE *fp;
   size_t expected_size;
   size_t actual_size;
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  size_t size = readFile(&data, argv[1]); // size is needed for miscellaneous
+  size_t size = load_rom(&data, argv[1]); // size is needed for miscellaneous
   // ROM support if we are to ever decide to support NES 2.0
 
   unsigned char *buffer = data;
