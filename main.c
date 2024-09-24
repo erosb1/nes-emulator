@@ -12,7 +12,7 @@
 // options
 #define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
 // out for normal entrypoint behavior)
-#define BREAKPOINT 0xC00C
+#define BREAKPOINT 0xC5F7
 
 // map_mem parameters
 #define CPU_MEM_SIZE 0x10000 // 64KiB
@@ -64,9 +64,17 @@
 #define NIBBLE_HI_MASK 0xF0
 #define NIBBLE_LO_MASK 0x0F
 
-// timing math NTSC
-// #define NTSC_CPU_FREQ 1789773 // 1.789 Mhz
-// #define NTSC_FRAME_RATE 60
+// timing math
+#define CPU_AVG_CYCLES 3f
+// NTSC https://www.emulationonline.com/systems/nes/nes-system-timing
+#define NTSC_CPU_FREQ 1789773.f // 1.789 Mhz
+#define NTSC_FRAME_RATE 60.f
+
+#define NTSC_CYCLES_PER_FRAME NTSC_CPU_FREQ / NTSC_FRAME_RATE
+#define NTSC_CPU_INSTR_PER_FRAME (size_t)(NTSC_CPU_FREQ / NTSC_FRAME_RATE)
+#define NTSC_CPU_INSTR_PER_FRAME_ACTIVE NTSC_CPU_INSTR_PER_FRAME * 240 / 262
+#define NTSC_CPU_INSTR_PER_FRAME_VBLANK                                        \
+  NTSC_CPU_INSTR_PER_FRAME - NTSC_CPU_INSTR_PER_FRAME_ACTIVE
 
 // PPU registers (mapped to CPU address space)
 
@@ -152,7 +160,7 @@ void read_header_debug(const uint8_t *buffer) {
 
 void print_state(struct CPU *cpu, struct PPU *ppu) {
   printf("PC:0x%04hX Opcode:0x%02hX AC:0x%02hX X:0x%02hX Y:0x%02hX SR:0x%02hX "
-         "SP:0x%02hX\n",
+         "SP:0x%02hX ",
          cpu->pc, cpu->mem[cpu->pc], cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp);
 }
 
@@ -171,21 +179,35 @@ void cpu_run_instruction(struct CPU *cpu) {
     cpu->sp -= 3;
     cpu->pc = load_2_bytes(cpu->mem, NMI_VECTOR_OFFSET);
     cpu->sr |= INTERRUPT_MASK;
+    printf("BRK\n");
+    return;
+  }
+  case JMP_ABS: {
+    ++cpu->pc;
+    uint16_t jump_addr = load_2_bytes(cpu->mem, cpu->pc);
+    printf("JMP $%02hX\n", jump_addr);
+    cpu->pc = jump_addr - 1;
     return;
   }
   case SEI: {
     cpu->sr |= INTERRUPT_MASK;
+    printf("SEI\n");
     return;
   }
   case CLD: {
     cpu->sr ^= DECIMAL_MASK;
+    printf("CLD\n");
     return;
   }
   case LDX_imm: {
     ++cpu->pc;
-    cpu->x = cpu->pc;
+    uint8_t imm = cpu->mem[cpu->pc];
+    printf("LDX #$%02hX\n", imm);
+    cpu->x = imm;
     return;
   }
+  default:
+    printf("\n");
   }
 }
 
@@ -203,12 +225,12 @@ void ppu_maybe_nmi(struct CPU *cpu) {
   }
 }
 
-void new_frame(struct CPU *cpu, struct PPU *ppu) {
-
-  ppu_vblank_set(cpu->mem, FALSE);
-  while (TRUE) {
+void cpu_run_instructions(struct CPU *cpu, struct PPU *ppu,
+                          size_t count) { // ppu
+  // only needed for logging purposes
+  for (int i = 0; i < count; ++i) {
 #ifdef TESTING
-    if (cpu->pc == BREAKPOINT) {
+    if (cpu->pc == BREAKPOINT + 1) {
       break;
     }
 #endif /* ifdef TESTING */
@@ -217,22 +239,18 @@ void new_frame(struct CPU *cpu, struct PPU *ppu) {
     cpu_run_instruction(cpu);
     ++cpu->pc;
   }
+}
+
+void new_frame(struct CPU *cpu, struct PPU *ppu) {
+
+  ppu_vblank_set(cpu->mem, FALSE);
+  cpu_run_instructions(cpu, ppu, NTSC_CPU_INSTR_PER_FRAME_ACTIVE);
 
   // TODO: draw frame
 
   ppu_vblank_set(cpu->mem, TRUE);
 
-  while (TRUE) {
-#ifdef BREAKPOINT
-    if (cpu->pc == BREAKPOINT) {
-      break;
-    }
-#endif /* ifdef BREAKPOINT */
-
-    print_state(cpu, ppu);
-    cpu_run_instruction(cpu);
-    ++cpu->pc;
-  }
+  cpu_run_instructions(cpu, ppu, NTSC_CPU_INSTR_PER_FRAME_VBLANK);
   ppu_maybe_nmi(cpu);
 }
 
@@ -251,7 +269,9 @@ void run_prg(struct CPU *cpu, struct PPU *ppu) {
 
   cpu->pc = entrypoint;
 
-  new_frame(cpu, ppu);
+  while (TRUE) {
+    new_frame(cpu, ppu);
+  }
 }
 
 void static_memmap(uint8_t *buffer, uint8_t *cpu_mem, uint8_t *ppu_mem) {
