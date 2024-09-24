@@ -1,13 +1,18 @@
 /*
- * NES emulator compatible with iNES (https://www.nesdev.org/wiki/INES)
+ * NES emulator compatible with iNES games without bank switching
+ * (https://www.nesdev.org/wiki/INES)
  */
 
+#include "opcodes.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // options
-#define INSTRUCTION_COUNT 12 // amount of instructions to run
+#define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
+// out for normal entrypoint behavior)
+#define BREAKPOINT 0xC00C
 
 // map_mem parameters
 #define CPU_MEM_SIZE 0x10000 // 64KiB
@@ -24,8 +29,9 @@
 #define PRG_SIZE_UNIT 0x4000 // 16 KiB
 #define CHR_SIZE_UNIT 0x2000 // 8 KiB
 
-// vectors/offsets
+// vector offsets
 #define RESET_VECTOR_OFFSET 0xFFFC
+#define NMI_VECTOR_OFFSET 0xFFFA
 
 // mappers
 // nrom
@@ -37,6 +43,8 @@
 
 // stack parameters
 #define STACK_SIZE 0x0100
+#define STACK_OFFSET 0x0100
+#define SP_START 0x00FF
 
 // status masks
 #define CARRY_MASK 0x01
@@ -56,12 +64,30 @@
 #define NIBBLE_HI_MASK 0xF0
 #define NIBBLE_LO_MASK 0x0F
 
+// timing math NTSC
+// #define NTSC_CPU_FREQ 1789773 // 1.789 Mhz
+// #define NTSC_FRAME_RATE 60
+
+// PPU registers (mapped to CPU address space)
+
+// PPUCTRL
+// offset
+#define PPUCTRL_OFFSET 0x2000
+// masks  TODO: Add the rest of these
+#define NMI_ENABLE_MASK 0x80
+
+// PPUSTATUS masks
+// offset
+#define PPUSTATUS_OFFSET 0x2002
+// masks  TODO: Add the rest of these
+#define VBLANK_MASK 0x80
+
 struct CPU {
   uint16_t pc; // program counter
   uint8_t ac;  // accumulator
   uint8_t x;   // x register
   uint8_t y;   // y register
-  uint8_t s;   // status register [NV-BDIZC]
+  uint8_t sr;  // status register [NV-BDIZC]
   uint8_t sp;  // stack pointer (wraps)
   uint8_t mem[CPU_MEM_SIZE];
 };
@@ -101,64 +127,133 @@ size_t load_rom(uint8_t **buffer, const char *path) {
 void read_header_debug(const uint8_t *buffer) {
   printf("File Identifier:\n");
   for (int i = 0; i < 4; ++i) {
-    printf("0x%02hx", buffer[i]);
+    printf("0x%02hX", buffer[i]);
     printf("(%c) ", buffer[i]);
   }
   printf("\n");
 
   printf("PRG-ROM size (16kb units):\n");
-  printf("0x%02hx", buffer[PRG_SIZE_HEADER_IDX]);
+  printf("0x%02hX", buffer[PRG_SIZE_HEADER_IDX]);
   printf("\n");
 
   printf("CHR-ROM size (8kb units):\n");
-  printf("0x%02hx", buffer[CHR_SIZE_HEADER_IDX]);
+  printf("0x%02hX", buffer[CHR_SIZE_HEADER_IDX]);
   printf("\n");
 
   printf("Flags 6:\n");
-  printf("0x%02hx", buffer[6]);
+  printf("0x%02hX", buffer[6]);
   printf("\n");
 
   printf("Flags 7:\n");
-  printf("0x%02hx", buffer[7]);
+  printf("0x%02hX", buffer[7]);
   printf("\n");
   printf("\n");
 }
 
+void print_state(struct CPU *cpu, struct PPU *ppu) {
+  printf("PC:0x%04hX Opcode:0x%02hX AC:0x%02hX X:0x%02hX Y:0x%02hX SR:0x%02hX "
+         "SP:0x%02hX\n",
+         cpu->pc, cpu->mem[cpu->pc], cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp);
+}
+
+uint16_t load_2_bytes(uint8_t *mem, uint16_t offset) {
+  return (mem[offset + 1] << BYTE_SIZE) | mem[offset];
+}
+
 void cpu_run_instruction(struct CPU *cpu) {
-  printf("Instruction 0x%04hx: 0x%02hx\n", cpu->pc, cpu->mem[cpu->pc]);
+  uint8_t opcode = cpu->mem[cpu->pc];
+  uint8_t *mem = cpu->mem;
+
+  switch (opcode) {
+  case BRK: { // not tested
+    cpu->mem[cpu->sp] = cpu->pc + 2;
+    cpu->mem[cpu->sp - 1] = cpu->sr | BREAK_MASK;
+    cpu->sp -= 3;
+    cpu->pc = load_2_bytes(cpu->mem, NMI_VECTOR_OFFSET);
+    cpu->sr |= INTERRUPT_MASK;
+    return;
+  }
+  case SEI: {
+    cpu->sr |= INTERRUPT_MASK;
+    return;
+  }
+  case CLD: {
+    cpu->sr ^= DECIMAL_MASK;
+    return;
+  }
+  case LDX_imm: {
+    ++cpu->pc;
+    cpu->x = cpu->pc;
+    return;
+  }
+  }
+}
+
+void ppu_vblank_set(uint8_t *cpu_mem, uint8_t bool) {
+  if (bool) {
+    cpu_mem[PPUCTRL_OFFSET] |= VBLANK_MASK;
+  } else {
+    cpu_mem[PPUCTRL_OFFSET] ^= VBLANK_MASK;
+  }
+}
+
+void ppu_maybe_nmi(struct CPU *cpu) {
+  if (cpu->mem[PPUSTATUS_OFFSET] & NMI_ENABLE_MASK) {
+    cpu->pc = load_2_bytes(cpu->mem, NMI_VECTOR_OFFSET);
+  }
+}
+
+void new_frame(struct CPU *cpu, struct PPU *ppu) {
+
+  ppu_vblank_set(cpu->mem, FALSE);
+  while (TRUE) {
+#ifdef TESTING
+    if (cpu->pc == BREAKPOINT) {
+      break;
+    }
+#endif /* ifdef TESTING */
+
+    print_state(cpu, ppu);
+    cpu_run_instruction(cpu);
+    ++cpu->pc;
+  }
+
+  // TODO: draw frame
+
+  ppu_vblank_set(cpu->mem, TRUE);
+
+  while (TRUE) {
+#ifdef BREAKPOINT
+    if (cpu->pc == BREAKPOINT) {
+      break;
+    }
+#endif /* ifdef BREAKPOINT */
+
+    print_state(cpu, ppu);
+    cpu_run_instruction(cpu);
+    ++cpu->pc;
+  }
+  ppu_maybe_nmi(cpu);
 }
 
 // https://www.masswerk.at/6502/6502_instruction_set.html
 void run_prg(struct CPU *cpu, struct PPU *ppu) {
   printf("Execution:\n");
 
-  uint16_t entrypoint = (cpu->mem[RESET_VECTOR_OFFSET + 1] << BYTE_SIZE) |
-                        cpu->mem[RESET_VECTOR_OFFSET];
+  uint16_t entrypoint = load_2_bytes(cpu->mem, RESET_VECTOR_OFFSET);
 
-  printf("Entrypoint: 0x%04hx\n", entrypoint);
+#ifdef TESTING
+  entrypoint = TESTING;
+
+#endif /* ifdef TESTING */
+
+  printf("Entrypoint: 0x%04hX\n", entrypoint);
 
   cpu->pc = entrypoint;
-  cpu->sp = 0x00; // may or may not be needed
 
-  while (TRUE) {
-    if (cpu->pc == entrypoint + INSTRUCTION_COUNT) {
-      break;
-    }
-    cpu_run_instruction(cpu);
-    ++cpu->pc;
-  }
-
-  // uint64_t src = 1;
-  // uint64_t dst;
-  //
-  // __asm__("\
-  // mov %0, %1\n\t\
-  // add %0, %0, %1\n\t"
-  //         : "=r"(dst)
-  //         : "r"(src)); // GCC
-  //
-  // printf("0x%llu\n", dst);
+  new_frame(cpu, ppu);
 }
+
 void static_memmap(uint8_t *buffer, uint8_t *cpu_mem, uint8_t *ppu_mem) {
   size_t prg_size = buffer[PRG_SIZE_HEADER_IDX];
   size_t prg_size_bytes = prg_size * PRG_SIZE_UNIT;
@@ -203,8 +298,8 @@ int main(int argc, char *argv[]) {
   size_t size = load_rom(&buffer, argv[1]); // size is needed to calculate the
   // misc roms section size for NES 2.0
 
-  struct CPU cpu;
-  struct PPU ppu;
+  struct CPU cpu = {.sp = SP_START};
+  struct PPU ppu = {};
 
   read_header_debug(buffer);
   static_memmap(buffer, cpu.mem, ppu.mem);
