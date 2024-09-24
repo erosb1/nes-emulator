@@ -323,10 +323,10 @@ int main(int argc, char *argv[]) {
 
   read_header_debug(buffer);
   static_memmap(buffer, cpu.mem, ppu.mem);
+  free(buffer);
 
   // skip trainer for now
   run_prg(&cpu, &ppu);
 
-  free(buffer);
   return EXIT_SUCCESS;
 }
