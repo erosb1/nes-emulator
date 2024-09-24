@@ -5,10 +5,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define HEADER_SIZE 16
-#define PRG_ROM_SIZE_UNIT 16E3
+#define HEADER_SIZE 0x10
+#define PRG_ROM_SIZE_HEADER_IDX 0x04
+#define CHR_ROM_SIZE_HEADER_IDX 0x05
 
-size_t readFile(char **buffer, char *path) {
+#define PRG_ROM_SIZE_UNIT 0x4000
+#define CHR_ROM_SIZE_UNIT 0x2000
+
+#define PC_OFFSET 0xC000
+#define RESET_VECTOR_OFFSET 0x3FFC
+
+#define BYTE_SIZE 0x08
+#define TRUE 1
+#define FALSE 0
+
+size_t readFile(unsigned char **buffer, const char *path) {
   FILE *fp;
   size_t expected_size;
   size_t actual_size;
@@ -35,15 +46,53 @@ size_t readFile(char **buffer, char *path) {
   return actual_size;
 }
 
-void read_program(char *buffer) {
-
-  // size_t size = buffer[4] * PRG_ROM_SIZE_UNIT;
-  size_t size = 12;
-  buffer += HEADER_SIZE;
-
-  for (int i = 0; i < size; ++i) {
-    printf("Instruction %d: 0x%02hhx\n", i, buffer[i]);
+// https://www.nesdev.org/wiki/INES#iNES_file_format
+size_t read_header(const unsigned char *buffer) {
+  printf("File Identifier:\n");
+  for (int i = 0; i < 4; ++i) {
+    printf("0x%02hx", buffer[i]);
+    printf("(%c) ", buffer[i]);
   }
+  printf("\n");
+
+  printf("PRG-ROM size (16kb units):\n");
+  printf("0x%02hx", buffer[PRG_ROM_SIZE_HEADER_IDX]);
+  printf("\n");
+
+  printf("CHR-ROM size (8kb units):\n");
+  printf("0x%02hx", buffer[CHR_ROM_SIZE_HEADER_IDX]);
+  printf("\n");
+
+  printf("Flags 6:\n");
+  printf("0x%02hx", buffer[6]);
+  printf("\n");
+
+  printf("Flags 7:\n");
+  printf("0x%02hx", buffer[7]);
+  printf("\n");
+
+  return HEADER_SIZE;
+}
+
+// https://www.masswerk.at/6502/6502_instruction_set.html
+size_t read_prg(const unsigned char *data, const unsigned char *buffer) {
+
+  uint16_t entrypoint = ((buffer[RESET_VECTOR_OFFSET + 1] << BYTE_SIZE) |
+                         buffer[RESET_VECTOR_OFFSET]) -
+                        PC_OFFSET;
+
+  printf("Entrypoint: 0x%04hx\n", entrypoint);
+
+  uint16_t pc = entrypoint;
+  while (TRUE) {
+    if (pc == 12) { // arbitrary number for testing
+      break;
+    }
+    printf("Instruction 0x%04hx: 0x%02hx\n", pc, buffer[pc]);
+    ++pc;
+  }
+
+  return data[PRG_ROM_SIZE_HEADER_IDX] * PRG_ROM_SIZE_UNIT;
 
   // uint64_t src = 1;
   // uint64_t dst;
@@ -57,48 +106,28 @@ void read_program(char *buffer) {
   // printf("0x%llu\n", dst);
 }
 
-// https://www.nesdev.org/wiki/INES#iNES_file_format
-void read_header(char *buffer) {
-  printf("File Identifier:\n");
-  for (int i = 0; i < 4; ++i) {
-    printf("0x%02hhx", buffer[i]);
-    printf("(%c) ", buffer[i]);
-  }
-  printf("\n");
-
-  printf("PRG-ROM size LSB (16kb units):\n");
-  printf("0x%02hhx", buffer[4]);
-  printf("\n");
-
-  printf("CHR-ROM size LSB (8kb units):\n");
-  printf("0x%02hhx", buffer[5]);
-  printf("\n");
-
-  printf("Flags 6:\n");
-  printf("0x%02hhx", buffer[6]);
-  printf("\n");
-
-  printf("Flags 7:\n");
-  printf("0x%02hhx", buffer[7]);
-  printf("\n");
+size_t read_chr(const unsigned char *data, const unsigned char *buffer) {
+  return data[CHR_ROM_SIZE_HEADER_IDX] * CHR_ROM_SIZE_UNIT;
 }
 
 int main(int argc, char *argv[]) {
-  char *buffer;
+  unsigned char *data;
 
   if (argc != 2) {
     printf("Fatal Error: No filepath provided\n");
     exit(EXIT_FAILURE);
   }
 
-  size_t size = readFile(&buffer, argv[1]); // size is needed for miscellaneous
+  size_t size = readFile(&data, argv[1]); // size is needed for miscellaneous
   // ROM support if we are to ever decide to support NES 2.0
 
-  read_header(buffer);
-  // skip trainer for now
-  read_program(buffer);
-  // emulate(buffer, size);
+  unsigned char *buffer = data;
 
-  free(buffer);
+  buffer += read_header(buffer);
+  // skip trainer for now
+  buffer += read_prg(data, buffer);
+
+  buffer += read_chr(data, buffer);
+  free(data);
   return EXIT_SUCCESS;
 }
