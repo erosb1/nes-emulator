@@ -9,8 +9,9 @@
 // options
 #define INSTRUCTION_COUNT 12 // amount of instructions to run
 
-// memmap parameters
+// map_mem parameters
 #define CPU_MEM_SIZE 0x10000 // 64KiB
+#define PPU_MEM_SIZE 0x4000  // 16KiB
 
 // header parameters
 #define HEADER_SIZE 0x10
@@ -28,9 +29,11 @@
 
 // mappers
 // nrom
+// cpu
 #define NROM_PRG_OFFSET_1 0x8000
 #define NROM_PRG_OFFSET_2 0xC000
-// #define NROM_CHR_OFFSET idk
+// ppu
+#define NROM_CHR_OFFSET 0x0000
 
 // stack parameters
 #define STACK_SIZE 0x0100
@@ -144,11 +147,11 @@ void run_prg(const uint8_t *cpu_mem) {
   //
   // printf("0x%llu\n", dst);
 }
-void map_mem(uint8_t *buffer, uint8_t *cpu_mem) {
+void map_mem(uint8_t *buffer, uint8_t *cpu_mem, uint8_t *ppu_mem) {
   size_t prg_size = buffer[PRG_SIZE_HEADER_IDX];
-  size_t prg_size_bytes = buffer[PRG_SIZE_HEADER_IDX] * PRG_SIZE_UNIT;
-  // uint8_t chr_size = buffer[CHR_SIZE_HEADER_IDX];
-  // uint8_t chr_size_bytes = buffer[PRG_SIZE_HEADER_IDX] * CHR_SIZE_UNIT;
+  size_t prg_size_bytes = prg_size * PRG_SIZE_UNIT;
+  uint8_t chr_size = buffer[CHR_SIZE_HEADER_IDX];
+  uint8_t chr_size_bytes = chr_size * CHR_SIZE_UNIT;
 
   uint8_t mapper_num = (buffer[FLAGS_6_HEADER_IDX] >> NIBBLE_SIZE) |
                        (buffer[FLAGS_7_HEADER_IDX] & NIBBLE_HI_MASK);
@@ -158,22 +161,20 @@ void map_mem(uint8_t *buffer, uint8_t *cpu_mem) {
   switch (mapper_num) {
   case 0: {
     // #000 (nrom)
+    memcpy(cpu_mem + NROM_PRG_OFFSET_1, buffer, prg_size_bytes);
+    memcpy(ppu_mem + NROM_CHR_OFFSET, buffer + prg_size_bytes, chr_size_bytes);
     if (prg_size == 1) {
-      memcpy(cpu_mem + NROM_PRG_OFFSET_1, buffer, prg_size_bytes);
       memcpy(cpu_mem + NROM_PRG_OFFSET_2, buffer, prg_size_bytes);
-      // memcpy(cpu_mem + chr_offset, buffer + prg_size_bytes, chr_size_bytes);
       break;
     }
     if (prg_size == 2) {
-      memcpy(cpu_mem + NROM_PRG_OFFSET_1, buffer, prg_size_bytes);
       memcpy(cpu_mem + NROM_PRG_OFFSET_2, buffer + PRG_SIZE_UNIT,
              prg_size_bytes);
-      // memcpy(cpu_mem + chr_offset, buffer + prg_size_bytes, chr_size_bytes);
       break;
     }
   }
   default: {
-    printf("Fatal Error: Mapper not supported\n");
+    printf("Fatal Error: Bank switching not yet implemented\n");
     exit(EXIT_FAILURE);
   }
   }
@@ -191,9 +192,10 @@ int main(int argc, char *argv[]) {
   // misc roms section size for NES 2.0
 
   uint8_t cpu_mem[CPU_MEM_SIZE];
+  uint8_t ppu_mem[PPU_MEM_SIZE];
 
   read_header_debug(buffer);
-  map_mem(buffer, cpu_mem);
+  map_mem(buffer, cpu_mem, ppu_mem);
 
   // skip trainer for now
   run_prg(cpu_mem);
