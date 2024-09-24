@@ -147,7 +147,7 @@ void run_prg(const uint8_t *cpu_mem) {
   //
   // printf("0x%llu\n", dst);
 }
-void map_mem(uint8_t *buffer, uint8_t *cpu_mem, uint8_t *ppu_mem) {
+void static_memmap(uint8_t *buffer, uint8_t *cpu_mem, uint8_t *ppu_mem) {
   size_t prg_size = buffer[PRG_SIZE_HEADER_IDX];
   size_t prg_size_bytes = prg_size * PRG_SIZE_UNIT;
   uint8_t chr_size = buffer[CHR_SIZE_HEADER_IDX];
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
   uint8_t ppu_mem[PPU_MEM_SIZE];
 
   read_header_debug(buffer);
-  map_mem(buffer, cpu_mem, ppu_mem);
+  static_memmap(buffer, cpu_mem, ppu_mem);
 
   // skip trainer for now
   run_prg(cpu_mem);
