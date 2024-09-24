@@ -180,30 +180,24 @@ void map_mem(uint8_t *buffer, uint8_t *cpu_mem) {
 }
 
 int main(int argc, char *argv[]) {
-  uint8_t *data;
+  uint8_t *buffer;
 
   if (argc != 2) {
     printf("Fatal Error: No filepath provided\n");
     exit(EXIT_FAILURE);
   }
 
-  size_t size = load_rom(&data, argv[1]); // size is needed to calculate the
+  size_t size = load_rom(&buffer, argv[1]); // size is needed to calculate the
   // misc roms section size for NES 2.0
 
-  uint8_t *buffer = data;
   uint8_t cpu_mem[CPU_MEM_SIZE];
-  // uint8_t *cpu_mem = malloc(CPU_MEM_SIZE);
 
   read_header_debug(buffer);
   map_mem(buffer, cpu_mem);
-  buffer += HEADER_SIZE;
-
-  uint16_t entrypoint = (buffer[0x3FFD] << BYTE_SIZE) | buffer[0x3FFC];
 
   // skip trainer for now
   run_prg(cpu_mem);
 
-  free(data);
-  // free(cpu_mem);
+  free(buffer);
   return EXIT_SUCCESS;
 }
