@@ -56,6 +56,20 @@
 #define NIBBLE_HI_MASK 0xF0
 #define NIBBLE_LO_MASK 0x0F
 
+struct CPU {
+  uint16_t pc; // program counter
+  uint8_t ac;  // accumulator
+  uint8_t x;   // x register
+  uint8_t y;   // y register
+  uint8_t s;   // status register [NV-BDIZC]
+  uint8_t sp;  // stack pointer (wraps)
+  uint8_t mem[CPU_MEM_SIZE];
+};
+
+struct PPU {
+  uint8_t mem[PPU_MEM_SIZE];
+};
+
 size_t load_rom(uint8_t **buffer, const char *path) {
   FILE *fp;
   size_t expected_size;
@@ -110,30 +124,28 @@ void read_header_debug(const uint8_t *buffer) {
   printf("\n");
 }
 
+void cpu_run_instruction(struct CPU *cpu) {
+  printf("Instruction 0x%04hx: 0x%02hx\n", cpu->pc, cpu->mem[cpu->pc]);
+}
+
 // https://www.masswerk.at/6502/6502_instruction_set.html
-void run_prg(const uint8_t *cpu_mem) {
+void run_prg(struct CPU *cpu, struct PPU *ppu) {
   printf("Execution:\n");
 
-  uint16_t entrypoint = (cpu_mem[RESET_VECTOR_OFFSET + 1] << BYTE_SIZE) |
-                        cpu_mem[RESET_VECTOR_OFFSET];
+  uint16_t entrypoint = (cpu->mem[RESET_VECTOR_OFFSET + 1] << BYTE_SIZE) |
+                        cpu->mem[RESET_VECTOR_OFFSET];
 
   printf("Entrypoint: 0x%04hx\n", entrypoint);
 
-  uint16_t pc = entrypoint; // program counter
-  uint8_t ac;               // accumulator
-  uint8_t x;                // x register
-  uint8_t y;                // y register
-  uint8_t s;                // status register [NV-BDIZC]
-
-  // uint8_t stack[STACK_SIZE]; // bad idea, store in cpu_mem instead
-  uint8_t sp = 0x0; // stack pointer (wraps)
+  cpu->pc = entrypoint;
+  cpu->sp = 0x00; // may or may not be needed
 
   while (TRUE) {
-    if (pc == entrypoint + INSTRUCTION_COUNT) {
+    if (cpu->pc == entrypoint + INSTRUCTION_COUNT) {
       break;
     }
-    printf("Instruction 0x%04hx: 0x%02hx\n", pc, cpu_mem[pc]);
-    ++pc;
+    cpu_run_instruction(cpu);
+    ++cpu->pc;
   }
 
   // uint64_t src = 1;
@@ -191,14 +203,14 @@ int main(int argc, char *argv[]) {
   size_t size = load_rom(&buffer, argv[1]); // size is needed to calculate the
   // misc roms section size for NES 2.0
 
-  uint8_t cpu_mem[CPU_MEM_SIZE];
-  uint8_t ppu_mem[PPU_MEM_SIZE];
+  struct CPU cpu;
+  struct PPU ppu;
 
   read_header_debug(buffer);
-  static_memmap(buffer, cpu_mem, ppu_mem);
+  static_memmap(buffer, cpu.mem, ppu.mem);
 
   // skip trainer for now
-  run_prg(cpu_mem);
+  run_prg(&cpu, &ppu);
 
   free(buffer);
   return EXIT_SUCCESS;
