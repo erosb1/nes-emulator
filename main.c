@@ -6,14 +6,14 @@
 #include <stdlib.h>
 
 #define HEADER_SIZE 0x10
-#define PRG_ROM_SIZE_HEADER_IDX 0x04
-#define CHR_ROM_SIZE_HEADER_IDX 0x05
+#define PRG_SIZE_HEADER_IDX 0x04
+#define CHR_SIZE_HEADER_IDX 0x05
 
-#define PRG_ROM_SIZE_UNIT 0x4000
-#define CHR_ROM_SIZE_UNIT 0x2000
+#define PRG_SIZE_UNIT 0x4000
+#define CHR_SIZE_UNIT 0x2000
 
 #define PC_OFFSET 0xC000
-#define RESET_VECTOR_OFFSET 0x3FFC
+#define RESET_VECTOR_OFFSET 0xFFFC
 
 #define BYTE_SIZE 0x08
 #define TRUE 1
@@ -56,11 +56,11 @@ size_t read_header(const unsigned char *buffer) {
   printf("\n");
 
   printf("PRG-ROM size (16kb units):\n");
-  printf("0x%02hx", buffer[PRG_ROM_SIZE_HEADER_IDX]);
+  printf("0x%02hx", buffer[PRG_SIZE_HEADER_IDX]);
   printf("\n");
 
   printf("CHR-ROM size (8kb units):\n");
-  printf("0x%02hx", buffer[CHR_ROM_SIZE_HEADER_IDX]);
+  printf("0x%02hx", buffer[CHR_SIZE_HEADER_IDX]);
   printf("\n");
 
   printf("Flags 6:\n");
@@ -92,7 +92,7 @@ size_t read_prg(const unsigned char *data, const unsigned char *buffer) {
     ++pc;
   }
 
-  return data[PRG_ROM_SIZE_HEADER_IDX] * PRG_ROM_SIZE_UNIT;
+  return data[PRG_SIZE_HEADER_IDX] * PRG_SIZE_UNIT;
 
   // uint64_t src = 1;
   // uint64_t dst;
@@ -107,7 +107,7 @@ size_t read_prg(const unsigned char *data, const unsigned char *buffer) {
 }
 
 size_t read_chr(const unsigned char *data, const unsigned char *buffer) {
-  return data[CHR_ROM_SIZE_HEADER_IDX] * CHR_ROM_SIZE_UNIT;
+  return data[CHR_SIZE_HEADER_IDX] * CHR_SIZE_UNIT;
 }
 
 int main(int argc, char *argv[]) {
