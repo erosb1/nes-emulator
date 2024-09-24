@@ -12,8 +12,19 @@
 #define PRG_SIZE_UNIT 0x4000
 #define CHR_SIZE_UNIT 0x2000
 
-#define PC_OFFSET 0xC000
+#define PRG_START 0xC000
+#define STACK_START 0x0100
 #define RESET_VECTOR_OFFSET 0xFFFC
+
+// status masks
+#define CARRY_MASK 0x01
+#define ZERO_MASK 0x02
+#define INTERRUPT_MASK 0x04
+#define DECIMAL_MASK 0x08
+#define BREAK_MASK 0x10
+// bit 5 is ignored
+#define OVERFLOW_MASK 0x40
+#define NEGATIVE_MASK 0x80
 
 #define BYTE_SIZE 0x08
 #define TRUE 1
@@ -76,16 +87,23 @@ size_t read_header(const unsigned char *buffer) {
 
 // https://www.masswerk.at/6502/6502_instruction_set.html
 size_t read_prg(const unsigned char *data, const unsigned char *buffer) {
+  buffer -= PRG_START; // starting address should be 0xC000
 
   uint16_t entrypoint = ((buffer[RESET_VECTOR_OFFSET + 1] << BYTE_SIZE) |
-                         buffer[RESET_VECTOR_OFFSET]) -
-                        PC_OFFSET;
+                         buffer[RESET_VECTOR_OFFSET]);
 
   printf("Entrypoint: 0x%04hx\n", entrypoint);
 
-  uint16_t pc = entrypoint;
+  uint16_t pc = entrypoint; // program counter
+  uint8_t ac = 0x0;         // accumulator
+  uint8_t x = 0x0;          // x register
+  uint8_t y = 0x0;          // y register
+  uint8_t sr = 0x0;         // status register [NV-BDIZC]
+
+  uint8_t sp = STACK_START; // stack pointer (wraps)
+
   while (TRUE) {
-    if (pc == 12) { // arbitrary number for testing
+    if (pc == 0xC00C) { // arbitrary number for testing
       break;
     }
     printf("Instruction 0x%04hx: 0x%02hx\n", pc, buffer[pc]);
