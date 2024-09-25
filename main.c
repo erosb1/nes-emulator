@@ -4,6 +4,7 @@
  */
 
 #include "opcodes.h"
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +50,7 @@
 // status masks
 #define CARRY_MASK 0x01
 #define ZERO_MASK 0x02
-#define INTERRUPT_MASK 0x04
+#define INTERRUPT_DISABLE_MASK 0x04
 #define DECIMAL_MASK 0x08
 #define BREAK_MASK 0x10
 // bit 5 is ignored
@@ -65,30 +66,33 @@
 #define NIBBLE_LO_MASK 0x0F
 
 // timing math
-#define CPU_AVG_CYCLES 3f
-// NTSC https://www.emulationonline.com/systems/nes/nes-system-timing
-#define NTSC_CPU_FREQ 1789773.f // 1.789 Mhz
-#define NTSC_FRAME_RATE 60.f
 
-#define NTSC_CYCLES_PER_FRAME NTSC_CPU_FREQ / NTSC_FRAME_RATE
-#define NTSC_CPU_INSTR_PER_FRAME (size_t)(NTSC_CPU_FREQ / NTSC_FRAME_RATE)
-#define NTSC_CPU_INSTR_PER_FRAME_ACTIVE NTSC_CPU_INSTR_PER_FRAME * 240 / 262
-#define NTSC_CPU_INSTR_PER_FRAME_VBLANK                                        \
-  NTSC_CPU_INSTR_PER_FRAME - NTSC_CPU_INSTR_PER_FRAME_ACTIVE
+// NTSC https://www.emulationonline.com/systems/nes/nes-system-timing
+// https://www.nesdev.org/wiki/Cycle_reference_chart
+#define NTSC_CPU_CYCLES_PER_FRAME 29780
+#define NTSC_CPU_CYCLES_PER_FRAME_VBLANK 2273
+#define NTSC_CPU_CYCLES_PER_FRAME_ACTIVE                                       \
+  (NTSC_CPU_CYCLES_PER_FRAME - NTSC_CPU_CYCLES_PER_FRAME_VBLANK)
+#define NTSC_CPU_EXTRA_ACTIVE_CYCLE 2 // TODO: should be 3 if rendering is
+// disabled during the 20th scanline
+#define NTSC_CPU_EXTRA_VBLANK_CYCLE 3
 
 // PPU registers (mapped to CPU address space)
 
 // PPUCTRL
 // offset
 #define PPUCTRL_OFFSET 0x2000
-// masks  TODO: Add the rest of these
+// masks  TODO: add the rest of these
 #define NMI_ENABLE_MASK 0x80
 
 // PPUSTATUS masks
 // offset
 #define PPUSTATUS_OFFSET 0x2002
-// masks  TODO: Add the rest of these
+// masks  TODO: add the rest of these
 #define VBLANK_MASK 0x80
+
+// cpu parameters
+#define BOOTUP_SEQUENCE_CYCLES 0x07
 
 struct CPU {
   uint16_t pc; // program counter
@@ -98,9 +102,12 @@ struct CPU {
   uint8_t sr;  // status register [NV-BDIZC]
   uint8_t sp;  // stack pointer (wraps)
   uint8_t mem[CPU_MEM_SIZE];
+  size_t cur_cycle;
 };
 
 struct PPU {
+  uint8_t extra_cycle_active;
+  uint8_t extra_cycle_vblank;
   uint8_t mem[PPU_MEM_SIZE];
 };
 
@@ -168,49 +175,6 @@ uint16_t load_2_bytes(uint8_t *mem, uint16_t offset) {
   return (mem[offset + 1] << BYTE_SIZE) | mem[offset];
 }
 
-void cpu_run_instruction(struct CPU *cpu) {
-  uint8_t opcode = cpu->mem[cpu->pc];
-  uint8_t *mem = cpu->mem;
-
-  switch (opcode) {
-  case BRK: { // not tested
-    cpu->mem[cpu->sp] = cpu->pc + 2;
-    cpu->mem[cpu->sp - 1] = cpu->sr | BREAK_MASK;
-    cpu->sp -= 3;
-    cpu->pc = load_2_bytes(cpu->mem, NMI_VECTOR_OFFSET);
-    cpu->sr |= INTERRUPT_MASK;
-    printf("BRK\n");
-    return;
-  }
-  case JMP_ABS: {
-    ++cpu->pc;
-    uint16_t jump_addr = load_2_bytes(cpu->mem, cpu->pc);
-    printf("JMP $%02hX\n", jump_addr);
-    cpu->pc = jump_addr - 1;
-    return;
-  }
-  case SEI: {
-    cpu->sr |= INTERRUPT_MASK;
-    printf("SEI\n");
-    return;
-  }
-  case CLD: {
-    cpu->sr ^= DECIMAL_MASK;
-    printf("CLD\n");
-    return;
-  }
-  case LDX_imm: {
-    ++cpu->pc;
-    uint8_t imm = cpu->mem[cpu->pc];
-    printf("LDX #$%02hX\n", imm);
-    cpu->x = imm;
-    return;
-  }
-  default:
-    printf("\n");
-  }
-}
-
 void ppu_vblank_set(uint8_t *cpu_mem, uint8_t bool) {
   if (bool) {
     cpu_mem[PPUCTRL_OFFSET] |= VBLANK_MASK;
@@ -225,10 +189,58 @@ void ppu_maybe_nmi(struct CPU *cpu) {
   }
 }
 
+void cpu_run_instruction(struct CPU *cpu) {
+  uint8_t *mem = cpu->mem;
+  uint8_t opcode = mem[cpu->pc];
+
+  switch (opcode) {
+  case BRK: { // not tested
+    mem[cpu->sp] = cpu->pc + 2;
+    mem[cpu->sp - 1] = cpu->sr | BREAK_MASK;
+    cpu->sp -= 3;
+    cpu->pc = load_2_bytes(cpu->mem, NMI_VECTOR_OFFSET);
+    cpu->sr |= INTERRUPT_DISABLE_MASK;
+    cpu->cur_cycle += 7;
+    printf("BRK\n");
+    break;
+  }
+  case JMP_ABS: {
+    ++cpu->pc;
+    uint16_t jump_addr = load_2_bytes(mem, cpu->pc);
+    printf("JMP $%02hX\n", jump_addr);
+    cpu->pc = jump_addr - 1;
+    cpu->cur_cycle += 3;
+    break;
+  }
+  case SEI: {
+    cpu->sr |= INTERRUPT_DISABLE_MASK;
+    cpu->cur_cycle += 2;
+    printf("SEI\n");
+    break;
+  }
+  case CLD: {
+    cpu->sr ^= DECIMAL_MASK;
+    cpu->cur_cycle += 2;
+    printf("CLD\n");
+    break;
+  }
+  case LDX_imm: {
+    ++cpu->pc;
+    uint8_t imm = mem[cpu->pc];
+    printf("LDX #$%02hX\n", imm);
+    cpu->x = imm;
+    cpu->cur_cycle += 2;
+    break;
+  }
+  default:
+    printf("\n");
+  }
+}
+
 void cpu_run_instructions(struct CPU *cpu, struct PPU *ppu,
-                          size_t count) { // ppu
+                          size_t cycles) { // ppu
   // only needed for logging purposes
-  for (int i = 0; i < count; ++i) {
+  for (size_t i = 0; i < cycles; ++i) {
 #ifdef TESTING
     if (cpu->pc == BREAKPOINT + 1) {
       break;
@@ -243,15 +255,20 @@ void cpu_run_instructions(struct CPU *cpu, struct PPU *ppu,
 
 void new_frame(struct CPU *cpu, struct PPU *ppu) {
 
+  // maybe TODO: implement true cycle accurate timing (draw scanlines instead
+  // of frames)
+
   ppu_vblank_set(cpu->mem, FALSE);
-  cpu_run_instructions(cpu, ppu, NTSC_CPU_INSTR_PER_FRAME_ACTIVE);
+  cpu_run_instructions(
+      cpu, ppu, NTSC_CPU_CYCLES_PER_FRAME_ACTIVE + ppu->extra_cycle_active);
 
   // TODO: draw frame
 
   ppu_vblank_set(cpu->mem, TRUE);
-
-  cpu_run_instructions(cpu, ppu, NTSC_CPU_INSTR_PER_FRAME_VBLANK);
   ppu_maybe_nmi(cpu);
+
+  cpu_run_instructions(
+      cpu, ppu, NTSC_CPU_CYCLES_PER_FRAME_VBLANK + ppu->extra_cycle_active);
 }
 
 // https://www.masswerk.at/6502/6502_instruction_set.html
@@ -269,7 +286,15 @@ void run_prg(struct CPU *cpu, struct PPU *ppu) {
 
   cpu->pc = entrypoint;
 
-  while (TRUE) {
+  ppu->extra_cycle_active = 0;
+  ppu->extra_cycle_vblank = 0;
+  for (size_t frame = 0; TRUE; ++frame) {
+    if (frame % NTSC_CPU_EXTRA_ACTIVE_CYCLE == 0) {
+      ppu->extra_cycle_active = 1;
+    }
+    if (frame % NTSC_CPU_EXTRA_VBLANK_CYCLE == 0) {
+      ppu->extra_cycle_vblank = 1;
+    }
     new_frame(cpu, ppu);
   }
 }
