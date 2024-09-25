@@ -92,7 +92,7 @@
 #define VBLANK_MASK 0x80
 
 // cpu parameters
-#define BOOTUP_SEQUENCE_CYCLES 0x07
+// #define BOOTUP_SEQUENCE_CYCLES 0x07
 
 struct CPU {
   uint16_t pc; // program counter
@@ -204,7 +204,7 @@ void cpu_run_instruction(struct CPU *cpu) {
     printf("BRK\n");
     break;
   }
-  case JMP_ABS: {
+  case JMP_abs: {
     ++cpu->pc;
     uint16_t jump_addr = load_2_bytes(mem, cpu->pc);
     printf("JMP $%02hX\n", jump_addr);
@@ -240,7 +240,8 @@ void cpu_run_instruction(struct CPU *cpu) {
 void cpu_run_instructions(struct CPU *cpu, struct PPU *ppu,
                           size_t cycles) { // ppu
   // only needed for logging purposes
-  for (size_t i = 0; i < cycles; ++i) {
+  cpu->cur_cycle = 0;
+  while (cpu->cur_cycle < cycles) {
 #ifdef TESTING
     if (cpu->pc == BREAKPOINT + 1) {
       break;
