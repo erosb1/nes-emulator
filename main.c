@@ -4,8 +4,6 @@
  */
 
 #include "opcodes.h"
-#include <math.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +11,7 @@
 // options
 #define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
 // out for normal entrypoint behavior)
-#define BREAKPOINT 0xC5F7
+#define BREAKPOINT 0xC743
 
 // map_mem parameters
 #define CPU_MEM_SIZE 0x10000 // 64KiB
@@ -50,7 +48,7 @@
 // status masks
 #define CARRY_MASK 0x01
 #define ZERO_MASK 0x02
-#define INTERRUPT_DISABLE_MASK 0x04
+#define IRQ_DISABLE_MASK 0x04
 #define DECIMAL_MASK 0x08
 #define BREAK_MASK 0x10
 // bit 5 is ignored
@@ -62,6 +60,8 @@
 #define NIBBLE_SIZE 0x04
 #define TRUE 0x1
 #define FALSE 0x0
+#define BYTE_HI_MASK 0xFF00
+#define BYTE_LO_MASK 0x00FF
 #define NIBBLE_HI_MASK 0xF0
 #define NIBBLE_LO_MASK 0x0F
 
@@ -167,8 +167,9 @@ void read_header_debug(const uint8_t *buffer) {
 
 void print_state(struct CPU *cpu, struct PPU *ppu) {
   printf("PC:0x%04hX Opcode:0x%02hX AC:0x%02hX X:0x%02hX Y:0x%02hX SR:0x%02hX "
-         "SP:0x%02hX ",
-         cpu->pc, cpu->mem[cpu->pc], cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp);
+         "SP:0x%02hX Cycle:%zu\t",
+         cpu->pc, cpu->mem[cpu->pc], cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp,
+         cpu->cur_cycle);
 }
 
 uint16_t load_2_bytes(uint8_t *mem, uint16_t offset) {
@@ -199,21 +200,51 @@ void cpu_run_instruction(struct CPU *cpu) {
     mem[cpu->sp - 1] = cpu->sr | BREAK_MASK;
     cpu->sp -= 3;
     cpu->pc = load_2_bytes(cpu->mem, NMI_VECTOR_OFFSET);
-    cpu->sr |= INTERRUPT_DISABLE_MASK;
+    cpu->sr |= IRQ_DISABLE_MASK;
     cpu->cur_cycle += 7;
     printf("BRK\n");
     break;
   }
-  case JMP_abs: {
-    ++cpu->pc;
+  case CLC: {
+    cpu->sr ^= CARRY_MASK;
+    cpu->cur_cycle += 2;
+    printf("CLC\n");
+    break;
+  }
+  case JSR: {
+    mem[cpu->sp] = cpu->pc + 2;
+    cpu->sp -= 2;
+    cpu->pc += 1;
     uint16_t jump_addr = load_2_bytes(mem, cpu->pc);
-    printf("JMP $%02hX\n", jump_addr);
+    cpu->pc = jump_addr - 1;
+    cpu->cur_cycle += 6;
+    printf("JSR $%04hX\n", jump_addr);
+    break;
+  }
+  case SEC: {
+    cpu->sr |= CARRY_MASK;
+    cpu->cur_cycle += 2;
+    printf("SEC\n");
+    break;
+  }
+  case JMP_abs: {
+    cpu->pc += 1;
+    uint16_t jump_addr = load_2_bytes(mem, cpu->pc);
     cpu->pc = jump_addr - 1;
     cpu->cur_cycle += 3;
+    printf("JMP $%04hX\n", jump_addr);
+    break;
+  }
+  case STX_zpg: {
+    cpu->pc += 1;
+    uint8_t zpg_addr = mem[cpu->pc];
+    mem[zpg_addr] = cpu->x;
+    cpu->cur_cycle += 3;
+    printf("STX $%02hX\n", zpg_addr);
     break;
   }
   case SEI: {
-    cpu->sr |= INTERRUPT_DISABLE_MASK;
+    cpu->sr |= IRQ_DISABLE_MASK;
     cpu->cur_cycle += 2;
     printf("SEI\n");
     break;
@@ -225,11 +256,32 @@ void cpu_run_instruction(struct CPU *cpu) {
     break;
   }
   case LDX_imm: {
-    ++cpu->pc;
-    uint8_t imm = mem[cpu->pc];
-    printf("LDX #$%02hX\n", imm);
+    cpu->pc += 1;
+    int8_t imm = mem[cpu->pc];
     cpu->x = imm;
     cpu->cur_cycle += 2;
+    printf("LDX #$%02hX\n", imm);
+    break;
+  }
+  case BCS: {
+    cpu->pc += 1;
+    int8_t offset = mem[cpu->pc];
+    uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
+                                               // instruction + offset
+    if (cpu->sr & CARRY_MASK) {
+      cpu->cur_cycle +=
+          3 + (jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK); // 4 if
+      // address is on different page
+      cpu->pc = jump_addr - 1;
+    } else {
+      cpu->cur_cycle += 2;
+    }
+    printf("BCS $%04hX\n", jump_addr);
+    break;
+  }
+  case NOP: {
+    cpu->cur_cycle += 2;
+    printf("NOP\n");
     break;
   }
   default:
@@ -348,7 +400,7 @@ int main(int argc, char *argv[]) {
   // misc roms section size for NES 2.0
 
   struct CPU cpu = {.sp = SP_START};
-  struct PPU ppu = {};
+  struct PPU ppu = {}; // partially initialize to zero all fields
 
   read_header_debug(buffer);
   static_memmap(buffer, cpu.mem, ppu.mem);

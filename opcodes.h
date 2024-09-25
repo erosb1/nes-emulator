@@ -1,7 +1,13 @@
 enum Opcode {
   BRK = 0x00,     // break / interrupt
-  JMP_abs = 0x4C, // jump absolute
+  CLC = 0x18,     // clear carry
+  JSR = 0x20,     // jump subroutine (absolute)
+  SEC = 0x38,     // set carry
+  JMP_abs = 0x4C, // jump (absolute)
   SEI = 0x78,     // set interrupt disable
-  LDX_imm = 0xA2, // load x immediate
+  STX_zpg = 0x86, // store x (zero-page)
+  LDX_imm = 0xA2, // load x (immediate)
+  BCS = 0xB0,     // branch if carry (relative)
   CLD = 0xD8,     // clear decimal
+  NOP = 0xEA,     // no operation
 };
