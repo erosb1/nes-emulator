@@ -285,7 +285,16 @@ void cpu_run_instruction(struct CPU *cpu) {
     cpu->pc += 1;
     uint8_t imm = mem[cpu->pc];
     cpu->x = imm;
-    cpu->sr = ((imm < 0) * NEGATIVE_MASK | (imm == 0) * ZERO_MASK);
+    if (imm < 0) {
+      cpu->sr |= NEGATIVE_MASK;
+    } else {
+      cpu->sr ^= NEGATIVE_MASK;
+    }
+    if (imm == 0) {
+      cpu->sr |= ZERO_MASK;
+    } else {
+      cpu->sr ^= ZERO_MASK;
+    }
     cpu->cur_cycle += 2;
     printf("LDX #$%02hX\n", imm);
     break;
@@ -295,7 +304,16 @@ void cpu_run_instruction(struct CPU *cpu) {
     cpu->pc += 1;
     int8_t imm = mem[cpu->pc];
     cpu->ac = imm;
-    cpu->sr = ((imm < 0) * NEGATIVE_MASK | (imm == 0) * ZERO_MASK);
+    if (imm < 0) {
+      cpu->sr |= NEGATIVE_MASK;
+    } else {
+      cpu->sr ^= NEGATIVE_MASK;
+    }
+    if (imm == 0) {
+      cpu->sr |= ZERO_MASK;
+    } else {
+      cpu->sr ^= ZERO_MASK;
+    }
     cpu->cur_cycle += 2;
     printf("LDX #$%02hX\n", imm);
     break;
