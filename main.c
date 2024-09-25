@@ -378,9 +378,8 @@ void cpu_run_instructions(struct CPU *cpu, struct PPU *ppu,
     cpu_run_instruction(cpu);
 
     ++cpu->pc;
-
-    cpu->cur_cycle = 0; // to prevent overflow
   }
+  cpu->cur_cycle = 0; // to prevent overflow
 }
 
 void new_frame(struct CPU *cpu, struct PPU *ppu) {
@@ -476,7 +475,7 @@ int main(int argc, char *argv[]) {
   size_t size = load_rom(&buffer, argv[1]); // size is needed to calculate the
   // misc roms section size for NES 2.0
 
-  struct CPU cpu = {.sp = SP_START};
+  struct CPU cpu = {.sp = SP_START, .cur_cycle = 7};
   struct PPU ppu = {}; // partially initialize to zero all fields
 
   read_header_debug(buffer);
