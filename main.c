@@ -287,12 +287,12 @@ void cpu_run_instruction(struct CPU *cpu) {
     cpu->x = imm;
     if (imm < 0) {
       cpu->sr |= NEGATIVE_MASK;
-    } else {
+      cpu->sr ^= ZERO_MASK;
+    } else if (imm == 0) {
       cpu->sr ^= NEGATIVE_MASK;
-    }
-    if (imm == 0) {
       cpu->sr |= ZERO_MASK;
     } else {
+      cpu->sr ^= NEGATIVE_MASK;
       cpu->sr ^= ZERO_MASK;
     }
     cpu->cur_cycle += 2;
@@ -306,12 +306,12 @@ void cpu_run_instruction(struct CPU *cpu) {
     cpu->ac = imm;
     if (imm < 0) {
       cpu->sr |= NEGATIVE_MASK;
-    } else {
+      cpu->sr ^= ZERO_MASK;
+    } else if (imm == 0) {
       cpu->sr ^= NEGATIVE_MASK;
-    }
-    if (imm == 0) {
       cpu->sr |= ZERO_MASK;
     } else {
+      cpu->sr ^= NEGATIVE_MASK;
       cpu->sr ^= ZERO_MASK;
     }
     cpu->cur_cycle += 2;
