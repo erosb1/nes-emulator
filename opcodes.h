@@ -8,6 +8,7 @@ enum Opcode {
   STX_zpg = 0x86, // store x (zero-page)
   BCC = 0x90,     // branch if not carry
   LDX_imm = 0xA2, // load x (immediate)
+  LDA_imm = 0xA9, // load a (immediate)
   BCS = 0xB0,     // branch if carry (relative)
   CLD = 0xD8,     // clear decimal
   NOP = 0xEA,     // no operation

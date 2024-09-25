@@ -11,7 +11,7 @@
 // options
 #define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
 // out for normal entrypoint behavior)
-#define BREAKPOINT 0xC754
+#define BREAKPOINT 0xC757
 
 // map_mem parameters
 #define CPU_MEM_SIZE 0x10000 // 64KiB
@@ -290,6 +290,15 @@ void cpu_run_instruction(struct CPU *cpu) {
     break;
   }
 
+  case LDA_imm: {
+    cpu->pc += 1;
+    int8_t imm = mem[cpu->pc];
+    cpu->ac = imm;
+    cpu->cur_cycle += 2;
+    printf("LDX #$%02hX\n", imm);
+    break;
+  }
+
   case BCS: {
     cpu->pc += 1;
     int8_t offset = mem[cpu->pc];
@@ -321,16 +330,18 @@ void cpu_run_instruction(struct CPU *cpu) {
 void cpu_run_instructions(struct CPU *cpu, struct PPU *ppu,
                           size_t cycles) { // ppu
   // only needed for logging purposes
+  //
   cpu->cur_cycle = 0;
   while (cpu->cur_cycle < cycles) {
 #ifdef TESTING
-    if (cpu->pc == BREAKPOINT + 1) {
+    if (cpu->pc == BREAKPOINT) {
       break;
     }
 #endif /* ifdef TESTING */
 
     print_state(cpu, ppu);
     cpu_run_instruction(cpu);
+
     ++cpu->pc;
   }
 }
