@@ -270,7 +270,7 @@ void cpu_run_instruction(struct CPU *cpu) {
                                                // instruction + offset
     if (cpu->sr & CARRY_MASK) {
       cpu->cur_cycle +=
-          3 + (jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK); // 4 if
+          3 + ((jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK)); // 4 if
       // address is on different page
       cpu->pc = jump_addr - 1;
     } else {
