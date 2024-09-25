@@ -178,7 +178,7 @@ uint16_t load_2_bytes(uint8_t *mem, uint16_t offset) {
 
 void ppu_vblank_set(uint8_t *cpu_mem, uint8_t bool) {
   if (bool) {
-    cpu_mem[PPUCTRL_OFFSET] = bool * VBLANK_MASK;
+    cpu_mem[PPUCTRL_OFFSET] |= VBLANK_MASK;
   } else {
     cpu_mem[PPUCTRL_OFFSET] ^= VBLANK_MASK;
   }
