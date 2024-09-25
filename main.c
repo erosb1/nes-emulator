@@ -190,6 +190,7 @@ void ppu_maybe_nmi(struct CPU *cpu) {
   }
 }
 
+// TODO: add all of these
 void cpu_run_instruction(struct CPU *cpu) {
   uint8_t *mem = cpu->mem;
   uint8_t opcode = mem[cpu->pc];
@@ -205,12 +206,14 @@ void cpu_run_instruction(struct CPU *cpu) {
     printf("BRK\n");
     break;
   }
+
   case CLC: {
     cpu->sr ^= CARRY_MASK;
     cpu->cur_cycle += 2;
     printf("CLC\n");
     break;
   }
+
   case JSR: {
     mem[cpu->sp] = cpu->pc + 2;
     cpu->sp -= 2;
@@ -221,12 +224,14 @@ void cpu_run_instruction(struct CPU *cpu) {
     printf("JSR $%04hX\n", jump_addr);
     break;
   }
+
   case SEC: {
     cpu->sr |= CARRY_MASK;
     cpu->cur_cycle += 2;
     printf("SEC\n");
     break;
   }
+
   case JMP_abs: {
     cpu->pc += 1;
     uint16_t jump_addr = load_2_bytes(mem, cpu->pc);
@@ -235,6 +240,7 @@ void cpu_run_instruction(struct CPU *cpu) {
     printf("JMP $%04hX\n", jump_addr);
     break;
   }
+
   case STX_zpg: {
     cpu->pc += 1;
     uint8_t zpg_addr = mem[cpu->pc];
@@ -243,6 +249,7 @@ void cpu_run_instruction(struct CPU *cpu) {
     printf("STX $%02hX\n", zpg_addr);
     break;
   }
+
   case BCC: {
     cpu->pc += 1;
     int8_t offset = mem[cpu->pc];
@@ -259,18 +266,21 @@ void cpu_run_instruction(struct CPU *cpu) {
     printf("BCC $%04hX\n", jump_addr);
     break;
   }
+
   case SEI: {
     cpu->sr |= IRQ_DISABLE_MASK;
     cpu->cur_cycle += 2;
     printf("SEI\n");
     break;
   }
+
   case CLD: {
     cpu->sr ^= DECIMAL_MASK;
     cpu->cur_cycle += 2;
     printf("CLD\n");
     break;
   }
+
   case LDX_imm: {
     cpu->pc += 1;
     int8_t imm = mem[cpu->pc];
@@ -279,6 +289,7 @@ void cpu_run_instruction(struct CPU *cpu) {
     printf("LDX #$%02hX\n", imm);
     break;
   }
+
   case BCS: {
     cpu->pc += 1;
     int8_t offset = mem[cpu->pc];
@@ -295,11 +306,13 @@ void cpu_run_instruction(struct CPU *cpu) {
     printf("BCS $%04hX\n", jump_addr);
     break;
   }
+
   case NOP: {
     cpu->cur_cycle += 2;
     printf("NOP\n");
     break;
   }
+
   default:
     printf("\n");
   }
