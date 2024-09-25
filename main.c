@@ -42,7 +42,6 @@
 
 // stack parameters
 #define STACK_OFFSET 0x0100
-#define SP_START 0x00FD // only matters for tests
 
 // status masks
 #define CARRY_MASK 0x01
@@ -90,8 +89,9 @@
 // masks  TODO: add the rest of these
 #define VBLANK_MASK 0x80
 
-// cpu parameters
-// #define BOOTUP_SEQUENCE_CYCLES 0x07
+// only needed for nestest
+#define BOOTUP_SEQUENCE_CYCLES 0x07
+#define SP_START 0x00FD
 
 struct CPU {
   uint16_t pc; // program counter
@@ -409,6 +409,7 @@ void run_prg(struct CPU *cpu, struct PPU *ppu) {
 #ifdef TESTING
   entrypoint = TESTING;
   printf("breakpoint: 0x%04hX, ", BREAKPOINT);
+  cpu->cur_cycle = BOOTUP_SEQUENCE_CYCLES;
 #endif /* ifdef TESTING */
 
   printf("entrypoint: 0x%04hX)\n", entrypoint);
@@ -475,7 +476,7 @@ int main(int argc, char *argv[]) {
   size_t size = load_rom(&buffer, argv[1]); // size is needed to calculate the
   // misc roms section size for NES 2.0
 
-  struct CPU cpu = {.sp = SP_START, .cur_cycle = 7};
+  struct CPU cpu = {.sp = SP_START};
   struct PPU ppu = {}; // partially initialize to zero all fields
 
   read_header_debug(buffer);
