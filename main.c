@@ -289,6 +289,9 @@ void run_prg(struct CPU *cpu, struct PPU *ppu) {
   ppu->extra_cycle_active = 0;
   ppu->extra_cycle_vblank = 0;
   for (size_t frame = 0; TRUE; ++frame) {
+    if (frame == NTSC_CPU_EXTRA_ACTIVE_CYCLE * NTSC_CPU_EXTRA_VBLANK_CYCLE) {
+      frame = 0; // to prevent overflow
+    }
     if (frame % NTSC_CPU_EXTRA_ACTIVE_CYCLE == 0) {
       ppu->extra_cycle_active = 1;
     }
