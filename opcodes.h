@@ -12,4 +12,5 @@ enum Opcode {
   BCS = 0xB0,     // branch if carry (relative)
   CLD = 0xD8,     // clear decimal
   NOP = 0xEA,     // no operation
+  BEQ = 0xF0      // branch on equal zero (relative)
 };

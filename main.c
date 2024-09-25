@@ -11,7 +11,7 @@
 // options
 #define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
 // out for normal entrypoint behavior)
-#define BREAKPOINT 0xC757
+#define BREAKPOINT 0xC76B
 
 // map_mem parameters
 #define CPU_MEM_SIZE 0x10000 // 64KiB
@@ -255,7 +255,7 @@ void cpu_run_instruction(struct CPU *cpu) {
     int8_t offset = mem[cpu->pc];
     uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
                                                // instruction + offset
-    if (cpu->sr ^ CARRY_MASK) {
+    if (!(cpu->sr & CARRY_MASK)) {
       cpu->cur_cycle +=
           3 + ((jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK)); // 4 if
       // address is on different page
@@ -283,8 +283,9 @@ void cpu_run_instruction(struct CPU *cpu) {
 
   case LDX_imm: {
     cpu->pc += 1;
-    int8_t imm = mem[cpu->pc];
+    uint8_t imm = mem[cpu->pc];
     cpu->x = imm;
+    cpu->sr = ((imm < 0) * NEGATIVE_MASK | (imm == 0) * ZERO_MASK);
     cpu->cur_cycle += 2;
     printf("LDX #$%02hX\n", imm);
     break;
@@ -294,6 +295,7 @@ void cpu_run_instruction(struct CPU *cpu) {
     cpu->pc += 1;
     int8_t imm = mem[cpu->pc];
     cpu->ac = imm;
+    cpu->sr = ((imm < 0) * NEGATIVE_MASK | (imm == 0) * ZERO_MASK);
     cpu->cur_cycle += 2;
     printf("LDX #$%02hX\n", imm);
     break;
@@ -322,6 +324,23 @@ void cpu_run_instruction(struct CPU *cpu) {
     break;
   }
 
+  case BEQ: {
+    cpu->pc += 1;
+    int8_t offset = mem[cpu->pc];
+    uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
+                                               // instruction + offset
+    if (cpu->sr & ZERO_MASK) {
+      cpu->cur_cycle +=
+          3 + ((jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK)); // 4 if
+      // address is on different page
+      cpu->pc = jump_addr - 1;
+    } else {
+      cpu->cur_cycle += 2;
+    }
+    printf("BEQ $%04hX\n", jump_addr);
+    break;
+  }
+
   default:
     printf("\n");
   }
@@ -334,7 +353,7 @@ void cpu_run_instructions(struct CPU *cpu, struct PPU *ppu,
   cpu->cur_cycle = 0;
   while (cpu->cur_cycle < cycles) {
 #ifdef TESTING
-    if (cpu->pc == BREAKPOINT) {
+    if (cpu->pc == BREAKPOINT + 1) {
       break;
     }
 #endif /* ifdef TESTING */
