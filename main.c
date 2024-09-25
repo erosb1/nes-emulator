@@ -342,16 +342,16 @@ void new_frame(struct CPU *cpu, struct PPU *ppu) {
 
 // https://www.masswerk.at/6502/6502_instruction_set.html
 void run_prg(struct CPU *cpu, struct PPU *ppu) {
-  printf("Execution:\n");
+  printf("Execution: (");
 
   uint16_t entrypoint = load_2_bytes(cpu->mem, RESET_VECTOR_OFFSET);
 
 #ifdef TESTING
   entrypoint = TESTING;
-
+  printf("breakpoint: 0x%04hX, ", BREAKPOINT);
 #endif /* ifdef TESTING */
 
-  printf("Entrypoint: 0x%04hX\n", entrypoint);
+  printf("entrypoint: 0x%04hX)\n", entrypoint);
 
   cpu->pc = entrypoint;
 
