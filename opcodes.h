@@ -6,6 +6,7 @@ enum Opcode {
   JMP_abs = 0x4C, // jump (absolute)
   SEI = 0x78,     // set interrupt disable
   STX_zpg = 0x86, // store x (zero-page)
+  BCC = 0x90,     // branch if not carry
   LDX_imm = 0xA2, // load x (immediate)
   BCS = 0xB0,     // branch if carry (relative)
   CLD = 0xD8,     // clear decimal

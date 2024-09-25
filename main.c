@@ -11,7 +11,7 @@
 // options
 #define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
 // out for normal entrypoint behavior)
-#define BREAKPOINT 0xC743
+#define BREAKPOINT 0xC754
 
 // map_mem parameters
 #define CPU_MEM_SIZE 0x10000 // 64KiB
@@ -195,7 +195,7 @@ void cpu_run_instruction(struct CPU *cpu) {
   uint8_t opcode = mem[cpu->pc];
 
   switch (opcode) {
-  case BRK: { // not tested
+  case BRK: { // not tested properly
     mem[cpu->sp] = cpu->pc + 2;
     mem[cpu->sp - 1] = cpu->sr | BREAK_MASK;
     cpu->sp -= 3;
@@ -241,6 +241,22 @@ void cpu_run_instruction(struct CPU *cpu) {
     mem[zpg_addr] = cpu->x;
     cpu->cur_cycle += 3;
     printf("STX $%02hX\n", zpg_addr);
+    break;
+  }
+  case BCC: {
+    cpu->pc += 1;
+    int8_t offset = mem[cpu->pc];
+    uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
+                                               // instruction + offset
+    if (cpu->sr ^ CARRY_MASK) {
+      cpu->cur_cycle +=
+          3 + ((jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK)); // 4 if
+      // address is on different page
+      cpu->pc = jump_addr - 1;
+    } else {
+      cpu->cur_cycle += 2;
+    }
+    printf("BCC $%04hX\n", jump_addr);
     break;
   }
   case SEI: {
