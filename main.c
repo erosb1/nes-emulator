@@ -41,9 +41,8 @@
 #define NROM_CHR_OFFSET 0x0000
 
 // stack parameters
-#define STACK_SIZE 0x0100
 #define STACK_OFFSET 0x0100
-#define SP_START 0x00FF
+#define SP_START 0x00FD // only matters for tests
 
 // status masks
 #define CARRY_MASK 0x01
