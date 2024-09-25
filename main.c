@@ -198,7 +198,7 @@ void cpu_run_instruction(struct CPU *cpu) {
   switch (opcode) {
   case BRK: { // not tested properly
     mem[STACK_OFFSET + cpu->sp] = cpu->pc + 2;
-    mem[cpu->sp - 1] = cpu->sr | BREAK_MASK;
+    mem[STACK_OFFSET + cpu->sp - 1] = cpu->sr | BREAK_MASK;
     cpu->sp -= 3;
     cpu->pc = load_2_bytes(cpu->mem, NMI_VECTOR_OFFSET);
     cpu->sr |= IRQ_DISABLE_MASK;
@@ -215,7 +215,7 @@ void cpu_run_instruction(struct CPU *cpu) {
   }
 
   case JSR: {
-    mem[cpu->sp] = cpu->pc + 2;
+    mem[STACK_OFFSET + cpu->sp] = cpu->pc + 2;
     cpu->sp -= 2;
     cpu->pc += 1;
     uint16_t jump_addr = load_2_bytes(mem, cpu->pc);
