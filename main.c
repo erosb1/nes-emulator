@@ -178,7 +178,7 @@ uint16_t load_2_bytes(uint8_t *mem, uint16_t offset) {
 
 void ppu_vblank_set(uint8_t *cpu_mem, uint8_t bool) {
   if (bool) {
-    cpu_mem[PPUCTRL_OFFSET] |= VBLANK_MASK;
+    cpu_mem[PPUCTRL_OFFSET] = bool * VBLANK_MASK;
   } else {
     cpu_mem[PPUCTRL_OFFSET] ^= VBLANK_MASK;
   }
@@ -368,7 +368,6 @@ void cpu_run_instructions(struct CPU *cpu, struct PPU *ppu,
                           size_t cycles) { // ppu
   // only needed for logging purposes
   //
-  cpu->cur_cycle = 0;
   while (cpu->cur_cycle < cycles) {
 #ifdef TESTING
     if (cpu->pc == BREAKPOINT + 1) {
@@ -380,6 +379,8 @@ void cpu_run_instructions(struct CPU *cpu, struct PPU *ppu,
     cpu_run_instruction(cpu);
 
     ++cpu->pc;
+
+    cpu->cur_cycle = 0; // to prevent overflow
   }
 }
 
