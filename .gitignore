@@ -30,6 +30,7 @@
 
 # Executables
 build/
+cmake-build-debug/
 *.exe
 *.out
 *.app
@@ -51,3 +52,7 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Excluded from .gitignore
+!dtekv-build/softfloat.a
+!dtekv-build/boot.o

@@ -22,3 +22,35 @@
 ### 6502 tutorials
 
 [Easy 6502 (interactive)](http://skilldrick.github.io/easy6502)
+
+
+## Building for the Host System
+
+This option builds the project using the default C compiler on your system. 
+Graphics are rendered in an SDL window, and the standard computer keyboard is used as the controller. 
+This build includes all `.h` and `.c` files from the `emulator/` and `sdl/` directories.
+
+### Instructions:
+
+```sh
+mkdir build
+cd build
+cmake ..
+make
+```
+The resulting executable will be named `main`, `main.exe`, or `main.bin`, depending on your operating system.
+
+## Building for RISC-V (DTEKV DE10-Lite)
+This build targets the RISC-V architecture for the DTEKV DE10-Lite board. 
+It includes `.h` and `.c` files from the `emulator/`, `dtekv-build/`, and `dtekv-drivers/` directories. 
+Graphics will be output to a VGA screen, and input will come from an NES controller.
+
+**Note**: You must perform this build on a Linux machine.
+
+```sh
+mkdir build
+cd build
+cmake -DCMAKE_TOOLCHAIN_FILE=../riscv-toolchain.cmake ..
+make
+```
+The executable will be named `main.bin`. Additionally, a disassembled RISC-V assembly dump will be generated in `main.elf.txt`.
