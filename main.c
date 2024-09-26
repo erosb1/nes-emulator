@@ -11,7 +11,7 @@
 // options
 #define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
 // out for normal entrypoint behavior)
-#define BREAKPOINT 0xC780
+#define BREAKPOINT 0xC782
 
 // map_mem parameters
 #define CPU_MEM_SIZE 0x10000 // 64KiB
@@ -395,7 +395,7 @@ void cpu_run_instructions(struct CPU *cpu, struct PPU *ppu,
   //
   while (cpu->cur_cycle < cycles) {
 #ifdef TESTING
-    if (cpu->pc == BREAKPOINT + 1) {
+    if (cpu->pc == BREAKPOINT) {
       break;
     }
 #endif /* ifdef TESTING */
