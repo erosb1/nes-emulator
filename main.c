@@ -394,16 +394,18 @@ void cpu_run_instructions(struct CPU *cpu, struct PPU *ppu,
   // only needed for logging purposes
   //
   while (cpu->cur_cycle < cycles) {
-#ifdef TESTING
-    if (cpu->pc == BREAKPOINT) {
-      break;
-    }
-#endif /* ifdef TESTING */
 
     print_state(cpu, ppu);
     cpu_run_instruction(cpu);
 
     ++cpu->pc;
+
+#ifdef TESTING
+    if (cpu->pc == BREAKPOINT) {
+      // set actual breakpoint here for inspecting memory
+      exit(EXIT_SUCCESS);
+    }
+#endif /* ifdef TESTING */
   }
   cpu->cur_cycle = 0; // to prevent overflow
 }
