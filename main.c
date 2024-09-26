@@ -282,6 +282,23 @@ void cpu_run_instruction(struct CPU *cpu) {
     break;
   }
 
+  case BNE: {
+    cpu->pc += 1;
+    int8_t offset = mem[cpu->pc];
+    uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
+                                               // instruction + offset
+    if (~cpu->sr & ZERO_MASK) {
+      cpu->cur_cycle +=
+          3 + ((jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK)); // 4 if
+      // address is on different page
+      cpu->pc = jump_addr - 1;
+    } else {
+      cpu->cur_cycle += 2;
+    }
+    printf("BNE $%04hX\n", jump_addr);
+    break;
+  }
+
   case CLD: {
     cpu->sr &= ~DECIMAL_MASK;
     cpu->cur_cycle += 2;
@@ -364,23 +381,6 @@ void cpu_run_instruction(struct CPU *cpu) {
       cpu->cur_cycle += 2;
     }
     printf("BEQ $%04hX\n", jump_addr);
-    break;
-  }
-
-  case BNE: {
-    cpu->pc += 1;
-    int8_t offset = mem[cpu->pc];
-    uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
-                                               // instruction + offset
-    if (~cpu->sr & ZERO_MASK) {
-      cpu->cur_cycle +=
-          3 + ((jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK)); // 4 if
-      // address is on different page
-      cpu->pc = jump_addr - 1;
-    } else {
-      cpu->cur_cycle += 2;
-    }
-    printf("BNE $%04hX\n", jump_addr);
     break;
   }
 
