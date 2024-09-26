@@ -240,6 +240,15 @@ void cpu_run_instruction(struct CPU *cpu) {
     break;
   }
 
+  case STA_zpg: {
+    cpu->pc += 1;
+    uint8_t zpg_addr = mem[cpu->pc];
+    mem[zpg_addr] = cpu->ac;
+    cpu->cur_cycle += 3;
+    printf("STA $%02hX\n", zpg_addr);
+    break;
+  }
+
   case STX_zpg: {
     cpu->pc += 1;
     uint8_t zpg_addr = mem[cpu->pc];
