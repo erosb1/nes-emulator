@@ -308,7 +308,7 @@ void cpu_run_instruction(struct CPU *cpu) {
 
   case LDX_imm: {
     cpu->pc += 1;
-    uint8_t imm = mem[cpu->pc];
+    int8_t imm = mem[cpu->pc];
     cpu->x = imm;
     if (imm < 0) {
       cpu->sr |= NEGATIVE_MASK;
