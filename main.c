@@ -321,7 +321,7 @@ void cpu_run_instruction(struct CPU *cpu) {
       cpu->sr &= ~ZERO_MASK;
     }
     cpu->cur_cycle += 2;
-    printf("LDX #$%02hX\n", imm);
+    printf("LDX #$%02hX\n", (uint8_t)imm);
     break;
   }
 
@@ -340,7 +340,7 @@ void cpu_run_instruction(struct CPU *cpu) {
       cpu->sr &= ~ZERO_MASK;
     }
     cpu->cur_cycle += 2;
-    printf("LDA #$%02hX\n", imm);
+    printf("LDA #$%02hX\n", (uint8_t)imm);
     break;
   }
 
