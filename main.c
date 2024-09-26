@@ -171,7 +171,7 @@ void print_state(struct CPU *cpu, struct PPU *ppu) {
          cpu->cur_cycle);
 }
 
-uint16_t load_2_bytes(uint8_t *mem, uint16_t offset) {
+uint16_t load_2_bytes(const uint8_t *mem, uint16_t offset) {
   return (mem[offset + 1] << BYTE_SIZE) | mem[offset];
 }
 
@@ -179,7 +179,7 @@ void ppu_vblank_set(uint8_t *cpu_mem, uint8_t bool) {
   if (bool) {
     cpu_mem[PPUCTRL_OFFSET] |= VBLANK_MASK;
   } else {
-    cpu_mem[PPUCTRL_OFFSET] ^= VBLANK_MASK;
+    cpu_mem[PPUCTRL_OFFSET] &= ~VBLANK_MASK;
   }
 }
 
@@ -207,7 +207,7 @@ void cpu_run_instruction(struct CPU *cpu) {
   }
 
   case CLC: {
-    cpu->sr ^= CARRY_MASK;
+    cpu->sr &= ~CARRY_MASK;
     cpu->cur_cycle += 2;
     printf("CLC\n");
     break;
@@ -254,7 +254,7 @@ void cpu_run_instruction(struct CPU *cpu) {
     int8_t offset = mem[cpu->pc];
     uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
                                                // instruction + offset
-    if (!(cpu->sr & CARRY_MASK)) {
+    if (~cpu->sr & CARRY_MASK) {
       cpu->cur_cycle +=
           3 + ((jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK)); // 4 if
       // address is on different page
@@ -274,7 +274,7 @@ void cpu_run_instruction(struct CPU *cpu) {
   }
 
   case CLD: {
-    cpu->sr ^= DECIMAL_MASK;
+    cpu->sr &= ~DECIMAL_MASK;
     cpu->cur_cycle += 2;
     printf("CLD\n");
     break;
@@ -286,13 +286,13 @@ void cpu_run_instruction(struct CPU *cpu) {
     cpu->x = imm;
     if (imm < 0) {
       cpu->sr |= NEGATIVE_MASK;
-      cpu->sr ^= ZERO_MASK;
+      cpu->sr &= ~ZERO_MASK;
     } else if (imm == 0) {
-      cpu->sr ^= NEGATIVE_MASK;
+      cpu->sr &= ~NEGATIVE_MASK;
       cpu->sr |= ZERO_MASK;
     } else {
-      cpu->sr ^= NEGATIVE_MASK;
-      cpu->sr ^= ZERO_MASK;
+      cpu->sr &= ~NEGATIVE_MASK;
+      cpu->sr &= ~ZERO_MASK;
     }
     cpu->cur_cycle += 2;
     printf("LDX #$%02hX\n", imm);
@@ -305,16 +305,16 @@ void cpu_run_instruction(struct CPU *cpu) {
     cpu->ac = imm;
     if (imm < 0) {
       cpu->sr |= NEGATIVE_MASK;
-      cpu->sr ^= ZERO_MASK;
+      cpu->sr &= ~ZERO_MASK;
     } else if (imm == 0) {
-      cpu->sr ^= NEGATIVE_MASK;
+      cpu->sr &= ~NEGATIVE_MASK;
       cpu->sr |= ZERO_MASK;
     } else {
-      cpu->sr ^= NEGATIVE_MASK;
-      cpu->sr ^= ZERO_MASK;
+      cpu->sr &= ~NEGATIVE_MASK;
+      cpu->sr &= ~ZERO_MASK;
     }
     cpu->cur_cycle += 2;
-    printf("LDX #$%02hX\n", imm);
+    printf("LDA #$%02hX\n", imm);
     break;
   }
 
