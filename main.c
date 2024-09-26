@@ -166,7 +166,7 @@ void read_header_debug(const uint8_t *buffer) {
 
 void print_state(struct CPU *cpu, struct PPU *ppu) {
   printf("PC:0x%04hX Opcode:0x%02hX AC:0x%02hX X:0x%02hX Y:0x%02hX SR:0x%02hX "
-         "SP:0x%02hX Cycle:%zu\t",
+         "SP:0x%02hX Cycle:%zu \t",
          cpu->pc, cpu->mem[cpu->pc], cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp,
          cpu->cur_cycle);
 }
