@@ -10,6 +10,7 @@ enum Opcode {
   LDX_imm = 0xA2, // load x (immediate)
   LDA_imm = 0xA9, // load a (immediate)
   BCS = 0xB0,     // branch if carry (relative)
+  BNE = 0xD0,     // branch if not equal zero (relative)
   CLD = 0xD8,     // clear decimal
   NOP = 0xEA,     // no operation
   BEQ = 0xF0      // branch on equal zero (relative)
