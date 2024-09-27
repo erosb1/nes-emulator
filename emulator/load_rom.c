@@ -41,7 +41,7 @@ size_t load_rom(uint8_t **buffer, const char *path) {
 
     if (actual_size != expected_size) {
         printf("Fatal Error: Expected size (%zu) != actual size (%zu) %s\n",
-            expected_size, actual_size, path);
+               expected_size, actual_size, path);
         exit(EXIT_FAILURE);
     }
     return actual_size;
@@ -80,8 +80,8 @@ void static_memmap(uint8_t *buffer, uint8_t *cpu_mem, uint8_t *ppu_mem) {
     uint8_t chr_size = buffer[CHR_SIZE_HEADER_IDX];
     uint8_t chr_size_bytes = chr_size * CHR_SIZE_UNIT;
 
-    uint8_t mapper_num =  (buffer[FLAGS_6_HEADER_IDX] >> NIBBLE_SIZE) |
-                          (buffer[FLAGS_7_HEADER_IDX] & NIBBLE_HI_MASK);
+    uint8_t mapper_num = (buffer[FLAGS_6_HEADER_IDX] >> NIBBLE_SIZE) |
+                         (buffer[FLAGS_7_HEADER_IDX] & NIBBLE_HI_MASK);
 
     buffer += HEADER_SIZE;
 
@@ -89,14 +89,15 @@ void static_memmap(uint8_t *buffer, uint8_t *cpu_mem, uint8_t *ppu_mem) {
     case 0: {
         // #000 (nrom)
         memcpy(cpu_mem + NROM_PRG_OFFSET_1, buffer, prg_size_bytes);
-        memcpy(ppu_mem + NROM_CHR_OFFSET, buffer + prg_size_bytes, chr_size_bytes);
+        memcpy(ppu_mem + NROM_CHR_OFFSET, buffer + prg_size_bytes,
+               chr_size_bytes);
         if (prg_size == 1) {
             memcpy(cpu_mem + NROM_PRG_OFFSET_2, buffer, prg_size_bytes);
             break;
         }
         if (prg_size == 2) {
             memcpy(cpu_mem + NROM_PRG_OFFSET_2, buffer + PRG_SIZE_UNIT,
-                  prg_size_bytes);
+                   prg_size_bytes);
             break;
         }
     }

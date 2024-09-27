@@ -18,7 +18,8 @@ void write_memory(CPUMemory *mem, uint16_t address, uint8_t value) {
     }
 
     if (address < RAM_MIRROR_END) {
-        mem->ram[address % RAM_SIZE] = value; // Calculate corresponding address in RAM
+        mem->ram[address % RAM_SIZE] =
+            value; // Calculate corresponding address in RAM
         return;
     }
 
@@ -42,7 +43,8 @@ void write_memory(CPUMemory *mem, uint16_t address, uint8_t value) {
         return;
     }
 
-    // Todo, you should not be able to write to this region. This will be handled by mappers
+    // Todo, you should not be able to write to this region. This will be
+    // handled by mappers
     if (address < CARTRIDGE_ROM_END) {
         mem->cartridge_rom[address - CARTRIDGE_RAM_SIZE] = value;
         return;
