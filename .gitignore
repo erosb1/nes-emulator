@@ -60,3 +60,5 @@ dkms.conf
 # Build cache
 .cache
 
+# IDE files
+.idea/

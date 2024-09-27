@@ -1,7 +1,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include <stdint.h>
+#include "common.h"
+#include "cpu.h"
 
 // utility macros
 #define BYTE_SIZE 0x08
@@ -13,9 +14,7 @@
 #define NIBBLE_HI_MASK 0xF0
 #define NIBBLE_LO_MASK 0x0F
 
-struct CPU;
-
-void print_state(struct CPU *cpu);
+void print_state(CPU *cpu);
 uint16_t load_2_bytes(const uint8_t *addr);
 
 #endif
