@@ -9,13 +9,12 @@
 
 #else
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
 #include <assert.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #endif
-
 
 #endif
