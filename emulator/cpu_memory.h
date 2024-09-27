@@ -30,7 +30,6 @@ typedef struct CPUMemory {
     uint8_t cartridge_rom[CARTRIDGE_ROM_SIZE];
 } CPUMemory;
 
-void init_memory(CPUMemory *mem);
 void write_memory(CPUMemory *mem, uint16_t address, uint8_t value);
 uint8_t read_memory(CPUMemory *mem, uint16_t address);
 

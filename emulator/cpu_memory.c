@@ -1,15 +1,5 @@
 #include "cpu_memory.h"
 
-void init_memory(CPUMemory *mem) {
-    memset(mem->ram, 0, RAM_SIZE);
-    memset(mem->ppu_reg, 0, PPU_REGISTER_SIZE);
-    memset(mem->apu_io_reg, 0, APU_IO_REGISTER_SIZE);
-    memset(mem->cartridge_ram, 0, CARTRIDGE_RAM_SIZE);
-
-    // Todo: Load in cartridge ROM from mapper
-    memset(mem->cartridge_rom, 0, CARTRIDGE_ROM_SIZE);
-}
-
 void write_memory(CPUMemory *mem, uint16_t address, uint8_t value) {
 
     if (address < RAM_END) {

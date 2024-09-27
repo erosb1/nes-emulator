@@ -94,11 +94,9 @@ int main(int argc, char *argv[]) {
     size_t size = load_rom(&buffer, argv[1]); // size is needed to calculate the
     // misc roms section size for NES 2.0
 
-    CPUMemory mem;
+    CPUMemory mem = {};
     CPU cpu = {.sp = SP_START, .mem = &mem};
     PPU ppu = {}; // partially initialize to zero all fields
-
-    init_memory(&mem);
 
     read_header_debug(buffer);
     static_memmap(buffer, cpu.mem, ppu.mem);
