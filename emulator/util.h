@@ -1,7 +1,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include <stdint.h>
+#include "common.h"
 
 // utility macros
 #define BYTE_SIZE 0x08

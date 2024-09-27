@@ -1,8 +1,6 @@
 #include "load_rom.h"
 #include "console.h"
 #include "util.h"
-#include <stdio.h>
-#include <string.h>
 
 // size units
 #define PRG_SIZE_UNIT 0x4000 // 16 KiB

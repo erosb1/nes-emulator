@@ -1,7 +1,7 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include <stdlib.h>
+#include "common.h"
 
 #define CPU_MEM_SIZE 0x10000 // 64KiB
 

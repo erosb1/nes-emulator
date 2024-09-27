@@ -2,7 +2,6 @@
 #include "console.h"
 #include "opcodes.h"
 #include "util.h"
-#include <stdint.h>
 
 // options
 #define BREAKPOINT 0xC784 // uncomment to run normally

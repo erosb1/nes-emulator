@@ -15,6 +15,7 @@
 // vector offsets
 #define RESET_VECTOR_OFFSET 0xFFFC
 #define NMI_VECTOR_OFFSET 0xFFFA
+#define BREAKPOINT 0
 
 // timing math
 

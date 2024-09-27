@@ -1,7 +1,7 @@
 #ifndef PPU_H
 #define PPU_H
 
-#include <stdint.h>
+#include "common.h"
 
 #define PPU_MEM_SIZE 0x4000 // 16KiB
 
