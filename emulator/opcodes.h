@@ -1,3 +1,6 @@
+#ifndef OPCODES_H
+#define OPCODES_H
+
 enum Opcode {
   BRK = 0x00,     // break / interrupt
   CLC = 0x18,     // clear carry
@@ -16,3 +19,5 @@ enum Opcode {
   NOP = 0xEA,     // no operation
   BEQ = 0xF0      // branch on equal zero (relative)
 };
+
+#endif

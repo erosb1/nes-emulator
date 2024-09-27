@@ -1,4 +1,3 @@
-
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
@@ -14,5 +13,4 @@
 
 #endif
 
-
-#endif //CONSOLE_H
+#endif // CONSOLE_H
