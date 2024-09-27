@@ -48,6 +48,42 @@ void ppu_maybe_nmi(CPU *cpu) {
     }
 }
 
+static void push_stack_8(CPU *cpu, uint8_t value) {
+    write_memory(cpu->mem, STACK_OFFSET + cpu->sp, value);
+    --cpu->sp;
+}
+
+static void push_stack_16(CPU *cpu, uint16_t value) {
+    write_memory(cpu->mem, STACK_OFFSET + cpu->sp, (value & 0xFF));
+    --cpu->sp;
+    write_memory(cpu->mem, STACK_OFFSET + cpu->sp, (value >> 8));
+    --cpu->sp;
+}
+
+static uint8_t pop_stack_8(CPU *cpu) {
+    ++cpu->sp;
+    return read_memory(cpu->mem, STACK_OFFSET + cpu->sp);
+}
+
+static uint16_t pop_stack_16(CPU *cpu) {
+    ++cpu->sp;
+    uint16_t value = read_memory(cpu->mem, STACK_OFFSET + cpu->sp) << 8;
+    ++cpu->sp;
+    value |= read_memory(cpu->mem, STACK_OFFSET + cpu->sp);
+    return value;
+}
+
+static int get_flag(CPU *cpu, CPUFlag flag) {
+    return (cpu->sr & flag) > 0;
+}
+
+static void set_flag(CPU *cpu, CPUFlag flag, int value) {
+    if (value)
+        cpu->sr |= flag;
+    else
+        cpu->sr &= ~flag;
+}
+
 // TODO: add all of these
 void cpu_run_instruction(CPU *cpu) {
     uint8_t *mem = cpu->mem;
