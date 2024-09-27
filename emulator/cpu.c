@@ -2,9 +2,6 @@
 #include "opcodes.h"
 #include "util.h"
 
-// options
-#define BREAKPOINT 0xC784 // uncomment to run normally
-
 // stack parameters
 #define STACK_OFFSET 0x0100
 
@@ -256,10 +253,14 @@ void cpu_run_instructions(CPU *cpu, size_t cycles) {
 
         ++cpu->pc;
 
+#ifdef BREAKPOINT
         if (cpu->pc == BREAKPOINT) {
             // set actual breakpoint here for inspecting memory
             exit(EXIT_SUCCESS);
         }
+#endif /* ifdef BREAKPOINT */
     }
+#ifndef TESTING
     cpu->cur_cycle = 0; // to prevent overflow
+#endif                  /* ifndef TESTING */
 }
