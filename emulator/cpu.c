@@ -1,5 +1,4 @@
 #include "cpu.h"
-#include "console.h"
 #include "opcodes.h"
 #include "util.h"
 
@@ -67,14 +66,14 @@ void cpu_run_instruction(CPU *cpu) {
     cpu->pc = load_2_bytes(cpu->mem + NMI_VECTOR_OFFSET);
     cpu->sr |= IRQ_DISABLE_MASK;
     cpu->cur_cycle += 7;
-    print("BRK\n");
+    printf("BRK\n");
     break;
   }
 
   case CLC: {
     cpu->sr &= ~CARRY_MASK;
     cpu->cur_cycle += 2;
-    print("CLC\n");
+    printf("CLC\n");
     break;
   }
 
@@ -85,14 +84,14 @@ void cpu_run_instruction(CPU *cpu) {
     uint16_t jump_addr = load_2_bytes(mem + cpu->pc);
     cpu->pc = jump_addr - 1;
     cpu->cur_cycle += 6;
-    print("JSR $%04hX\n", jump_addr);
+    printf("JSR $%04hX\n", jump_addr);
     break;
   }
 
   case SEC: {
     cpu->sr |= CARRY_MASK;
     cpu->cur_cycle += 2;
-    print("SEC\n");
+    printf("SEC\n");
     break;
   }
 
@@ -101,7 +100,7 @@ void cpu_run_instruction(CPU *cpu) {
     uint16_t jump_addr = load_2_bytes(mem + cpu->pc);
     cpu->pc = jump_addr - 1;
     cpu->cur_cycle += 3;
-    print("JMP $%04hX\n", jump_addr);
+    printf("JMP $%04hX\n", jump_addr);
     break;
   }
 
@@ -110,7 +109,7 @@ void cpu_run_instruction(CPU *cpu) {
     uint8_t zpg_addr = mem[cpu->pc];
     mem[zpg_addr] = cpu->ac;
     cpu->cur_cycle += 3;
-    print("STA $%02hX\n", zpg_addr);
+    printf("STA $%02hX\n", zpg_addr);
     break;
   }
 
@@ -119,7 +118,7 @@ void cpu_run_instruction(CPU *cpu) {
     uint8_t zpg_addr = mem[cpu->pc];
     mem[zpg_addr] = cpu->x;
     cpu->cur_cycle += 3;
-    print("STX $%02hX\n", zpg_addr);
+    printf("STX $%02hX\n", zpg_addr);
     break;
   }
 
@@ -136,14 +135,14 @@ void cpu_run_instruction(CPU *cpu) {
     } else {
       cpu->cur_cycle += 2;
     }
-    print("BCC $%04hX\n", jump_addr);
+    printf("BCC $%04hX\n", jump_addr);
     break;
   }
 
   case SEI: {
     cpu->sr |= IRQ_DISABLE_MASK;
     cpu->cur_cycle += 2;
-    print("SEI\n");
+    printf("SEI\n");
     break;
   }
 
@@ -160,14 +159,14 @@ void cpu_run_instruction(CPU *cpu) {
     } else {
       cpu->cur_cycle += 2;
     }
-    print("BNE $%04hX\n", jump_addr);
+    printf("BNE $%04hX\n", jump_addr);
     break;
   }
 
   case CLD: {
     cpu->sr &= ~DECIMAL_MASK;
     cpu->cur_cycle += 2;
-    print("CLD\n");
+    printf("CLD\n");
     break;
   }
 
@@ -186,7 +185,7 @@ void cpu_run_instruction(CPU *cpu) {
       cpu->sr &= ~ZERO_MASK;
     }
     cpu->cur_cycle += 2;
-    print("LDX #$%02hX\n", (uint8_t)imm);
+    printf("LDX #$%02hX\n", (uint8_t)imm);
     break;
   }
 
@@ -205,7 +204,7 @@ void cpu_run_instruction(CPU *cpu) {
       cpu->sr &= ~ZERO_MASK;
     }
     cpu->cur_cycle += 2;
-    print("LDA #$%02hX\n", (uint8_t)imm);
+    printf("LDA #$%02hX\n", (uint8_t)imm);
     break;
   }
 
@@ -222,13 +221,13 @@ void cpu_run_instruction(CPU *cpu) {
     } else {
       cpu->cur_cycle += 2;
     }
-    print("BCS $%04hX\n", jump_addr);
+    printf("BCS $%04hX\n", jump_addr);
     break;
   }
 
   case NOP: {
     cpu->cur_cycle += 2;
-    print("NOP\n");
+    printf("NOP\n");
     break;
   }
 
@@ -245,19 +244,19 @@ void cpu_run_instruction(CPU *cpu) {
     } else {
       cpu->cur_cycle += 2;
     }
-    print("BEQ $%04hX\n", jump_addr);
+    printf("BEQ $%04hX\n", jump_addr);
     break;
   }
 
   default:
-    print("\n");
+    printf("\n");
   }
 }
 
 void cpu_run_instructions(CPU *cpu, size_t cycles) {
   while (cpu->cur_cycle < cycles) {
 
-    print_state(cpu);
+    printf_state(cpu);
     cpu_run_instruction(cpu);
 
     ++cpu->pc;

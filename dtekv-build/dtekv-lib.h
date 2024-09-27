@@ -22,11 +22,16 @@ typedef unsigned int uint32_t;
 #define INT32_MAX (2147483647)
 #define UINT32_MAX (4294967295U)
 
+// Does nothing
+#define assert(expression) ((void)0)
 
 void dtekv_printc(char );
 void dtekv_print(char *);
 void dtekv_print_dec(unsigned int);
 void dtekv_print_hex32 ( unsigned int);
+
+// Since we can't access printf from stdio.h
+#define printf(fmt, ...) dtekv_print(fmt)
 
 void handle_exception ( unsigned arg0, unsigned arg1, unsigned arg2, unsigned arg3, unsigned arg4, unsigned arg5, unsigned mcause, unsigned syscall_num );
 void handle_interrupt(unsigned cause);

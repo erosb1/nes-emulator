@@ -1,5 +1,4 @@
 #include "load_rom.h"
-#include "console.h"
 #include "util.h"
 
 // size units
@@ -28,7 +27,7 @@ size_t load_rom(uint8_t **buffer, const char *path) {
 
   fp = fopen(path, "rb");
   if (fp == NULL) {
-    print("Fatal Error: Failed to open file %s\n", path);
+    printf("Fatal Error: Failed to open file %s\n", path);
     exit(EXIT_FAILURE);
   }
 
@@ -41,7 +40,7 @@ size_t load_rom(uint8_t **buffer, const char *path) {
   fclose(fp);
 
   if (actual_size != expected_size) {
-    print("Fatal Error: Expected size (%zu) != actual size (%zu) %s\n",
+    printf("Fatal Error: Expected size (%zu) != actual size (%zu) %s\n",
           expected_size, actual_size, path);
     exit(EXIT_FAILURE);
   }
@@ -50,29 +49,29 @@ size_t load_rom(uint8_t **buffer, const char *path) {
 
 // https://www.nesdev.org/wiki/INES#iNES_file_format
 void read_header_debug(const uint8_t *buffer) {
-  print("File Identifier:\n");
+  printf("File Identifier:\n");
   for (int i = 0; i < 4; ++i) {
-    print("0x%02hX", buffer[i]);
-    print("(%c) ", buffer[i]);
+    printf("0x%02hX", buffer[i]);
+    printf("(%c) ", buffer[i]);
   }
-  print("\n");
+  printf("\n");
 
-  print("PRG-ROM size (16kb units):\n");
-  print("0x%02hX", buffer[PRG_SIZE_HEADER_IDX]);
-  print("\n");
+  printf("PRG-ROM size (16kb units):\n");
+  printf("0x%02hX", buffer[PRG_SIZE_HEADER_IDX]);
+  printf("\n");
 
-  print("CHR-ROM size (8kb units):\n");
-  print("0x%02hX", buffer[CHR_SIZE_HEADER_IDX]);
-  print("\n");
+  printf("CHR-ROM size (8kb units):\n");
+  printf("0x%02hX", buffer[CHR_SIZE_HEADER_IDX]);
+  printf("\n");
 
-  print("Flags 6:\n");
-  print("0x%02hX", buffer[6]);
-  print("\n");
+  printf("Flags 6:\n");
+  printf("0x%02hX", buffer[6]);
+  printf("\n");
 
-  print("Flags 7:\n");
-  print("0x%02hX", buffer[7]);
-  print("\n");
-  print("\n");
+  printf("Flags 7:\n");
+  printf("0x%02hX", buffer[7]);
+  printf("\n");
+  printf("\n");
 }
 
 void static_memmap(uint8_t *buffer, uint8_t *cpu_mem, uint8_t *ppu_mem) {
@@ -102,7 +101,7 @@ void static_memmap(uint8_t *buffer, uint8_t *cpu_mem, uint8_t *ppu_mem) {
     }
   }
   default: {
-    print("Fatal Error: Bank switching not yet implemented\n");
+    printf("Fatal Error: Bank switching not yet implemented\n");
     exit(EXIT_FAILURE);
   }
   }

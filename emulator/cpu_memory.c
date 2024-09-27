@@ -1,5 +1,4 @@
 #include "cpu_memory.h"
-#include "console.h"
 
 void init_memory(CPUMemory *mem) {
     memset(mem->ram, 0, RAM_SIZE);
@@ -49,7 +48,7 @@ void write_memory(CPUMemory *mem, uint16_t address, uint8_t value) {
         return;
     }
 
-    print("Tried to write to illegal memory address: %ui", address);
+    printf("Tried to write to illegal memory address: %ui", address);
     assert(0);
 }
 
@@ -82,7 +81,7 @@ uint8_t read_memory(CPUMemory *mem, uint16_t address) {
         return mem->cartridge_rom[address - CARTRIDGE_RAM_SIZE];
     }
 
-    print("Tried to read from illegal memory address: %ui", address);
+    printf("Tried to read from illegal memory address: %ui", address);
     assert(0);
     return 0;
 }

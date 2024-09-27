@@ -2,7 +2,6 @@
  * NES emulator compatible with iNES games without bank switching
  * (https://www.nesdev.org/wiki/INES)
  */
-#include "console.h"
 #include "cpu.h"
 #include "load_rom.h"
 #include "ppu.h"
@@ -53,17 +52,17 @@ void new_frame(CPU *cpu, PPU *ppu) {
 
 // https://www.masswerk.at/6502/6502_instruction_set.html
 void run_prg(CPU *cpu, PPU *ppu) {
-  print("Execution: (");
+  printf("Execution: (");
 
   uint16_t entrypoint = load_2_bytes(cpu->mem + RESET_VECTOR_OFFSET);
 
 #ifdef TESTING
   entrypoint = TESTING;
-  print("breakpoint: 0x%04hX, ", BREAKPOINT);
+  printf("breakpoint: 0x%04hX, ", BREAKPOINT);
   cpu->cur_cycle = BOOTUP_SEQUENCE_CYCLES;
 #endif /* ifdef TESTING */
 
-  print("entrypoint: 0x%04hX)\n", entrypoint);
+  printf("entrypoint: 0x%04hX)\n", entrypoint);
 
   cpu->pc = entrypoint;
 
@@ -87,7 +86,7 @@ int main(int argc, char *argv[]) {
   uint8_t *buffer;
 
   if (argc != 2) {
-    print("Fatal Error: No filepath provided\n");
+    printf("Fatal Error: No filepath provided\n");
     exit(EXIT_FAILURE);
   }
 
