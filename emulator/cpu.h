@@ -25,7 +25,7 @@ typedef struct CPU {
     uint8_t y;   // y register
     uint8_t sr;  // status register [NV-BDIZC]
     uint8_t sp;  // stack pointer (wraps)
-    uint8_t mem[CPU_MEM_SIZE];
+    CPUMemory *mem;
     size_t cur_cycle;
 } CPU;
 

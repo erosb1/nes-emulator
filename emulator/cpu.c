@@ -74,7 +74,7 @@ static uint16_t pop_stack_16(CPU *cpu) {
 }
 
 static int get_flag(CPU *cpu, CPUFlag flag) {
-    return (cpu->sr & flag) > 0;
+    return cpu->sr & flag;
 }
 
 static void set_flag(CPU *cpu, CPUFlag flag, int value) {
