@@ -22,20 +22,6 @@
 #define CARTRIDGE_RAM_SIZE   (CARTRIDGE_RAM_END - APU_IO_REGISTER_END)
 #define CARTRIDGE_ROM_SIZE   (CARTRIDGE_ROM_END - CARTRIDGE_RAM_END)
 
-// Enums for easy access into PPU Registers (0x2000 - 0x2007)
-typedef enum PPURegisters {
-    PPU_CTRL = 0x2000,
-    PPU_MASK,
-    PPU_STATUS,
-    OAM_ADDR,
-    OAM_DATA,
-    PPU_SCROLL,
-    PPU_ADDR,
-    PPU_DATA
-} PPURegisters;
-
-// Todo: Implement enums for access into APU and I/O registers
-
 typedef struct CPUMemory {
     uint8_t ram[RAM_SIZE];
     uint8_t ppu_reg[PPU_REGISTER_SIZE];

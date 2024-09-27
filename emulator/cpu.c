@@ -34,11 +34,6 @@
 #define RESET_VECTOR_OFFSET 0xFFFC
 #define NMI_VECTOR_OFFSET 0xFFFA
 
-void init_cpu(CPU *cpu, CPUMemory *mem) {
-    // Todo: add more init states
-    cpu->mem = mem;
-}
-
 void ppu_vblank_set(uint8_t *cpu_mem, uint8_t bool) {
   if (bool) {
     cpu_mem[PPUCTRL_OFFSET] |= VBLANK_MASK;
