@@ -1,7 +1,7 @@
 #ifndef OPCODES_H
 #define OPCODES_H
 
-enum Opcode {
+typedef enum Opcode {
   BRK = 0x00,     // break / interrupt
   CLC = 0x18,     // clear carry
   JSR = 0x20,     // jump subroutine (absolute)
@@ -18,6 +18,6 @@ enum Opcode {
   CLD = 0xD8,     // clear decimal
   NOP = 0xEA,     // no operation
   BEQ = 0xF0      // branch on equal zero (relative)
-};
+} Opcode;
 
 #endif

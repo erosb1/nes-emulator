@@ -43,14 +43,14 @@ void ppu_vblank_set(uint8_t *cpu_mem, uint8_t bool) {
   }
 }
 
-void ppu_maybe_nmi(struct CPU *cpu) {
+void ppu_maybe_nmi(CPU *cpu) {
   if (cpu->mem[PPUSTATUS_OFFSET] & NMI_ENABLE_MASK) {
     cpu->pc = load_2_bytes(cpu->mem + NMI_VECTOR_OFFSET);
   }
 }
 
 // TODO: add all of these
-void cpu_run_instruction(struct CPU *cpu) {
+void cpu_run_instruction(CPU *cpu) {
   uint8_t *mem = cpu->mem;
   uint8_t opcode = mem[cpu->pc];
 
@@ -249,7 +249,7 @@ void cpu_run_instruction(struct CPU *cpu) {
   }
 }
 
-void cpu_run_instructions(struct CPU *cpu, size_t cycles) {
+void cpu_run_instructions(CPU *cpu, size_t cycles) {
   while (cpu->cur_cycle < cycles) {
 
     print_state(cpu);
