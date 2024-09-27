@@ -36,7 +36,7 @@
 
 void ppu_vblank_set(uint8_t *cpu_mem, uint8_t bool) {
     if (bool) {
-            cpu_mem[PPUCTRL_OFFSET] |= VBLANK_MASK;
+        cpu_mem[PPUCTRL_OFFSET] |= VBLANK_MASK;
     } else {
         cpu_mem[PPUCTRL_OFFSET] &= ~VBLANK_MASK;
     }
@@ -123,8 +123,8 @@ void cpu_run_instruction(CPU *cpu) {
         uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
                                                    // instruction + offset
         if (~cpu->sr & CARRY_MASK) {
-            cpu->cur_cycle +=
-                    3 + ((jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK)); // 4 if
+            cpu->cur_cycle += 3 + ((jump_addr & BYTE_HI_MASK) ==
+                                   (cpu->pc & BYTE_LO_MASK)); // 4 if
             // address is on different page
             cpu->pc = jump_addr - 1;
         } else {
@@ -145,10 +145,10 @@ void cpu_run_instruction(CPU *cpu) {
         cpu->pc += 1;
         int8_t offset = mem[cpu->pc];
         uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
-                                                                                             // instruction + offset
+                                                   // instruction + offset
         if (~cpu->sr & ZERO_MASK) {
-            cpu->cur_cycle +=
-                    3 + ((jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK)); // 4 if
+            cpu->cur_cycle += 3 + ((jump_addr & BYTE_HI_MASK) ==
+                                   (cpu->pc & BYTE_LO_MASK)); // 4 if
             // address is on different page
             cpu->pc = jump_addr - 1;
         } else {
@@ -209,8 +209,8 @@ void cpu_run_instruction(CPU *cpu) {
         uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
                                                    // instruction + offset
         if (cpu->sr & CARRY_MASK) {
-            cpu->cur_cycle +=
-                    3 + ((jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK)); // 4 if
+            cpu->cur_cycle += 3 + ((jump_addr & BYTE_HI_MASK) ==
+                                   (cpu->pc & BYTE_LO_MASK)); // 4 if
             // address is on different page
             cpu->pc = jump_addr - 1;
         } else {
@@ -232,8 +232,8 @@ void cpu_run_instruction(CPU *cpu) {
         uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
                                                    // instruction + offset
         if (cpu->sr & ZERO_MASK) {
-            cpu->cur_cycle +=
-                    3 + ((jump_addr & BYTE_HI_MASK) == (cpu->pc & BYTE_LO_MASK)); // 4 if
+            cpu->cur_cycle += 3 + ((jump_addr & BYTE_HI_MASK) ==
+                                   (cpu->pc & BYTE_LO_MASK)); // 4 if
             // address is on different page
             cpu->pc = jump_addr - 1;
         } else {
