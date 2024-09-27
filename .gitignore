@@ -56,3 +56,7 @@ dkms.conf
 # Excluded from .gitignore
 !dtekv-build/softfloat.a
 !dtekv-build/boot.o
+
+# Build cache
+.cache
+
