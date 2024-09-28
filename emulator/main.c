@@ -81,10 +81,10 @@ void run_prg(CPU *cpu, PPU *ppu) {
 int main(int argc, char *argv[]) {
     uint8_t *buffer;
 
-    SDLWindow window;
-    sdl_window_init(&window);
-    sdl_event_loop(&window);
-    sdl_window_destroy(&window);
+    SDLInstance sdl_instance;
+    sdl_instance_init(&sdl_instance);
+    sdl_event_loop(&sdl_instance);
+    sdl_instance_destroy(&sdl_instance);
 
     if (argc != 2) {
         printf("Fatal Error: No filepath provided\n");

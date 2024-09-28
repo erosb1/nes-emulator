@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "sdl-gfx.h"
+#include "sdl-instance.h"
 
 #endif
 
