@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "sdl-gfx.h"
+
 #endif
 
 #endif
