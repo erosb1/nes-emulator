@@ -26,7 +26,7 @@ int sdl_instance_init(SDLInstance *sdl_instance) {
                             SDL_TEXTUREACCESS_STREAMING, SDL_WINDOW_WIDTH, SDL_WINDOW_HEIGHT);
 
     sdl_instance->title = SDL_WINDOW_TITLE;
-    sdl_instance->pixel_buffer = (uint32_t *)malloc(SDL_WINDOW_WIDTH * SDL_WINDOW_HEIGHT * sizeof(Uint32));
+    sdl_instance->pixel_buffer = (uint32_t *)malloc(SDL_WINDOW_WIDTH * SDL_WINDOW_HEIGHT * sizeof(uint32_t));
     sdl_instance->width = SDL_WINDOW_WIDTH;
     sdl_instance->height = SDL_WINDOW_HEIGHT;
 
@@ -46,7 +46,7 @@ void sdl_put_pixel(SDLInstance *sdl_instance, int x, int y, uint32_t color) {
 }
 
 void sdl_draw_frame(SDLInstance *sdl_instance) {
-    SDL_UpdateTexture(sdl_instance->texture, NULL, sdl_instance->pixel_buffer, sdl_instance->width * sizeof(Uint32));
+    SDL_UpdateTexture(sdl_instance->texture, NULL, sdl_instance->pixel_buffer, sdl_instance->width * sizeof(uint32_t));
     SDL_RenderClear(sdl_instance->renderer);
     SDL_RenderCopy(sdl_instance->renderer, sdl_instance->texture, NULL, NULL);
     SDL_RenderPresent(sdl_instance->renderer);

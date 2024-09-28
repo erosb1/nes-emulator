@@ -81,11 +81,6 @@ void run_prg(CPU *cpu, PPU *ppu) {
 int main(int argc, char *argv[]) {
     uint8_t *buffer;
 
-    SDLInstance sdl_instance;
-    sdl_instance_init(&sdl_instance);
-    sdl_event_loop(&sdl_instance);
-    sdl_instance_destroy(&sdl_instance);
-
     if (argc != 2) {
         printf("Fatal Error: No filepath provided\n");
         exit(EXIT_FAILURE);
@@ -103,8 +98,6 @@ int main(int argc, char *argv[]) {
 
     // skip trainer for now
     run_prg(&cpu, &ppu);
-
-
 
     return EXIT_SUCCESS;
 }
