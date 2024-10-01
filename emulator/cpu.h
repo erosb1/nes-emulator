@@ -8,14 +8,14 @@
 
 // enum shorthand for toggling CPU flags
 typedef enum CPUFlag {
-    CARRY     = (1 << 0),
-    ZERO      = (1 << 1),
-    INTERRUPT = (1 << 2),
-    DECIMAL   = (1 << 3),
-    BREAK     = (1 << 4),
-    UNUSED    = (1 << 5),
-    OVERFLOW  = (1 << 6),
-    NEGATIVE  = (1 << 7),
+    CARRY_MASK = (1 << 0),
+    ZERO_MASK = (1 << 1),
+    INTERRUPT_MASK = (1 << 2),
+    DECIMAL_MASK = (1 << 3),
+    BREAK_MASK = (1 << 4),
+    UNUSED_MASK = (1 << 5),
+    OVERFLOW_MASK = (1 << 6),
+    NEGATIVE_MASK = (1 << 7),
 } CPUFlag;
 
 typedef struct CPU {
@@ -29,7 +29,7 @@ typedef struct CPU {
     size_t cur_cycle;
 } CPU;
 
-void ppu_vblank_set(uint8_t *cpu_mem, uint8_t bool);
+void ppu_vblank_set(CPUMemory *mem, uint8_t bool);
 void ppu_maybe_nmi(CPU *cpu);
 
 void cpu_run_instruction(CPU *cpu);

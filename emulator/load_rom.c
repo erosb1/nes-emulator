@@ -1,5 +1,8 @@
 #include "load_rom.h"
+#include "cpu_memory.h"
 #include "util.h"
+#include <stdio.h>
+#include <string.h>
 
 // size units
 #define PRG_SIZE_UNIT 0x4000 // 16 KiB
@@ -74,7 +77,7 @@ void read_header_debug(const uint8_t *buffer) {
     printf("\n");
 }
 
-void static_memmap(uint8_t *buffer, uint8_t *cpu_mem, uint8_t *ppu_mem) {
+void static_memmap(uint8_t *buffer, CPUMemory *cpu_mem, uint8_t *ppu_mem) {
     size_t prg_size = buffer[PRG_SIZE_HEADER_IDX];
     size_t prg_size_bytes = prg_size * PRG_SIZE_UNIT;
     uint8_t chr_size = buffer[CHR_SIZE_HEADER_IDX];
@@ -88,22 +91,26 @@ void static_memmap(uint8_t *buffer, uint8_t *cpu_mem, uint8_t *ppu_mem) {
     switch (mapper_num) {
     case 0: {
         // #000 (nrom)
-        memcpy(cpu_mem + NROM_PRG_OFFSET_1, buffer, prg_size_bytes);
-        memcpy(ppu_mem + NROM_CHR_OFFSET, buffer + prg_size_bytes,
-               chr_size_bytes);
+        memcpy(cpu_mem->cartridge_rom + NROM_PRG_OFFSET_1 - CARTRIDGE_RAM_END,
+               buffer, prg_size_bytes);
+        // memcpy(ppu_mem->cartridge_ram + NROM_CHR_OFFSET,
+        //        buffer + prg_size_bytes, chr_size_bytes);
         if (prg_size == 1) {
-            memcpy(cpu_mem + NROM_PRG_OFFSET_2, buffer, prg_size_bytes);
+            memcpy(cpu_mem->cartridge_rom + NROM_PRG_OFFSET_2 -
+                       CARTRIDGE_RAM_END,
+                   buffer, prg_size_bytes);
             break;
         }
         if (prg_size == 2) {
-            memcpy(cpu_mem + NROM_PRG_OFFSET_2, buffer + PRG_SIZE_UNIT,
-                   prg_size_bytes);
+            memcpy(cpu_mem->cartridge_rom + NROM_PRG_OFFSET_2 -
+                       CARTRIDGE_RAM_END,
+                   buffer + PRG_SIZE_UNIT, prg_size_bytes);
             break;
         }
     }
     default: {
         printf("Fatal Error: Bank switching not yet implemented\n");
-        exit(EXIT_FAILURE);
+        assert(FALSE);
     }
     }
 }
