@@ -8,14 +8,9 @@
 #include "ppu.h"
 #include "util.h"
 
-// options
-#define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
-// out for normal entrypoint behavior)
-
 // vector offsets
 #define RESET_VECTOR_OFFSET 0xFFFC
 #define NMI_VECTOR_OFFSET 0xFFFA
-#define BREAKPOINT 0
 
 // timing math
 

@@ -21,6 +21,7 @@ if(NOT RISC_V)
 
     # Find SDL2 (for development)
     find_package(SDL2 REQUIRED)
+    include_directories(${SDL2_INCLUDE_DIRS})
     target_link_libraries(main SDL2::SDL2)
 
 # If cross-compiling to RISC-V
