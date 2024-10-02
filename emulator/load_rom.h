@@ -2,7 +2,9 @@
 #define LOAD_ROM_H
 
 #include "common.h"
-#include "cpu_memory.h"
+
+// forward declarations
+typedef struct CPUMemory CPUMemory;
 
 size_t load_rom(uint8_t **buffer, const char *path);
 void read_header_debug(const uint8_t *buffer);

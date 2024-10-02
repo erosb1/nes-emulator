@@ -1,6 +1,6 @@
-#include "cpu_memory.h"
+#include "cpu_mem.h"
+#include "cpu.h"
 #include "util.h"
-#include <stdint.h>
 
 void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {
     if (address < RAM_END) {
@@ -29,15 +29,15 @@ void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {
         return;
     }
 
-    if (address < CARTRIDGE_RAM_END) {
+    if (address < PRG_RAM_END) {
         mem->cartridge_ram[address - APU_IO_REGISTER_END] = value;
         return;
     }
 
     // you should not be able to write to this region. This will be
     // handled by mappers
-    // if (address < CARTRIDGE_ROM_END) {
-    //     mem->cartridge_rom[address - CARTRIDGE_RAM_END] = value;
+    // if (address < PRG_ROM_END) {
+    //     mem->cartridge_rom[address - PRG_RAM_END] = value;
     //     return;
     // }
 
@@ -67,12 +67,12 @@ uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address) {
         return mem->apu_io_reg[address - PPU_MIRROR_END];
     }
 
-    if (address < CARTRIDGE_RAM_END) {
+    if (address < PRG_RAM_END) {
         return mem->cartridge_ram[address - APU_IO_REGISTER_END];
     }
 
     // else
-    return mem->cartridge_rom[address - CARTRIDGE_RAM_END];
+    return mem->cartridge_rom[address - PRG_RAM_END];
 
     printf("Fatal Error: Tried to read from illegal memory address: %ui",
            address);

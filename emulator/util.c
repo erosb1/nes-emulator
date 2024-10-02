@@ -1,6 +1,6 @@
 #include "util.h"
 #include "cpu.h"
-#include "cpu_memory.h"
+#include "cpu_mem.h"
 
 void print_state(CPU *cpu) {
     printf(

@@ -1,5 +1,5 @@
 #include "load_rom.h"
-#include "cpu_memory.h"
+#include "cpu_mem.h"
 #include "util.h"
 
 // size units
@@ -89,19 +89,17 @@ void static_memmap(uint8_t *buffer, CPUMemory *cpu_mem, uint8_t *ppu_mem) {
     switch (mapper_num) {
     case 0: {
         // #000 (nrom)
-        memcpy(cpu_mem->cartridge_rom + NROM_PRG_OFFSET_1 - CARTRIDGE_RAM_END,
-               buffer, prg_size_bytes);
-        // memcpy(ppu_mem->cartridge_ram + NROM_CHR_OFFSET,
-        //        buffer + prg_size_bytes, chr_size_bytes);
+        memcpy(cpu_mem->cartridge_rom + NROM_PRG_OFFSET_1 - PRG_RAM_END, buffer,
+               prg_size_bytes);
+        memcpy(ppu_mem + NROM_CHR_OFFSET, buffer + prg_size_bytes,
+               chr_size_bytes);
         if (prg_size == 1) {
-            memcpy(cpu_mem->cartridge_rom + NROM_PRG_OFFSET_2 -
-                       CARTRIDGE_RAM_END,
+            memcpy(cpu_mem->cartridge_rom + NROM_PRG_OFFSET_2 - PRG_RAM_END,
                    buffer, prg_size_bytes);
             break;
         }
         if (prg_size == 2) {
-            memcpy(cpu_mem->cartridge_rom + NROM_PRG_OFFSET_2 -
-                       CARTRIDGE_RAM_END,
+            memcpy(cpu_mem->cartridge_rom + NROM_PRG_OFFSET_2 - PRG_RAM_END,
                    buffer + PRG_SIZE_UNIT, prg_size_bytes);
             break;
         }

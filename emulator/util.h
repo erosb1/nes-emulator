@@ -2,7 +2,9 @@
 #define UTIL_H
 
 #include "common.h"
-#include "cpu.h"
+
+// forward declarations
+typedef struct CPU CPU;
 
 // utility macros
 #define BYTE_SIZE 0x08
