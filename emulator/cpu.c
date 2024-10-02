@@ -2,7 +2,6 @@
 #include "cpu_memory.h"
 #include "opcodes.h"
 #include "util.h"
-#include <stdint.h>
 
 // options
 #define BREAKPOINT 0xC783 // uncomment to run normally
