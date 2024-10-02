@@ -1,5 +1,5 @@
 #include "cpu.h"
-#include "cpu_memory.h"
+#include "cpu_mem.h"
 #include "opcodes.h"
 #include "util.h"
 

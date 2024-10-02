@@ -3,7 +3,7 @@
  * (https://www.nesdev.org/wiki/INES)
  */
 #include "cpu.h"
-#include "cpu_memory.h"
+#include "cpu_mem.h"
 #include "load_rom.h"
 #include "ppu.h"
 #include "util.h"
