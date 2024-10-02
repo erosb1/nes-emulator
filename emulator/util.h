@@ -15,6 +15,5 @@
 #define NIBBLE_LO_MASK 0x0F
 
 void print_state(CPU *cpu);
-uint16_t load_2_bytes(const uint8_t *addr);
 
 #endif
