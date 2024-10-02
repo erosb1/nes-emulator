@@ -1,17 +1,8 @@
 #include "cpu_memory.h"
+#include "util.h"
+#include <stdint.h>
 
-void init_memory(CPUMemory *mem) {
-    memset(mem->ram, 0, RAM_SIZE);
-    memset(mem->ppu_reg, 0, PPU_REGISTER_SIZE);
-    memset(mem->apu_io_reg, 0, APU_IO_REGISTER_SIZE);
-    memset(mem->cartridge_ram, 0, CARTRIDGE_RAM_SIZE);
-
-    // Todo: Load in cartridge ROM from mapper
-    memset(mem->cartridge_rom, 0, CARTRIDGE_ROM_SIZE);
-}
-
-void write_memory(CPUMemory *mem, uint16_t address, uint8_t value) {
-
+void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {
     if (address < RAM_END) {
         mem->ram[address] = value;
         return;
@@ -43,18 +34,19 @@ void write_memory(CPUMemory *mem, uint16_t address, uint8_t value) {
         return;
     }
 
-    // Todo, you should not be able to write to this region. This will be
+    // you should not be able to write to this region. This will be
     // handled by mappers
-    if (address < CARTRIDGE_ROM_END) {
-        mem->cartridge_rom[address - CARTRIDGE_RAM_SIZE] = value;
-        return;
-    }
+    // if (address < CARTRIDGE_ROM_END) {
+    //     mem->cartridge_rom[address - CARTRIDGE_RAM_END] = value;
+    //     return;
+    // }
 
-    printf("Tried to write to illegal memory address: %ui", address);
-    assert(0);
+    printf("Fatal Error: Tried to write to illegal memory address: %ui",
+           address);
+    assert(FALSE);
 }
 
-uint8_t read_memory(CPUMemory *mem, uint16_t address) {
+uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address) {
     if (address < RAM_END) {
         return mem->ram[address];
     }
@@ -79,11 +71,42 @@ uint8_t read_memory(CPUMemory *mem, uint16_t address) {
         return mem->cartridge_ram[address - APU_IO_REGISTER_END];
     }
 
-    if (address < CARTRIDGE_ROM_END) {
-        return mem->cartridge_rom[address - CARTRIDGE_RAM_SIZE];
-    }
+    // else
+    return mem->cartridge_rom[address - CARTRIDGE_RAM_END];
 
-    printf("Tried to read from illegal memory address: %ui", address);
-    assert(0);
-    return 0;
+    printf("Fatal Error: Tried to read from illegal memory address: %ui",
+           address);
+    assert(FALSE);
+}
+
+void cpu_write_mem_16(CPUMemory *mem, uint16_t address, uint16_t value) {
+    cpu_write_mem_8(mem, address + 1, value >> BYTE_SIZE);
+    cpu_write_mem_8(mem, address, value);
+}
+
+uint16_t cpu_read_mem_16(CPUMemory *mem, uint16_t address) {
+    return (cpu_read_mem_8(mem, address + 1) << BYTE_SIZE) |
+           cpu_read_mem_8(mem, address);
+}
+
+void push_stack_8(CPU *cpu, uint8_t value) {
+    cpu_write_mem_8(cpu->mem, STACK_OFFSET + cpu->sp, value);
+    cpu->sp -= 1;
+}
+
+uint8_t pop_stack_8(CPU *cpu) {
+    uint16_t value = cpu_read_mem_16(cpu->mem, STACK_OFFSET + cpu->sp);
+    cpu->sp += 1;
+    return value;
+}
+
+void push_stack_16(CPU *cpu, uint16_t value) {
+    cpu_write_mem_16(cpu->mem, STACK_OFFSET + cpu->sp, value);
+    cpu->sp -= 2;
+}
+
+uint16_t pop_stack_16(CPU *cpu) {
+    uint16_t value = cpu_read_mem_16(cpu->mem, STACK_OFFSET + cpu->sp);
+    cpu->sp += 2;
+    return value;
 }

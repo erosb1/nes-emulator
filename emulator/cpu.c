@@ -1,19 +1,10 @@
 #include "cpu.h"
+#include "cpu_memory.h"
 #include "opcodes.h"
 #include "util.h"
 
-// stack parameters
-#define STACK_OFFSET 0x0100
-
-// status masks
-#define CARRY_MASK 0x01
-#define ZERO_MASK 0x02
-#define IRQ_DISABLE_MASK 0x04
-#define DECIMAL_MASK 0x08
-#define BREAK_MASK 0x10
-// bit 5 is ignored
-#define OVERFLOW_MASK 0x40
-#define NEGATIVE_MASK 0x80
+// options
+#define BREAKPOINT 0xC783 // uncomment to run normally
 
 // PPUCTRL
 // offset
@@ -31,49 +22,58 @@
 #define RESET_VECTOR_OFFSET 0xFFFC
 #define NMI_VECTOR_OFFSET 0xFFFA
 
-void ppu_vblank_set(uint8_t *cpu_mem, uint8_t bool) {
+void ppu_vblank_set(CPUMemory *mem, uint8_t bool) {
+    uint8_t ppuctrl = cpu_read_mem_8(mem, PPUCTRL_OFFSET);
     if (bool) {
-        cpu_mem[PPUCTRL_OFFSET] |= VBLANK_MASK;
+        cpu_write_mem_8(mem, PPUCTRL_OFFSET, ppuctrl | VBLANK_MASK);
     } else {
-        cpu_mem[PPUCTRL_OFFSET] &= ~VBLANK_MASK;
+        cpu_write_mem_8(mem, PPUCTRL_OFFSET, ppuctrl & ~VBLANK_MASK);
     }
 }
 
 void ppu_maybe_nmi(CPU *cpu) {
-    if (cpu->mem[PPUSTATUS_OFFSET] & NMI_ENABLE_MASK) {
-        cpu->pc = load_2_bytes(cpu->mem + NMI_VECTOR_OFFSET);
+    if (cpu_read_mem_8(cpu->mem, PPUSTATUS_OFFSET) & NMI_ENABLE_MASK) {
+        cpu->pc = cpu_read_mem_16(cpu->mem, NMI_VECTOR_OFFSET);
+    }
+}
+
+static int get_flag(CPU *cpu, CPUFlag flag) { return cpu->sr & flag; }
+
+static void set_flag(CPU *cpu, CPUFlag flag, int value) {
+    if (value) {
+        cpu->sr |= flag;
+    } else {
+        cpu->sr &= ~flag;
     }
 }
 
 // TODO: add all of these
 void cpu_run_instruction(CPU *cpu) {
-    uint8_t *mem = cpu->mem;
-    uint8_t opcode = mem[cpu->pc];
+    CPUMemory *mem = cpu->mem;
+    uint8_t opcode = cpu_read_mem_8(mem, cpu->pc);
 
     switch (opcode) {
     case BRK: { // not tested properly
-        mem[STACK_OFFSET + cpu->sp] = cpu->pc + 2;
-        mem[STACK_OFFSET + cpu->sp - 1] = cpu->sr | BREAK_MASK;
-        cpu->sp -= 3;
-        cpu->pc = load_2_bytes(cpu->mem + NMI_VECTOR_OFFSET);
-        cpu->sr |= IRQ_DISABLE_MASK;
+        push_stack_16(cpu, cpu->pc + 2);
+        push_stack_8(cpu, cpu->sr | BREAK_MASK);
+        cpu->pc = cpu_read_mem_16(mem, NMI_VECTOR_OFFSET);
+        cpu->sr |= INTERRUPT_MASK;
         cpu->cur_cycle += 7;
         printf("BRK\n");
         break;
     }
 
     case CLC: {
-        cpu->sr &= ~CARRY_MASK;
+        set_flag(cpu, CARRY_MASK, FALSE);
         cpu->cur_cycle += 2;
         printf("CLC\n");
         break;
     }
 
     case JSR: {
-        mem[STACK_OFFSET + cpu->sp] = cpu->pc + 2;
-        cpu->sp -= 2;
+        push_stack_16(cpu, cpu->pc + 2);
         cpu->pc += 1;
-        uint16_t jump_addr = load_2_bytes(mem + cpu->pc);
+        uint16_t jump_addr = cpu_read_mem_16(mem, cpu->pc);
         cpu->pc = jump_addr - 1;
         cpu->cur_cycle += 6;
         printf("JSR $%04hX\n", jump_addr);
@@ -81,7 +81,7 @@ void cpu_run_instruction(CPU *cpu) {
     }
 
     case SEC: {
-        cpu->sr |= CARRY_MASK;
+        set_flag(cpu, CARRY_MASK, TRUE);
         cpu->cur_cycle += 2;
         printf("SEC\n");
         break;
@@ -89,7 +89,7 @@ void cpu_run_instruction(CPU *cpu) {
 
     case JMP_abs: {
         cpu->pc += 1;
-        uint16_t jump_addr = load_2_bytes(mem + cpu->pc);
+        uint16_t jump_addr = cpu_read_mem_16(mem, cpu->pc);
         cpu->pc = jump_addr - 1;
         cpu->cur_cycle += 3;
         printf("JMP $%04hX\n", jump_addr);
@@ -98,8 +98,8 @@ void cpu_run_instruction(CPU *cpu) {
 
     case STA_zpg: {
         cpu->pc += 1;
-        uint8_t zpg_addr = mem[cpu->pc];
-        mem[zpg_addr] = cpu->ac;
+        uint8_t zpg_addr = cpu_read_mem_8(mem, cpu->pc);
+        cpu_write_mem_8(mem, zpg_addr, cpu->ac);
         cpu->cur_cycle += 3;
         printf("STA $%02hX\n", zpg_addr);
         break;
@@ -107,8 +107,8 @@ void cpu_run_instruction(CPU *cpu) {
 
     case STX_zpg: {
         cpu->pc += 1;
-        uint8_t zpg_addr = mem[cpu->pc];
-        mem[zpg_addr] = cpu->x;
+        uint8_t zpg_addr = cpu_read_mem_8(mem, cpu->pc);
+        cpu_write_mem_8(mem, zpg_addr, cpu->x);
         cpu->cur_cycle += 3;
         printf("STX $%02hX\n", zpg_addr);
         break;
@@ -116,7 +116,7 @@ void cpu_run_instruction(CPU *cpu) {
 
     case BCC: {
         cpu->pc += 1;
-        int8_t offset = mem[cpu->pc];
+        uint8_t offset = cpu_read_mem_8(mem, cpu->pc);
         uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
                                                    // instruction + offset
         if (~cpu->sr & CARRY_MASK) {
@@ -132,7 +132,7 @@ void cpu_run_instruction(CPU *cpu) {
     }
 
     case SEI: {
-        cpu->sr |= IRQ_DISABLE_MASK;
+        set_flag(cpu, INTERRUPT_MASK, TRUE);
         cpu->cur_cycle += 2;
         printf("SEI\n");
         break;
@@ -140,10 +140,10 @@ void cpu_run_instruction(CPU *cpu) {
 
     case BNE: {
         cpu->pc += 1;
-        int8_t offset = mem[cpu->pc];
+        uint8_t offset = cpu_read_mem_8(mem, cpu->pc);
         uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
                                                    // instruction + offset
-        if (~cpu->sr & ZERO_MASK) {
+        if (!get_flag(cpu, ZERO_MASK)) {
             cpu->cur_cycle += 3 + ((jump_addr & BYTE_HI_MASK) ==
                                    (cpu->pc & BYTE_LO_MASK)); // 4 if
             // address is on different page
@@ -156,7 +156,7 @@ void cpu_run_instruction(CPU *cpu) {
     }
 
     case CLD: {
-        cpu->sr &= ~DECIMAL_MASK;
+        set_flag(cpu, DECIMAL_MASK, FALSE);
         cpu->cur_cycle += 2;
         printf("CLD\n");
         break;
@@ -164,17 +164,17 @@ void cpu_run_instruction(CPU *cpu) {
 
     case LDX_imm: {
         cpu->pc += 1;
-        int8_t imm = mem[cpu->pc];
+        uint8_t imm = cpu_read_mem_8(mem, cpu->pc);
         cpu->x = imm;
         if (imm < 0) {
-            cpu->sr |= NEGATIVE_MASK;
-            cpu->sr &= ~ZERO_MASK;
+            set_flag(cpu, NEGATIVE_MASK, TRUE);
+            set_flag(cpu, ZERO_MASK, FALSE);
         } else if (imm == 0) {
-            cpu->sr &= ~NEGATIVE_MASK;
-            cpu->sr |= ZERO_MASK;
+            set_flag(cpu, NEGATIVE_MASK, FALSE);
+            set_flag(cpu, ZERO_MASK, TRUE);
         } else {
-            cpu->sr &= ~NEGATIVE_MASK;
-            cpu->sr &= ~ZERO_MASK;
+            set_flag(cpu, NEGATIVE_MASK, FALSE);
+            set_flag(cpu, ZERO_MASK, FALSE);
         }
         cpu->cur_cycle += 2;
         printf("LDX #$%02hX\n", (uint8_t)imm);
@@ -183,17 +183,17 @@ void cpu_run_instruction(CPU *cpu) {
 
     case LDA_imm: {
         cpu->pc += 1;
-        int8_t imm = mem[cpu->pc];
+        uint8_t imm = cpu_read_mem_8(mem, cpu->pc);
         cpu->ac = imm;
         if (imm < 0) {
-            cpu->sr |= NEGATIVE_MASK;
-            cpu->sr &= ~ZERO_MASK;
+            set_flag(cpu, NEGATIVE_MASK, TRUE);
+            set_flag(cpu, ZERO_MASK, FALSE);
         } else if (imm == 0) {
-            cpu->sr &= ~NEGATIVE_MASK;
-            cpu->sr |= ZERO_MASK;
+            set_flag(cpu, NEGATIVE_MASK, FALSE);
+            set_flag(cpu, ZERO_MASK, TRUE);
         } else {
-            cpu->sr &= ~NEGATIVE_MASK;
-            cpu->sr &= ~ZERO_MASK;
+            set_flag(cpu, NEGATIVE_MASK, FALSE);
+            set_flag(cpu, ZERO_MASK, FALSE);
         }
         cpu->cur_cycle += 2;
         printf("LDA #$%02hX\n", (uint8_t)imm);
@@ -202,10 +202,10 @@ void cpu_run_instruction(CPU *cpu) {
 
     case BCS: {
         cpu->pc += 1;
-        int8_t offset = mem[cpu->pc];
+        uint8_t offset = cpu_read_mem_8(mem, cpu->pc);
         uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
                                                    // instruction + offset
-        if (cpu->sr & CARRY_MASK) {
+        if (get_flag(cpu, CARRY_MASK)) {
             cpu->cur_cycle += 3 + ((jump_addr & BYTE_HI_MASK) ==
                                    (cpu->pc & BYTE_LO_MASK)); // 4 if
             // address is on different page
@@ -225,10 +225,10 @@ void cpu_run_instruction(CPU *cpu) {
 
     case BEQ: {
         cpu->pc += 1;
-        int8_t offset = mem[cpu->pc];
+        uint8_t offset = cpu_read_mem_8(mem, cpu->pc);
         uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
                                                    // instruction + offset
-        if (cpu->sr & ZERO_MASK) {
+        if (get_flag(cpu, ZERO_MASK)) {
             cpu->cur_cycle += 3 + ((jump_addr & BYTE_HI_MASK) ==
                                    (cpu->pc & BYTE_LO_MASK)); // 4 if
             // address is on different page

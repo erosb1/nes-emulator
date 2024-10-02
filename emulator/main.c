@@ -3,6 +3,7 @@
  * (https://www.nesdev.org/wiki/INES)
  */
 #include "cpu.h"
+#include "cpu_memory.h"
 #include "load_rom.h"
 #include "ppu.h"
 #include "util.h"
@@ -49,7 +50,7 @@ void new_frame(CPU *cpu, PPU *ppu) {
 void run_prg(CPU *cpu, PPU *ppu) {
     printf("Execution: (");
 
-    uint16_t entrypoint = load_2_bytes(cpu->mem + RESET_VECTOR_OFFSET);
+    uint16_t entrypoint = cpu_read_mem_16(cpu->mem, RESET_VECTOR_OFFSET);
 
 #ifdef TESTING
     entrypoint = TESTING;
@@ -83,13 +84,14 @@ int main(int argc, char *argv[]) {
 
     if (argc != 2) {
         printf("Fatal Error: No filepath provided\n");
-        exit(EXIT_FAILURE);
+        assert(FALSE);
     }
 
     size_t size = load_rom(&buffer, argv[1]); // size is needed to calculate the
     // misc roms section size for NES 2.0
 
-    CPU cpu = {.sp = SP_START};
+    CPUMemory mem = {};
+    CPU cpu = {.sp = SP_START, .mem = &mem};
     PPU ppu = {}; // partially initialize to zero all fields
 
     read_header_debug(buffer);
