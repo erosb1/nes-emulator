@@ -36,7 +36,7 @@ Corresponding DTEK-V pins:
 // bit positions of each controller button in the status register
 
 #define GPIO_DATA 0x40000E0
-#define GPIO_DIR 0x40000E1
+#define GPIO_DIR 0x40000E4
 #define BUTTON_COUNT 8
 
 // delay in microseconds to help with shift register setup/hold timing
