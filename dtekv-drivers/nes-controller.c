@@ -42,17 +42,6 @@ Corresponding DTEK-V pins:
 // delay in microseconds to help with shift register setup/hold timing
 #define SHIFT_DELAY 20
 
-typedef enum Button {
-    A_BUTTON_MASK = (1 << 0),
-    B_BUTTON_MASK = (1 << 1),
-    SELECT_BUTTON_MASK = (1 << 2),
-    START_BUTTON_MASK = (1 << 3),
-    UP_BUTTON_MASK = (1 << 4),
-    DOWN_BUTTON_MASK = (1 << 5),
-    LEFT_BUTTON_MASK = (1 << 6),
-    RIGHT_BUTTON_MASK = (1 << 7),
-} Button;
-
 typedef enum ControllerPin {
     CLOCK_PIN_MASK = (1 << 26),
     LATCH_PIN_MASK = (1 << 27),
@@ -132,6 +121,5 @@ uint8_t poll_input() {
     }
 
     // order bit0->bit7 = a, b, select, start, up, down, left, right
-    // the button state logic is inverted so 1=pressed, 0=released
-    return controller_state;
+    return ~controller_state;
 }
