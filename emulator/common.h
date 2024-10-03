@@ -6,6 +6,7 @@
 // The DTEKV-board doesn't have access to the C standard libary.
 // Therefore we have to write alternatives in this file
 #include "dtekv-lib.h"
+void delay(int64_t microseconds); // TODO: implement
 
 #else
 
@@ -16,6 +17,7 @@
 #include <string.h>
 
 #include "sdl-instance.h"
+void delay(int64_t microseconds); // TODO: implement
 
 #endif
 
