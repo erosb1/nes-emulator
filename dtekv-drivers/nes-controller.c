@@ -1,5 +1,4 @@
 #include "nes-controller.h"
-#include "util.h"
 
 // reference:
 // https://github.com/GadgetReboot/Arduino/blob/master/Teensy/NES_To_USB/NES_To_USB.ino
@@ -77,7 +76,8 @@ void set_pin_direction(uint32_t pin, Direction dir) {
 
 void pulse(uint32_t pin) {
     set_pin(pin, HIGH);
-    delay(SHIFT_DELAY); // may or may not be needed depending on the clock speed
+    sleep_us(
+        SHIFT_DELAY); // may or may not be needed depending on the clock speed
     set_pin(pin, LOW);
 }
 
@@ -115,9 +115,7 @@ uint8_t poll_input() {
 
         // generate a clock pulse to bring the
         // next button to the data input
-        set_pin(CLOCK_PIN_MASK, HIGH);
-        delay(SHIFT_DELAY);
-        set_pin(CLOCK_PIN_MASK, LOW);
+        pulse(CLOCK_PIN_MASK);
     }
 
     // order bit0->bit7 = a, b, select, start, up, down, left, right

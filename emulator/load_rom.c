@@ -1,4 +1,5 @@
 #include "load_rom.h"
+#include "common.h"
 #include "cpu_mem.h"
 #include "ppu_mem.h"
 #include "util.h"
@@ -23,6 +24,10 @@
 #define NROM_CHR_OFFSET 0x0000
 
 size_t load_rom(uint8_t **buffer, const char *path) {
+#ifdef RISC_V
+    *buffer = (uint8_t *)0x2000000;
+    return 0x2000000; // arbitrary
+#else
     FILE *fp;
     size_t expected_size;
     size_t actual_size;
@@ -47,6 +52,8 @@ size_t load_rom(uint8_t **buffer, const char *path) {
         exit(EXIT_FAILURE);
     }
     return actual_size;
+
+#endif /* ifdef RISC_V */
 }
 
 // https://www.nesdev.org/wiki/INES#iNES_file_format
