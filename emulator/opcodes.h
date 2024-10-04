@@ -1,23 +1,33 @@
 #ifndef OPCODES_H
 #define OPCODES_H
+// clang-format off
 
-typedef enum Opcode {
-    BRK = 0x00,     // break / interrupt
-    CLC = 0x18,     // clear carry
-    JSR = 0x20,     // jump subroutine (absolute)
-    SEC = 0x38,     // set carry
-    JMP_abs = 0x4C, // jump (absolute)
-    SEI = 0x78,     // set interrupt disable
-    STA_zpg = 0x85, // store ac (zero-page)
-    STX_zpg = 0x86, // store x (zero-page)
-    BCC = 0x90,     // branch if not carry
-    LDX_imm = 0xA2, // load x (immediate)
-    LDA_imm = 0xA9, // load ac (immediate)
-    BCS = 0xB0,     // branch if carry (relative)
-    BNE = 0xD0,     // branch if not equal zero (relative)
-    CLD = 0xD8,     // clear decimal
-    NOP = 0xEA,     // no operation
-    BEQ = 0xF0      // branch on equal zero (relative)
+typedef enum Opcode{
+    ADC, AND, ASL, BCC, BCS,
+    BEQ, BIT, BMI, BNE, BPL,
+    BRK, BVC, BVS, CLC, CLD,
+    CLI, CLV, CMP, CPX, CPY,
+    DEC, DEX, DEY, EOR, INC,
+    INX, INY, JMP, JSR, LDA,
+    LDX, LDY, LSR, NOP, ORA,
+    PHA, PHP, PLA, PLP, ROL,
+    ROR, RTI, RTS, SBC, SEC,
+    SED, SEI, STA, STX, STY,
+    TAX, TAY, TSX, TXA, TXS,
+    TYA, ILL
 } Opcode;
 
+typedef enum AddressingMode {
+    NO, IMPL, ACC, REL, IMT,
+    ZPG, ZPG_X, ZPG_Y, ABS, ABS_X,
+    ABS_Y, IND, IND_IDX, IDX_IND,
+} AddressingMode;
+
+typedef struct Instruction {
+    Opcode opcode;
+    AddressingMode addressing_mode;
+} Instruction;
+
+
+// clang-format on
 #endif
