@@ -41,8 +41,7 @@ void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {
     //     return;
     // }
 
-    printf("Fatal Error: Tried to write to illegal memory address: %ui",
-           address);
+    printf("Tried to write to illegal memory address: %ui", address);
     assert(FALSE);
 }
 
@@ -73,10 +72,6 @@ uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address) {
 
     // else
     return mem->cartridge_rom[address - PRG_RAM_END];
-
-    printf("Fatal Error: Tried to read from illegal memory address: %ui",
-           address);
-    assert(FALSE);
 }
 
 void cpu_write_mem_16(CPUMemory *mem, uint16_t address, uint16_t value) {

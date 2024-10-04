@@ -56,7 +56,7 @@ void run_prg(CPU *cpu, PPU *ppu) {
     entrypoint = TESTING;
     printf("breakpoint: 0x%04hX, ", BREAKPOINT);
     cpu->cur_cycle = BOOTUP_SEQUENCE_CYCLES;
-#endif /* ifdef TESTING */
+#endif // TESTING
 
     printf("entrypoint: 0x%04hX)\n", entrypoint);
 
@@ -82,21 +82,30 @@ void run_prg(CPU *cpu, PPU *ppu) {
 int main(int argc, char *argv[]) {
     uint8_t *buffer;
 
+#ifdef RISC_V
+    load_rom(&buffer, NULL);
+#else
     if (argc != 2) {
         printf("Fatal Error: No filepath provided\n");
         assert(FALSE);
     }
 
-    size_t size = load_rom(&buffer, argv[1]); // size is needed to calculate the
-    // misc roms section size for NES 2.0
+    /* size_t size = */ load_rom(&buffer,
+                                 argv[1]); // size is needed to calculate
+    // the misc roms section size for NES 2.0
 
+#endif // !RISC_V
     CPUMemory mem = {};
     CPU cpu = {.sp = SP_START, .mem = &mem};
     PPU ppu = {}; // partially initialize to zero all fields
 
     read_header_debug(buffer);
     static_memmap(buffer, cpu.mem, ppu.mem);
+
+#ifndef RISC_V
+    // no need to free on the DTEK
     free(buffer);
+#endif // !RISC_V
 
     // skip trainer for now
     run_prg(&cpu, &ppu);

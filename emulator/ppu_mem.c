@@ -9,7 +9,7 @@ void ppu_write_mem_8(PPUMemory *mem, uint16_t address, uint8_t value) {
     }
 
     if (address < VRAM_END) {
-        mem->vram[address] = value;
+        mem->vram[address - CHR_ROM_END] = value;
         return;
     }
 
@@ -23,8 +23,7 @@ void ppu_write_mem_8(PPUMemory *mem, uint16_t address, uint8_t value) {
         return;
     }
 
-    printf("Fatal Error: Tried to write to illegal memory address: %ui",
-           address);
+    printf("Error: Tried to write to illegal memory address: %ui", address);
     assert(FALSE);
 }
 
@@ -34,7 +33,7 @@ uint8_t ppu_read_mem_8(PPUMemory *mem, uint16_t address) {
     }
 
     if (address < VRAM_END) {
-        return mem->vram[address];
+        return mem->vram[address - CHR_ROM_END];
     }
 
     if (address < VRAM_MIRROR_END) {
@@ -45,9 +44,9 @@ uint8_t ppu_read_mem_8(PPUMemory *mem, uint16_t address) {
         return mem->palette_ctrl[address - VRAM_MIRROR_END];
     }
 
-    printf("Fatal Error: Tried to read from illegal memory address: %ui",
-           address);
+    printf("Tried to read from illegal memory address: %ui", address);
     assert(FALSE);
+    return 0;
 }
 
 void ppu_write_mem_16(PPUMemory *mem, uint16_t address, uint16_t value) {
