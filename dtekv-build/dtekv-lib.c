@@ -82,6 +82,7 @@ void exit(int code) {
 }
 
 void *memset(void *dest, int chr, size_t count) {
+    printf("TEST4\n");
     for (size_t i = 0; i < count; ++i) {
         ((unsigned char *)dest)[i] = chr;
     }

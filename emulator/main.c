@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
     CPUMemory mem;
     printf("TEST3\n");
     memset(&mem, 0, sizeof mem);
-    printf("TEST4\n");
+    printf("TEST5\n");
     CPU cpu = {.sp = SP_START, .mem = &mem};
     PPU ppu = {}; // partially initialize to zero all fields
 
