@@ -81,7 +81,6 @@ void run_prg(CPU *cpu, PPU *ppu) {
 
 int main(int argc, char *argv[]) {
     uint8_t *buffer;
-    printf("TEST\n");
 
 #ifdef RISC_V
     load_rom(&buffer, NULL);
@@ -96,12 +95,7 @@ int main(int argc, char *argv[]) {
     // the misc roms section size for NES 2.0
 
 #endif // !RISC_V
-    printf("TEST2\n");
-
-    CPUMemory mem;
-    printf("TEST3\n");
-    memset(&mem, 0, sizeof mem);
-    printf("TEST5\n");
+    CPUMemory mem = {};
     CPU cpu = {.sp = SP_START, .mem = &mem};
     PPU ppu = {}; // partially initialize to zero all fields
 
