@@ -47,12 +47,91 @@ static void set_flag(CPU *cpu, CPUFlag flag, int value) {
     }
 }
 
-// TODO: add all of these
+static void set_address(CPU *cpu, AddressMode address_mode) {
+    CPUMemory* mem = cpu->mem;
+
+    switch (address_mode) {
+    case ACC: { // Accumulator
+        break;
+    }
+    case ABS: { // Absolute
+        cpu->address = cpu_read_mem_16(mem, cpu->pc);
+        cpu->pc += 2;
+        break;
+    }
+    case ABX: { // Absolute, X-indexed
+        cpu->address = cpu_read_mem_16(mem, cpu->pc) + cpu->x;
+        cpu->pc += 2;
+        break;
+    }
+    case ABY: { // Absolute, Y-indexed
+        cpu->address = cpu_read_mem_16(mem, cpu->pc) + cpu->y;
+        cpu->pc += 2;
+        break;
+    }
+    case IMM: { // Immediate
+        cpu->address = cpu->pc;
+        cpu->pc++;
+        break;
+    }
+    case IMP: { // Implied
+        break;
+    }
+    case IND: {  // Indirect
+        uint16_t temp = cpu_read_mem_16(mem, cpu->pc);
+        cpu->address = cpu_read_mem_16(mem, temp);
+        cpu->pc += 2;
+        break;
+    }
+    case XIN: { // X-indexed, Indirect (Pre-Indexed Indirect)
+        const uint8_t zp_address = cpu_read_mem_8(mem, cpu->pc) + cpu->x;
+        cpu->address = cpu_read_mem_16(mem, zp_address & 0xFF);
+        cpu->pc++;
+        break;
+    }
+    case YIN: { // Indirect, Y-indexed (Post-Indexed Indirect)
+        const uint8_t zp_address = cpu_read_mem_8(mem, cpu->pc);
+        cpu->address = cpu_read_mem_16(mem, zp_address) + cpu->y;
+        cpu->pc++;
+        break;
+    }
+    case REL: { // Relative
+        int8_t offset = (int8_t) cpu_read_mem_8(mem, cpu->pc);
+        cpu->pc++;
+        cpu->address = cpu->pc + offset;
+        break;
+    }
+    case ZP0: { // Zeropage
+        cpu->address = (uint16_t) cpu_read_mem_8(mem, cpu->pc);
+        cpu->pc++;
+        break;
+    }
+    case ZPX: { // Zeropage, X-indexed
+        cpu->address = (uint16_t) cpu_read_mem_8(mem, cpu->pc) + cpu->x;
+        cpu->pc++;
+        break;
+    }
+    case ZPY: { // Zeropage, Y-indexed
+        cpu->address = (uint16_t) (cpu_read_mem_8(mem, cpu->pc) + cpu->y);
+        cpu->pc++;
+        break;
+    }
+    case UNK: default: // Unkown/Illegal
+        printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc, address_mode);
+        exit(EXIT_FAILURE);
+    }
+}
+
+
 void cpu_run_instruction(CPU *cpu) {
     CPUMemory *mem = cpu->mem;
-    uint8_t opcode = cpu_read_mem_8(mem, cpu->pc);
+    uint8_t byte = cpu_read_mem_8(mem, cpu->pc++);
+    Instruction instruction = instruction_lookup[byte];
+    cpu->cur_cycle += cycle_lookup[byte];
+    set_address(cpu, instruction.address_mode);
 
-    switch(opcode) {
+
+    switch(instruction.opcode) {
     case ADC: {
         // Todo: Implement ADC
         break;

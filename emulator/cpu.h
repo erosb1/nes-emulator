@@ -27,6 +27,7 @@ typedef enum CPUFlag {
 
 typedef struct CPU {
     uint16_t pc; // program counter
+    uint16_t address; // addressing mode address (set before executing each instruction)
     uint8_t ac;  // accumulator
     uint8_t x;   // x register
     uint8_t y;   // y register
