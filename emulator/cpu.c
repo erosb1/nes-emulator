@@ -91,7 +91,6 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->address = base_address + cpu->x;
         cpu->pc += 2;
 
-        // Modify your extra cycle condition to account for STA, STX, and STY
         if (instruction.opcode != STA && instruction.opcode != STX && instruction.opcode != STY) {
             if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
                 cpu->cur_cycle++;
@@ -104,7 +103,6 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->address = base_address + cpu->y;
         cpu->pc += 2;
 
-        // Modify your extra cycle condition to account for STA, STX, and STY
         if (instruction.opcode != STA && instruction.opcode != STX && instruction.opcode != STY) {
             if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
                 cpu->cur_cycle++;
