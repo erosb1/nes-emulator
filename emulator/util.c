@@ -56,7 +56,7 @@ void print_disassembled_instruction(CPU *cpu, const Instruction instruction) {
             break;
 
         case REL:  // Relative addressing
-            printf("$%04X", cpu->pc + (int8_t)cpu->address);
+            printf("$%04X", cpu->address); // absolute address has already been calculated
             break;
 
         case ACC:  // Accumulator addressing

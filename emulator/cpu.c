@@ -35,13 +35,31 @@ void ppu_maybe_nmi(CPU *cpu) {
     }
 }
 
-static int get_flag(CPU *cpu, CPUFlag flag) { return cpu->sr & flag; }
+static int get_flag(CPU *cpu, CPUFlag flag) {
+    return (cpu->sr & flag) ? 1 : 0;
+}
 
 static void set_flag(CPU *cpu, CPUFlag flag, int value) {
     if (value) {
         cpu->sr |= flag;
     } else {
         cpu->sr &= ~flag;
+    }
+}
+
+// This function branches if predicate is 1, and doesn't branch if it's 0
+// It also correctly updates the cur_cycle counter depending on if we crossed
+// page borders or not
+static void branch_if(CPU *cpu, int predicate) {
+    if (predicate) {
+        cpu->cur_cycle++;
+
+        // Add an extra cycle if the branch crosses a page boundary
+        if ((cpu->address & 0xFF00) != (cpu->pc & 0xFF00)) {
+            cpu->cur_cycle++;
+        }
+
+        cpu->pc = cpu->address;
     }
 }
 
@@ -150,51 +168,18 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case BCC: {
-        cpu->pc += 1;
-        uint8_t offset = cpu_read_mem_8(mem, cpu->pc);
-        uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
-                                                   // instruction + offset
-        if (~cpu->sr & CARRY_MASK) {
-            cpu->cur_cycle += 3 + ((jump_addr & BYTE_HI_MASK) ==
-                                   (cpu->pc & BYTE_LO_MASK)); // 4 if
-            // address is on different page
-            cpu->pc = jump_addr - 1;
-        } else {
-            cpu->cur_cycle += 2;
-        }
-        printf("BCC $%04hX\n", jump_addr);
+        // Branch if Carry Clear (C flag = 0)
+        branch_if(cpu, !get_flag(cpu, CARRY_MASK));
         break;
     }
     case BCS: {
-        cpu->pc += 1;
-        uint8_t offset = cpu_read_mem_8(mem, cpu->pc);
-        uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
-        // instruction + offset
-        if (get_flag(cpu, CARRY_MASK)) {
-            cpu->cur_cycle += 3 + ((jump_addr & BYTE_HI_MASK) ==
-                                   (cpu->pc & BYTE_LO_MASK)); // 4 if
-            // address is on different page
-            cpu->pc = jump_addr - 1;
-        } else {
-            cpu->cur_cycle += 2;
-        }
-        printf("BCS $%04hX\n", jump_addr);
+        // Branch if Carry Set (C flag = 1)
+        branch_if(cpu, get_flag(cpu, CARRY_MASK));
         break;
     }
     case BEQ: {
-        cpu->pc += 1;
-        uint8_t offset = cpu_read_mem_8(mem, cpu->pc);
-        uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
-        // instruction + offset
-        if (get_flag(cpu, ZERO_MASK)) {
-            cpu->cur_cycle += 3 + ((jump_addr & BYTE_HI_MASK) ==
-                                   (cpu->pc & BYTE_LO_MASK)); // 4 if
-            // address is on different page
-            cpu->pc = jump_addr - 1;
-        } else {
-            cpu->cur_cycle += 2;
-        }
-        printf("BEQ $%04hX\n", jump_addr);
+        // Branch if Zero Set (Z flag = 1)
+        branch_if(cpu, get_flag(cpu, ZERO_MASK));
         break;
     }
     case BIT: {
@@ -202,27 +187,18 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case BMI: {
-        // Todo: Implement BMI
+        // Branch if Negative Set (N flag = 1)
+        branch_if(cpu, get_flag(cpu, NEGATIVE_MASK));
         break;
     }
     case BNE: {
-        cpu->pc += 1;
-        uint8_t offset = cpu_read_mem_8(mem, cpu->pc);
-        uint16_t jump_addr = cpu->pc + 1 + offset; // pc pointing to next
-        // instruction + offset
-        if (!get_flag(cpu, ZERO_MASK)) {
-            cpu->cur_cycle += 3 + ((jump_addr & BYTE_HI_MASK) ==
-                                   (cpu->pc & BYTE_LO_MASK)); // 4 if
-            // address is on different page
-            cpu->pc = jump_addr - 1;
-        } else {
-            cpu->cur_cycle += 2;
-        }
-        printf("BNE $%04hX\n", jump_addr);
+        // Branch if Zero Clear (Z flag = 0)
+        branch_if(cpu, !get_flag(cpu, ZERO_MASK));
         break;
     }
     case BPL: {
-        // Todo: Implement BPL
+        // Branch if Negative Clear (N flag = 0)
+        branch_if(cpu, !get_flag(cpu, NEGATIVE_MASK));
         break;
     }
     case BRK: {
@@ -451,7 +427,7 @@ void cpu_run_instruction(CPU *cpu) {
 }
 
 int num_instruction = 0;
-#define BREAK_INSTRUCTION 9
+#define BREAK_INSTRUCTION 10
 
 void cpu_run_instructions(CPU *cpu, size_t cycles) {
     while (cpu->cur_cycle < cycles) {
