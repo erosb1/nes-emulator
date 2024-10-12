@@ -6,7 +6,7 @@
 // options
 #define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
 // out for normal entrypoint behavior)
-#define BREAKPOINT 0xC783 // uncomment to run normally
+#define BREAKPOINT 0xC5F6 // uncomment to run normally
 
 #define CPU_MEM_SIZE 0x10000 // 64KiB
 

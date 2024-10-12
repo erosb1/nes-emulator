@@ -2,6 +2,7 @@
 #define UTIL_H
 
 #include "common.h"
+#include "opcodes.h"
 
 // forward declarations
 typedef struct CPU CPU;
@@ -17,5 +18,6 @@ typedef struct CPU CPU;
 #define NIBBLE_LO_MASK 0x0F
 
 void print_state(CPU *cpu);
+void print_disassembled_instruction(CPU *cpu, const Instruction instruction);
 
 #endif

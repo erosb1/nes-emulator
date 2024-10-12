@@ -3,8 +3,6 @@
 #include "opcodes.h"
 #include "util.h"
 
-// options
-#define BREAKPOINT 0xC783 // uncomment to run normally
 
 // PPUCTRL
 // offset
@@ -124,12 +122,19 @@ static void set_address(CPU *cpu, AddressMode address_mode) {
 
 
 void cpu_run_instruction(CPU *cpu) {
+
+    if (TESTING) print_state(cpu);
+
     CPUMemory *mem = cpu->mem;
     uint8_t byte = cpu_read_mem_8(mem, cpu->pc++);
     Instruction instruction = instruction_lookup[byte];
-    cpu->cur_cycle += cycle_lookup[byte];
     set_address(cpu, instruction.address_mode);
+    cpu->cur_cycle += cycle_lookup[byte];
 
+    if (TESTING) {
+        print_disassembled_instruction(cpu, instruction);
+        printf("\n");
+    }
 
     switch(instruction.opcode) {
     case ADC: {
@@ -298,21 +303,13 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case JMP: {
-        // ABS
-        cpu->pc += 1;
-        uint16_t jump_addr = cpu_read_mem_16(mem, cpu->pc);
-        cpu->pc = jump_addr - 1;
-        cpu->cur_cycle += 3;
-        printf("JMP $%04hX\n", jump_addr);
+        cpu->pc = cpu->address;
         break;
     }
     case JSR: {
-        push_stack_16(cpu, cpu->pc + 2);
-        cpu->pc += 1;
-        uint16_t jump_addr = cpu_read_mem_16(mem, cpu->pc);
-        cpu->pc = jump_addr - 1;
-        cpu->cur_cycle += 6;
-        printf("JSR $%04hX\n", jump_addr);
+        // The return address should be (pc - 1) since the CPU will resume execution in the address immediately after the return address
+        push_stack_16(cpu, cpu->pc - 1);
+        cpu->pc = cpu->address;
         break;
     }
     case LDA: {
@@ -337,22 +334,10 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case LDX: {
-        // IMM
-        cpu->pc += 1;
-        uint8_t imm = cpu_read_mem_8(mem, cpu->pc);
-        cpu->x = imm;
-        if (imm < 0) {
-            set_flag(cpu, NEGATIVE_MASK, TRUE);
-            set_flag(cpu, ZERO_MASK, FALSE);
-        } else if (imm == 0) {
-            set_flag(cpu, NEGATIVE_MASK, FALSE);
-            set_flag(cpu, ZERO_MASK, TRUE);
-        } else {
-            set_flag(cpu, NEGATIVE_MASK, FALSE);
-            set_flag(cpu, ZERO_MASK, FALSE);
-        }
-        cpu->cur_cycle += 2;
-        printf("LDX #$%02hX\n", (uint8_t)imm);
+        uint8_t val = cpu_read_mem_8(mem, cpu->address);
+        cpu->x = val;
+        set_flag(cpu, ZERO_MASK, val == 0);        // Set Zero flag if the value is zero
+        set_flag(cpu, NEGATIVE_MASK, val & 0x80);  // Set Negative flag if the MSB (bit 7) is set
         break;
     }
     case LDY: {
@@ -364,8 +349,7 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case NOP: {
-        cpu->cur_cycle += 2;
-        printf("NOP\n");
+        // Do nothing
         break;
     }
     case ORA: {
@@ -410,18 +394,14 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case SEC: {
         set_flag(cpu, CARRY_MASK, TRUE);
-        cpu->cur_cycle += 2;
-        printf("SEC\n");
         break;
     }
     case SED: {
-        // Todo: Implement SED
+        set_flag(cpu, DECIMAL_MASK, TRUE);
         break;
     }
     case SEI: {
         set_flag(cpu, INTERRUPT_MASK, TRUE);
-        cpu->cur_cycle += 2;
-        printf("SEI\n");
         break;
     }
     case STA: {
@@ -433,12 +413,7 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case STX: {
-        // zpg
-        cpu->pc += 1;
-        uint8_t zpg_addr = cpu_read_mem_8(mem, cpu->pc);
-        cpu_write_mem_8(mem, zpg_addr, cpu->x);
-        cpu->cur_cycle += 3;
-        printf("STX $%02hX\n", zpg_addr);
+        cpu_write_mem_8(mem, cpu->address, cpu->x);
         break;
     }
     case STY: {
@@ -475,22 +450,22 @@ void cpu_run_instruction(CPU *cpu) {
     }}
 }
 
+int num_instruction = 0;
+#define BREAK_INSTRUCTION 9
+
 void cpu_run_instructions(CPU *cpu, size_t cycles) {
     while (cpu->cur_cycle < cycles) {
-
-        print_state(cpu);
         cpu_run_instruction(cpu);
 
-        ++cpu->pc;
+        num_instruction++;
+        if (num_instruction == BREAK_INSTRUCTION) {
+            exit(EXIT_SUCCESS);
+        }
 
 #ifdef BREAKPOINT
         if (cpu->pc == BREAKPOINT) {
-            // set actual breakpoint here for inspecting memory
             exit(EXIT_SUCCESS);
         }
 #endif /* ifdef BREAKPOINT */
     }
-#ifndef TESTING
-    cpu->cur_cycle = 0; // to prevent overflow
-#endif                  /* ifndef TESTING */
 }
