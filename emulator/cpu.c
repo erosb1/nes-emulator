@@ -47,6 +47,14 @@ static void set_flag(CPU *cpu, CPUFlag flag, int value) {
     }
 }
 
+// This is a helper function that sets the Z and N flags depending on the `value` integer.
+// If value == 0 then Z is set
+// If bit 7 in value is set then N is set (indicating a negative number)
+static void set_ZN_flags(CPU *cpu, uint8_t value) {
+    set_flag(cpu, ZERO_MASK, value == 0);
+    set_flag(cpu, NEGATIVE_MASK, value & 0x80);
+}
+
 // This function branches if predicate is 1, and doesn't branch if it's 0
 // It also correctly updates the cur_cycle counter depending on if we crossed
 // page borders or not
@@ -63,6 +71,8 @@ static void branch_if(CPU *cpu, int predicate) {
     }
 }
 
+// This function sets up the cpu->address variable depending on the addressing mode
+// It also updates cpu->cur_cycle if an indirect addressing mode crosses a page boundary
 static void set_address(CPU *cpu, AddressMode address_mode) {
     CPUMemory* mem = cpu->mem;
 
@@ -319,36 +329,18 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case LDA: {
-
-        // IMM
-        cpu->pc += 1;
-        uint8_t imm = cpu_read_mem_8(mem, cpu->pc);
-        cpu->ac = imm;
-        if (imm < 0) {
-            set_flag(cpu, NEGATIVE_MASK, TRUE);
-            set_flag(cpu, ZERO_MASK, FALSE);
-        } else if (imm == 0) {
-            set_flag(cpu, NEGATIVE_MASK, FALSE);
-            set_flag(cpu, ZERO_MASK, TRUE);
-        } else {
-            set_flag(cpu, NEGATIVE_MASK, FALSE);
-            set_flag(cpu, ZERO_MASK, FALSE);
-        }
-        cpu->cur_cycle += 2;
-        printf("LDA #$%02hX\n", (uint8_t)imm);
-        ;
+        cpu->ac = cpu_read_mem_8(mem, cpu->address);
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case LDX: {
-        uint8_t val = cpu_read_mem_8(mem, cpu->address);
-        cpu->x = val;
-        set_flag(cpu, ZERO_MASK, val == 0);        // Set Zero flag if the value is zero
-        set_flag(cpu, NEGATIVE_MASK, val & 0x80);  // Set Negative flag if the MSB (bit 7) is set
+        cpu->x = cpu_read_mem_8(mem, cpu->address);
+        set_ZN_flags(cpu, cpu->x);
         break;
     }
     case LDY: {
-        // Todo: Implement LDY
-        exit(EXIT_FAILURE);
+        cpu->y = cpu_read_mem_8(mem, cpu->address);
+        set_ZN_flags(cpu, cpu->y);
         break;
     }
     case LSR: {
@@ -423,11 +415,7 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case STA: {
-        cpu->pc += 1;
-        uint8_t zpg_addr = cpu_read_mem_8(mem, cpu->pc);
-        cpu_write_mem_8(mem, zpg_addr, cpu->ac);
-        cpu->cur_cycle += 3;
-        printf("STA $%02hX\n", zpg_addr);
+        cpu_write_mem_8(mem, cpu->address, cpu->ac);
         break;
     }
     case STX: {
@@ -435,18 +423,17 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case STY: {
-        // Todo: Implement STY
-        exit(EXIT_FAILURE);
+        cpu_write_mem_8(mem, cpu->address, cpu->y);
         break;
     }
     case TAX: {
-        // Todo: Implement TAX
-        exit(EXIT_FAILURE);
+        cpu->x = cpu->ac;
+        set_ZN_flags(cpu, cpu->x);
         break;
     }
     case TAY: {
-        // Todo: Implement TAY
-        exit(EXIT_FAILURE);
+        cpu->y = cpu->ac;
+        set_ZN_flags(cpu, cpu->y);
         break;
     }
     case TSX: {
@@ -455,8 +442,8 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case TXA: {
-        // Todo: Implement TXA
-        exit(EXIT_FAILURE);
+        cpu->ac = cpu->x;
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case TXS: {
@@ -465,8 +452,8 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case TYA: {
-        // Todo: Implement TYA
-        exit(EXIT_FAILURE);
+        cpu->ac = cpu->y;
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case ILL: {
