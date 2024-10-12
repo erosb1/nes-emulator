@@ -76,13 +76,25 @@ static void set_address(CPU *cpu, AddressMode address_mode) {
         break;
     }
     case ABX: { // Absolute, X-indexed
-        cpu->address = cpu_read_mem_16(mem, cpu->pc) + cpu->x;
+        uint16_t base_address = cpu_read_mem_16(mem, cpu->pc);
+        cpu->address = base_address + cpu->x;
         cpu->pc += 2;
+
+        // Add an extra cycle if the new address crosses a page boundary
+        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+            cpu->cur_cycle++;
+        }
         break;
     }
     case ABY: { // Absolute, Y-indexed
-        cpu->address = cpu_read_mem_16(mem, cpu->pc) + cpu->y;
+        uint16_t base_address = cpu_read_mem_16(mem, cpu->pc);
+        cpu->address = base_address + cpu->y;
         cpu->pc += 2;
+
+        // Add an extra cycle if the new address crosses a page boundary
+        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+            cpu->cur_cycle++;
+        }
         break;
     }
     case IMM: { // Immediate
@@ -107,8 +119,14 @@ static void set_address(CPU *cpu, AddressMode address_mode) {
     }
     case YIN: { // Indirect, Y-indexed (Post-Indexed Indirect)
         const uint8_t zp_address = cpu_read_mem_8(mem, cpu->pc);
-        cpu->address = cpu_read_mem_16(mem, zp_address) + cpu->y;
+        uint16_t base_address = cpu_read_mem_16(mem, zp_address);
+        cpu->address = base_address + cpu->y;
         cpu->pc++;
+
+        // Add an extra cycle if the new address crosses a page boundary
+        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+            cpu->cur_cycle++;
+        }
         break;
     }
     case REL: { // Relative
