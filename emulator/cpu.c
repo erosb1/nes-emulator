@@ -74,10 +74,10 @@ static void branch_if(CPU *cpu, int predicate) {
 
 // This function sets up the cpu->address variable depending on the addressing mode
 // It also updates cpu->cur_cycle if an indirect addressing mode crosses a page boundary
-static void set_address(CPU *cpu, AddressMode address_mode) {
+static void set_address(CPU *cpu, Instruction instruction) {
     CPUMemory* mem = cpu->mem;
 
-    switch (address_mode) {
+    switch (instruction.address_mode) {
     case ACC: { // Accumulator
         break;
     }
@@ -91,9 +91,11 @@ static void set_address(CPU *cpu, AddressMode address_mode) {
         cpu->address = base_address + cpu->x;
         cpu->pc += 2;
 
-        // Add an extra cycle if the new address crosses a page boundary
-        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
-            cpu->cur_cycle++;
+        // Modify your extra cycle condition to account for STA, STX, and STY
+        if (instruction.opcode != STA && instruction.opcode != STX && instruction.opcode != STY) {
+            if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+                cpu->cur_cycle++;
+            }
         }
         break;
     }
@@ -102,9 +104,11 @@ static void set_address(CPU *cpu, AddressMode address_mode) {
         cpu->address = base_address + cpu->y;
         cpu->pc += 2;
 
-        // Add an extra cycle if the new address crosses a page boundary
-        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
-            cpu->cur_cycle++;
+        // Modify your extra cycle condition to account for STA, STX, and STY
+        if (instruction.opcode != STA && instruction.opcode != STX && instruction.opcode != STY) {
+            if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+                cpu->cur_cycle++;
+            }
         }
         break;
     }
@@ -145,7 +149,6 @@ static void set_address(CPU *cpu, AddressMode address_mode) {
         }
         break;
     }
-
     case REL: { // Relative
         int8_t offset = (int8_t) cpu_read_mem_8(mem, cpu->pc);
         cpu->pc++;
@@ -158,17 +161,17 @@ static void set_address(CPU *cpu, AddressMode address_mode) {
         break;
     }
     case ZPX: { // Zeropage, X-indexed
-        cpu->address = (uint16_t) cpu_read_mem_8(mem, cpu->pc) + cpu->x;
+        cpu->address = ((uint16_t)(cpu_read_mem_8(mem, cpu->pc) + cpu->x)) & 0xFF;
         cpu->pc++;
         break;
     }
     case ZPY: { // Zeropage, Y-indexed
-        cpu->address = (uint16_t) (cpu_read_mem_8(mem, cpu->pc) + cpu->y);
+        cpu->address = ((uint16_t)(cpu_read_mem_8(mem, cpu->pc) + cpu->y)) & 0xFF;
         cpu->pc++;
         break;
     }
     case UNK: default: // Unkown/Illegal
-        printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc, address_mode);
+        printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc, instruction.address_mode);
         exit(EXIT_FAILURE);
     }
 }
@@ -178,17 +181,11 @@ void cpu_run_instruction(CPU *cpu) {
 
     if (TESTING) print_state(cpu);
 
-    if (cpu->cur_cycle == 8824) {
-        int sdkd = 0;
-    }
-
     CPUMemory *mem = cpu->mem;
     uint8_t byte = cpu_read_mem_8(mem, cpu->pc++);
     Instruction instruction = instruction_lookup[byte];
-    set_address(cpu, instruction.address_mode);
+    set_address(cpu, instruction);
     cpu->cur_cycle += cycle_lookup[byte];
-
-
 
     if (TESTING) {
         print_disassembled_instruction(cpu, instruction);
@@ -518,8 +515,8 @@ void cpu_run_instruction(CPU *cpu) {
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
-    case ILL: {
-        // Todo: Handle illegal opcode
+    case ILL: default: {
+        printf("Illegal Instruction at PC: $%04X, Opcode: %02X (Treated as NOP)\n", cpu->pc, byte);
         exit(EXIT_FAILURE);
         break;
     }}
