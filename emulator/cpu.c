@@ -358,23 +358,26 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case PHA: {
-        // Todo: Implement PHA
-        exit(EXIT_FAILURE);
+        push_stack_8(cpu, cpu->ac);
         break;
     }
     case PHP: {
-        // Todo: Implement PHP
-        exit(EXIT_FAILURE);
+        // BREAK and UNUSED should be set to 1 when pushed
+        // src: https://www.masswerk.at/6502/6502_instruction_set.html#PHP
+        push_stack_8(cpu, cpu->sr | BREAK_MASK |  UNUSED_MASK);
         break;
     }
     case PLA: {
-        // Todo: Implement PLA
-        exit(EXIT_FAILURE);
+        cpu->ac = pop_stack_8(cpu);
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case PLP: {
-        // Todo: Implement PLP
-        exit(EXIT_FAILURE);
+        // Pop all flags from the stack
+        // Except for BREAK and UNUSED as these should not be modified by the pop operation
+        // src: https://www.masswerk.at/6502/6502_instruction_set.html#PLP
+        cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) |
+                (pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
         break;
     }
     case ROL: {
@@ -437,8 +440,8 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case TSX: {
-        // Todo: Implement TSX
-        exit(EXIT_FAILURE);
+        cpu->x = cpu->sp;
+        set_ZN_flags(cpu, cpu->x);
         break;
     }
     case TXA: {
@@ -447,8 +450,7 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case TXS: {
-        // Todo: Implement TXS
-        exit(EXIT_FAILURE);
+        cpu->sp = cpu->x;
         break;
     }
     case TYA: {
