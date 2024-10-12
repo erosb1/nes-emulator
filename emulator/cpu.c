@@ -181,6 +181,10 @@ void cpu_run_instruction(CPU *cpu) {
 
     if (TESTING) print_state(cpu);
 
+    if (cpu->cur_cycle == 14579) {
+        int x = 0;
+    }
+
     CPUMemory *mem = cpu->mem;
     uint8_t byte = cpu_read_mem_8(mem, cpu->pc++);
     Instruction instruction = instruction_lookup[byte];
