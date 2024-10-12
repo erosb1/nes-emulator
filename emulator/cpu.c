@@ -19,6 +19,7 @@
 // vector offsets
 #define RESET_VECTOR_OFFSET 0xFFFC
 #define NMI_VECTOR_OFFSET 0xFFFA
+#define IRQ_VECTOR_OFFSET 0xFFFE
 
 void ppu_vblank_set(CPUMemory *mem, uint8_t bool) {
     uint8_t ppuctrl = cpu_read_mem_8(mem, PPUCTRL_OFFSET);
@@ -117,19 +118,24 @@ static void set_address(CPU *cpu, AddressMode address_mode) {
     }
     case IND: {  // Indirect
         uint16_t temp = cpu_read_mem_16(mem, cpu->pc);
-        cpu->address = cpu_read_mem_16(mem, temp);
+        uint16_t indirect_address = cpu_read_mem_8(mem, temp) |
+                                    (cpu_read_mem_8(mem, (temp & 0xFF00) | ((temp + 1) & 0xFF)) << 8);
+        cpu->address = indirect_address;
         cpu->pc += 2;
         break;
     }
     case XIN: { // X-indexed, Indirect (Pre-Indexed Indirect)
-        const uint8_t zp_address = cpu_read_mem_8(mem, cpu->pc) + cpu->x;
-        cpu->address = cpu_read_mem_16(mem, zp_address & 0xFF);
+        const uint8_t zp_address = (cpu_read_mem_8(mem, cpu->pc) + cpu->x) & 0xFF;
+        uint16_t base_address = cpu_read_mem_8(mem, zp_address) |
+                                (cpu_read_mem_8(mem, (zp_address + 1) & 0xFF) << 8);
+        cpu->address = base_address;
         cpu->pc++;
         break;
     }
     case YIN: { // Indirect, Y-indexed (Post-Indexed Indirect)
         const uint8_t zp_address = cpu_read_mem_8(mem, cpu->pc);
-        uint16_t base_address = cpu_read_mem_16(mem, zp_address);
+        uint16_t base_address = cpu_read_mem_8(mem, zp_address) |
+                                (cpu_read_mem_8(mem, (zp_address + 1) & 0xFF) << 8);
         cpu->address = base_address + cpu->y;
         cpu->pc++;
 
@@ -139,6 +145,7 @@ static void set_address(CPU *cpu, AddressMode address_mode) {
         }
         break;
     }
+
     case REL: { // Relative
         int8_t offset = (int8_t) cpu_read_mem_8(mem, cpu->pc);
         cpu->pc++;
@@ -171,11 +178,17 @@ void cpu_run_instruction(CPU *cpu) {
 
     if (TESTING) print_state(cpu);
 
+    if (cpu->cur_cycle == 8824) {
+        int sdkd = 0;
+    }
+
     CPUMemory *mem = cpu->mem;
     uint8_t byte = cpu_read_mem_8(mem, cpu->pc++);
     Instruction instruction = instruction_lookup[byte];
     set_address(cpu, instruction.address_mode);
     cpu->cur_cycle += cycle_lookup[byte];
+
+
 
     if (TESTING) {
         print_disassembled_instruction(cpu, instruction);
@@ -184,18 +197,29 @@ void cpu_run_instruction(CPU *cpu) {
 
     switch(instruction.opcode) {
     case ADC: {
-        // Todo: Implement ADC
-        exit(EXIT_FAILURE);
+        uint16_t A = cpu->ac; uint16_t M = cpu_read_mem_8(mem, cpu->address);
+        uint16_t R = A + M + get_flag(cpu, CARRY_MASK);
+        cpu->ac = R & 0xFF;
+        set_flag(cpu, CARRY_MASK, R > 0xFF);
+        set_flag(cpu, OVERFLOW_MASK, ~(A ^ M) & (A ^ R) & 0x80);
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case AND: {
-        // Todo: Implement AND
-        exit(EXIT_FAILURE);
+        cpu->ac &= cpu_read_mem_8(mem, cpu->address);
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case ASL: {
-        // Todo: Implement ASL
-        exit(EXIT_FAILURE);
+        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        set_flag(cpu, CARRY_MASK, m & 0x80);
+        uint8_t shifted = m << 1;
+        set_ZN_flags(cpu, shifted);
+
+        if (instruction.address_mode == ACC)
+            cpu->ac = shifted;
+        else
+            cpu_write_mem_8(mem, cpu->address, shifted);
         break;
     }
     case BCC: {
@@ -214,8 +238,10 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case BIT: {
-        // Todo: Implement BIT
-        exit(EXIT_FAILURE);
+        uint8_t op = cpu_read_mem_8(mem, cpu->address);
+        set_flag(cpu, ZERO_MASK, (cpu->ac & op) == 0);
+        set_flag(cpu, NEGATIVE_MASK, op & 0x80);
+        set_flag(cpu, OVERFLOW_MASK, op & 0x40);
         break;
     }
     case BMI: {
@@ -234,22 +260,20 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case BRK: {
-        push_stack_16(cpu, cpu->pc + 2);
-        push_stack_8(cpu, cpu->sr | BREAK_MASK);
-        cpu->pc = cpu_read_mem_16(mem, NMI_VECTOR_OFFSET);
-        cpu->sr |= INTERRUPT_MASK;
-        cpu->cur_cycle += 7;
-        printf("BRK\n");
-        break;
+        cpu->pc++;
+        push_stack_16(cpu, cpu->pc);
+        push_stack_8(cpu, cpu->sr | BREAK_MASK |  UNUSED_MASK);
+        cpu->pc = cpu_read_mem_16(mem, IRQ_VECTOR_OFFSET);
+        set_flag(cpu, INTERRUPT_MASK, TRUE);
     }
     case BVC: {
-        // Todo: Implement BVC
-        exit(EXIT_FAILURE);
+        // Branch if Overflow Clear (V flag = 0)
+        branch_if(cpu, !get_flag(cpu, OVERFLOW_MASK));
         break;
     }
     case BVS: {
-        // Todo: Implement BVS
-        exit(EXIT_FAILURE);
+        // Branch if Overflow Set (V flag = 1)
+        branch_if(cpu, get_flag(cpu, OVERFLOW_MASK));
         break;
     }
     case CLC: {
@@ -269,53 +293,61 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case CMP: {
-        // Todo: Implement CMP
-        exit(EXIT_FAILURE);
+        uint16_t a = cpu->ac;
+        uint16_t m = cpu_read_mem_8(mem, cpu->address);
+        set_ZN_flags(cpu, (a - m) & 0xFF);
+        set_flag(cpu, CARRY_MASK, a >= m);
         break;
     }
     case CPX: {
-        // Todo: Implement CPX
-        exit(EXIT_FAILURE);
+        uint16_t x = cpu->x;
+        uint16_t m = cpu_read_mem_8(mem, cpu->address);
+        set_ZN_flags(cpu, (x - m) & 0xFF);
+        set_flag(cpu, CARRY_MASK, x >= m);
         break;
     }
     case CPY: {
-        // Todo: Implement CPY
-        exit(EXIT_FAILURE);
+        uint16_t y = cpu->y;
+        uint16_t m = cpu_read_mem_8(mem, cpu->address);
+        set_ZN_flags(cpu, (y - m) & 0xFF);
+        set_flag(cpu, CARRY_MASK, y >= m);
         break;
     }
     case DEC: {
-        // Todo: Implement DEC
-        exit(EXIT_FAILURE);
+        uint8_t decremented = cpu_read_mem_8(mem, cpu->address) - 1;
+        cpu_write_mem_8(mem, cpu->address, decremented);
+        set_ZN_flags(cpu, decremented);
         break;
     }
     case DEX: {
-        // Todo: Implement DEX
-        exit(EXIT_FAILURE);
+        cpu->x--;
+        set_ZN_flags(cpu, cpu->x);
         break;
     }
     case DEY: {
-        // Todo: Implement DEY
-        exit(EXIT_FAILURE);
+        cpu->y--;
+        set_ZN_flags(cpu, cpu->y);
         break;
     }
     case EOR: {
-        // Todo: Implement EOR
-        exit(EXIT_FAILURE);
+        cpu->ac ^= cpu_read_mem_8(mem, cpu->address);
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case INC: {
-        // Todo: Implement INC
-        exit(EXIT_FAILURE);
+        uint8_t incremented = cpu_read_mem_8(mem, cpu->address) + 1;
+        cpu_write_mem_8(mem, cpu->address, incremented);
+        set_ZN_flags(cpu, incremented);
         break;
     }
     case INX: {
-        // Todo: Implement INX
-        exit(EXIT_FAILURE);
+        cpu->x++;
+        set_ZN_flags(cpu, cpu->x);
         break;
     }
     case INY: {
-        // Todo: Implement INY
-        exit(EXIT_FAILURE);
+        cpu->y++;
+        set_ZN_flags(cpu, cpu->y);
         break;
     }
     case JMP: {
@@ -344,8 +376,15 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case LSR: {
-        // Todo: Implement LSR
-        exit(EXIT_FAILURE);
+        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        set_flag(cpu, CARRY_MASK, m & 0x1);
+        uint8_t shifted = m >> 1;
+        set_ZN_flags(cpu, shifted);
+
+        if (instruction.address_mode == ACC) //
+            cpu->ac = shifted;
+        else
+            cpu_write_mem_8(mem, cpu->address, shifted);
         break;
     }
     case NOP: {
@@ -353,8 +392,8 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case ORA: {
-        // Todo: Implement ORA
-        exit(EXIT_FAILURE);
+        cpu->ac |= cpu_read_mem_8(mem, cpu->address);
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case PHA: {
@@ -381,28 +420,49 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case ROL: {
-        // Todo: Implement ROL
-        exit(EXIT_FAILURE);
+        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t rotated = (m << 1) | get_flag(cpu, CARRY_MASK);
+        set_flag(cpu, CARRY_MASK, m & 0x80);
+        set_ZN_flags(cpu, rotated);
+
+        if (instruction.address_mode == ACC)
+            cpu->ac = rotated;
+        else
+            cpu_write_mem_8(mem, cpu->address, rotated);
         break;
     }
     case ROR: {
-        // Todo: Implement ROR
-        exit(EXIT_FAILURE);
+        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t rotated = (get_flag(cpu, CARRY_MASK) << 7) | (m >> 1);
+        set_flag(cpu, CARRY_MASK, m & 0x1);
+        set_ZN_flags(cpu, rotated);
+
+        if (instruction.address_mode == ACC)
+            cpu->ac = rotated;
+        else
+            cpu_write_mem_8(mem, cpu->address, rotated);
         break;
     }
     case RTI: {
-        // Todo: Implement RTI
-        exit(EXIT_FAILURE);
+        cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) |
+               (pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
+        cpu->pc = pop_stack_16(cpu);
         break;
     }
     case RTS: {
-        // Todo: Implement RTS
-        exit(EXIT_FAILURE);
+        // return the stored address and continue execution from the address after it
+        cpu->pc = pop_stack_16(cpu) + 1;
         break;
     }
     case SBC: {
-        // Todo: Implement SBC
-        exit(EXIT_FAILURE);
+        // Subtraction is addition of the two's complement of M
+        uint16_t A = cpu->ac;
+        uint16_t M = cpu_read_mem_8(mem, cpu->address);
+        uint16_t R = A + (M ^ 0xFF) + get_flag(cpu, CARRY_MASK);
+        cpu->ac = R & 0xFF;
+        set_flag(cpu, CARRY_MASK, R > 0xFF);
+        set_flag(cpu, OVERFLOW_MASK, ((A ^ R) & (A ^ M) & 0x80) != 0);
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case SEC: {

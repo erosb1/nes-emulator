@@ -90,18 +90,18 @@ void push_stack_8(CPU *cpu, uint8_t value) {
 }
 
 uint8_t pop_stack_8(CPU *cpu) {
-    uint16_t value = cpu_read_mem_16(cpu->mem, STACK_OFFSET + cpu->sp);
     cpu->sp += 1;
+    uint16_t value = cpu_read_mem_8(cpu->mem, STACK_OFFSET + cpu->sp);
     return value;
 }
 
 void push_stack_16(CPU *cpu, uint16_t value) {
-    cpu_write_mem_16(cpu->mem, STACK_OFFSET + cpu->sp, value);
-    cpu->sp -= 2;
+    push_stack_8(cpu, (value >> 8) & 0xFF);
+    push_stack_8(cpu, value & 0xFF);
 }
 
 uint16_t pop_stack_16(CPU *cpu) {
-    uint16_t value = cpu_read_mem_16(cpu->mem, STACK_OFFSET + cpu->sp);
-    cpu->sp += 2;
-    return value;
+    uint8_t low = pop_stack_8(cpu);
+    uint8_t high = pop_stack_8(cpu);
+    return (high << 8) | low;
 }
