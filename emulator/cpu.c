@@ -157,14 +157,17 @@ void cpu_run_instruction(CPU *cpu) {
     switch(instruction.opcode) {
     case ADC: {
         // Todo: Implement ADC
+        exit(EXIT_FAILURE);
         break;
     }
     case AND: {
         // Todo: Implement AND
+        exit(EXIT_FAILURE);
         break;
     }
     case ASL: {
         // Todo: Implement ASL
+        exit(EXIT_FAILURE);
         break;
     }
     case BCC: {
@@ -184,6 +187,7 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case BIT: {
         // Todo: Implement BIT
+        exit(EXIT_FAILURE);
         break;
     }
     case BMI: {
@@ -212,70 +216,78 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case BVC: {
         // Todo: Implement BVC
+        exit(EXIT_FAILURE);
         break;
     }
     case BVS: {
         // Todo: Implement BVS
+        exit(EXIT_FAILURE);
         break;
     }
     case CLC: {
         set_flag(cpu, CARRY_MASK, FALSE);
-        cpu->cur_cycle += 2;
-        printf("CLC\n");
         break;
     }
     case CLD: {
         set_flag(cpu, DECIMAL_MASK, FALSE);
-        cpu->cur_cycle += 2;
-        printf("CLD\n");
         break;
     }
     case CLI: {
-        // Todo: Implement CLI
+        set_flag(cpu, INTERRUPT_MASK, FALSE);
         break;
     }
     case CLV: {
-        // Todo: Implement CLV
+        set_flag(cpu, OVERFLOW_MASK, FALSE);
         break;
     }
     case CMP: {
         // Todo: Implement CMP
+        exit(EXIT_FAILURE);
         break;
     }
     case CPX: {
         // Todo: Implement CPX
+        exit(EXIT_FAILURE);
         break;
     }
     case CPY: {
         // Todo: Implement CPY
+        exit(EXIT_FAILURE);
         break;
     }
     case DEC: {
         // Todo: Implement DEC
+        exit(EXIT_FAILURE);
         break;
     }
     case DEX: {
         // Todo: Implement DEX
+        exit(EXIT_FAILURE);
         break;
     }
     case DEY: {
         // Todo: Implement DEY
+        exit(EXIT_FAILURE);
         break;
     }
     case EOR: {
         // Todo: Implement EOR
+        exit(EXIT_FAILURE);
         break;
     }
     case INC: {
         // Todo: Implement INC
+        exit(EXIT_FAILURE);
         break;
     }
     case INX: {
         // Todo: Implement INX
+        exit(EXIT_FAILURE);
         break;
     }
     case INY: {
         // Todo: Implement INY
+        exit(EXIT_FAILURE);
         break;
     }
     case JMP: {
@@ -318,10 +330,12 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case LDY: {
         // Todo: Implement LDY
+        exit(EXIT_FAILURE);
         break;
     }
     case LSR: {
         // Todo: Implement LSR
+        exit(EXIT_FAILURE);
         break;
     }
     case NOP: {
@@ -330,42 +344,52 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case ORA: {
         // Todo: Implement ORA
+        exit(EXIT_FAILURE);
         break;
     }
     case PHA: {
         // Todo: Implement PHA
+        exit(EXIT_FAILURE);
         break;
     }
     case PHP: {
         // Todo: Implement PHP
+        exit(EXIT_FAILURE);
         break;
     }
     case PLA: {
         // Todo: Implement PLA
+        exit(EXIT_FAILURE);
         break;
     }
     case PLP: {
         // Todo: Implement PLP
+        exit(EXIT_FAILURE);
         break;
     }
     case ROL: {
         // Todo: Implement ROL
+        exit(EXIT_FAILURE);
         break;
     }
     case ROR: {
         // Todo: Implement ROR
+        exit(EXIT_FAILURE);
         break;
     }
     case RTI: {
         // Todo: Implement RTI
+        exit(EXIT_FAILURE);
         break;
     }
     case RTS: {
         // Todo: Implement RTS
+        exit(EXIT_FAILURE);
         break;
     }
     case SBC: {
         // Todo: Implement SBC
+        exit(EXIT_FAILURE);
         break;
     }
     case SEC: {
@@ -394,49 +418,50 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case STY: {
         // Todo: Implement STY
+        exit(EXIT_FAILURE);
         break;
     }
     case TAX: {
         // Todo: Implement TAX
+        exit(EXIT_FAILURE);
         break;
     }
     case TAY: {
         // Todo: Implement TAY
+        exit(EXIT_FAILURE);
         break;
     }
     case TSX: {
         // Todo: Implement TSX
+        exit(EXIT_FAILURE);
         break;
     }
     case TXA: {
         // Todo: Implement TXA
+        exit(EXIT_FAILURE);
         break;
     }
     case TXS: {
         // Todo: Implement TXS
+        exit(EXIT_FAILURE);
         break;
     }
     case TYA: {
         // Todo: Implement TYA
+        exit(EXIT_FAILURE);
         break;
     }
     case ILL: {
         // Todo: Handle illegal opcode
+        exit(EXIT_FAILURE);
         break;
     }}
 }
 
-int num_instruction = 0;
-#define BREAK_INSTRUCTION 10
 
 void cpu_run_instructions(CPU *cpu, size_t cycles) {
     while (cpu->cur_cycle < cycles) {
         cpu_run_instruction(cpu);
-
-        num_instruction++;
-        if (num_instruction == BREAK_INSTRUCTION) {
-            exit(EXIT_SUCCESS);
-        }
 
 #ifdef BREAKPOINT
         if (cpu->pc == BREAKPOINT) {
