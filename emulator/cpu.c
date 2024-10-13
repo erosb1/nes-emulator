@@ -513,7 +513,7 @@ void cpu_run_instruction(CPU *cpu) {
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
-    case ILL: default: {
+    default: {
         printf("Illegal Instruction at PC: $%04X, Opcode: %02X (Treated as NOP)\n", cpu->pc, byte);
         exit(EXIT_FAILURE);
         break;
