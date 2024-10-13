@@ -6,7 +6,7 @@
 // options
 #define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
 // out for normal entrypoint behavior)
-#define BREAKPOINT 0xC783 // uncomment to run normally
+#define BREAKPOINT 0xC5F6 // uncomment to run normally
 
 #define CPU_MEM_SIZE 0x10000 // 64KiB
 
@@ -27,6 +27,7 @@ typedef enum CPUFlag {
 
 typedef struct CPU {
     uint16_t pc; // program counter
+    uint16_t address; // addressing mode address (set before executing each instruction)
     uint8_t ac;  // accumulator
     uint8_t x;   // x register
     uint8_t y;   // y register
