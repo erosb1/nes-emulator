@@ -176,7 +176,6 @@ static void set_address(CPU *cpu, Instruction instruction) {
 
 
 void cpu_run_instruction(CPU *cpu) {
-
     if (TESTING) print_state(cpu);
 
     CPUMemory *mem = cpu->mem;
@@ -513,8 +512,115 @@ void cpu_run_instruction(CPU *cpu) {
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
-    default: {
-        printf("Illegal Instruction at PC: $%04X, Opcode: %02X (Treated as NOP)\n", cpu->pc, byte);
+
+        // Illegal opcodes
+    case ALR: { // Illegal
+        // todo: implement ALR
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case ANC: { // Illegal
+        // todo: implement ANC
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case AN2: { // Illegal
+        // todo: implement AN2
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case ANE: { // Illegal
+        // todo: implement ANE
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case ARR: { // Illegal
+        // todo: implement ARR
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case DCP: { // Illegal
+        // todo: implement DCP
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case ISC: { // Illegal
+        // todo: implement ISC
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case LAS: { // Illegal
+        // todo: implement LAS
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case LAX: { // Illegal
+        // todo: implement LAX
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case LXA: { // Illegal
+        // todo: implement LXA
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case RLA: { // Illegal
+        // todo: implement RLA
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case RRA: { // Illegal
+        // todo: implement RRA
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case SAX: { // Illegal
+        // todo: implement SAX
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case SBX: { // Illegal
+        // todo: implement SBX
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case SHA: { // Illegal
+        // todo: implement SHA
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case SHX: { // Illegal
+        // todo: implement SHX
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case SHY: { // Illegal
+        // todo: implement SHY
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case SLO: { // Illegal
+        // todo: implement SLO
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case SRE: { // Illegal
+        // todo: implement SRE
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case TAS: { // Illegal
+        // todo: implement TAS
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case UBC: { // Illegal
+        // todo: implement UBC
+        exit(EXIT_FAILURE);
+        break;
+    }
+    case JAM: { // Illegal
+        // todo: implement JAM
         exit(EXIT_FAILURE);
         break;
     }}
