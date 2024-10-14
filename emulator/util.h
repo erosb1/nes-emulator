@@ -17,7 +17,6 @@ typedef struct CPU CPU;
 #define NIBBLE_HI_MASK 0xF0
 #define NIBBLE_LO_MASK 0x0F
 
-void print_state(CPU *cpu);
-void print_disassembled_instruction(CPU *cpu, const Instruction instruction);
+void log_disassembled_instruction(const CPU *cpu);
 
 #endif

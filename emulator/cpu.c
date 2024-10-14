@@ -193,18 +193,18 @@ static void set_address(CPU *cpu, Instruction instruction) {
 
 
 void cpu_run_instruction(CPU *cpu) {
-    if (TESTING) print_state(cpu);
+#if(CPU_LOGGING)
+    log_disassembled_instruction(cpu);
+#endif
 
     CPUMemory *mem = cpu->mem;
     uint8_t byte = cpu_read_mem_8(mem, cpu->pc++);
     Instruction instruction = instruction_lookup[byte];
     set_address(cpu, instruction);
-    cpu->cur_cycle += cycle_lookup[byte];
 
-    if (TESTING) {
-        print_disassembled_instruction(cpu, instruction);
-        printf("\n");
-    }
+     // This has to be printed after `set_address` and before incrementing `cur_cycle`
+
+    cpu->cur_cycle += cycle_lookup[byte];
 
     switch(instruction.opcode) {
     case ADC: {
@@ -688,9 +688,19 @@ void cpu_run_instruction(CPU *cpu) {
 }
 
 
+int counter = 0;
+
+
 void cpu_run_instructions(CPU *cpu, size_t cycles) {
+    cpu->sr = SR_START;
+
     while (cpu->cur_cycle < cycles) {
         cpu_run_instruction(cpu);
+
+        counter++;
+        if (counter == 2) {
+            exit(EXIT_SUCCESS);
+        }
 
 #ifdef BREAKPOINT
         if (cpu->pc == BREAKPOINT) {

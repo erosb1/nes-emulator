@@ -4,7 +4,9 @@
 #include "common.h"
 
 // options
+#define CPU_LOGGING 1
 #define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
+#define SR_START 0x24
 // out for normal entrypoint behavior)
 #define BREAKPOINT 0xC5F6 // uncomment to run normally
 
