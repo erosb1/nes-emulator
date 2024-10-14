@@ -1,6 +1,0 @@
-C000  4C F5 C5  JMP $C5F5                       A:00 X:00 Y:00 P:24 SP:FD CYC:7
-C5F5  A2 00     LDX ???                         A:00 X:00 Y:00 P:24 SP:FD CYC:10
-
-
-C000  4C F5 C5  JMP $C5F5                       A:00 X:00 Y:00 P:24 SP:FD CYC:7
-C5F5  A2 00     LDX #$00                        A:00 X:00 Y:00 P:24 SP:FD CYC:10

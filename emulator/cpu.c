@@ -688,7 +688,6 @@ void cpu_run_instruction(CPU *cpu) {
 }
 
 
-int counter = 0;
 
 
 void cpu_run_instructions(CPU *cpu, size_t cycles) {
@@ -697,15 +696,12 @@ void cpu_run_instructions(CPU *cpu, size_t cycles) {
     while (cpu->cur_cycle < cycles) {
         cpu_run_instruction(cpu);
 
-        counter++;
-        if (counter == 2) {
-            exit(EXIT_SUCCESS);
-        }
-
 #ifdef BREAKPOINT
         if (cpu->pc == BREAKPOINT) {
             exit(EXIT_SUCCESS);
         }
 #endif /* ifdef BREAKPOINT */
     }
+
+    exit(EXIT_SUCCESS);
 }
