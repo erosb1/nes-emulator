@@ -705,4 +705,5 @@ void cpu_run_instructions(CPU *cpu, size_t cycles) {
         }
 #endif /* ifdef BREAKPOINT */
     }
+    exit(EXIT_SUCCESS);
 }
