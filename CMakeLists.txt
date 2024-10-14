@@ -24,6 +24,16 @@ if(NOT RISC_V)
     include_directories(${SDL2_INCLUDE_DIRS})
     target_link_libraries(main SDL2::SDL2)
 
+    # Add a custom target for testing against nestest
+    add_custom_target(nestest_cpu_only_diff
+        COMMAND ${CMAKE_CURRENT_BINARY_DIR}/main ${CMAKE_SOURCE_DIR}/tests/nestest.nes > ${CMAKE_CURRENT_BINARY_DIR}/output.txt
+        COMMAND diff ${CMAKE_CURRENT_BINARY_DIR}/output.txt ${CMAKE_SOURCE_DIR}/tests/nestest.txt | head -n 2 | tail -n 1
+        DEPENDS main
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Running NES Emulator tests and comparing logs..."
+        VERBATIM
+    )
+
 # If cross-compiling to RISC-V
 else()
     message(STATUS "Building CMake for RISC-V DTEKV-BOARD cross-compilation")
