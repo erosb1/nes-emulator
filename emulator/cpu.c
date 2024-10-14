@@ -91,8 +91,14 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->address = base_address + cpu->x;
         cpu->pc += 2;
 
-        if (instruction.opcode != STA && instruction.opcode != STX && instruction.opcode != STY) {
-            if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+        // If we cross page boundaries, we increment cur_cycle by 1.
+        // However, this is not the case for some opcodes
+        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+            switch (instruction.opcode) {
+            case STA: case ASL: case DEC: case INC: case LSR: case ROL: case ROR:
+            case SLO: case RLA: case SRE: case RRA: case DCP: case ISB: case SHY:
+                break;
+            default:
                 cpu->cur_cycle++;
             }
         }
@@ -103,8 +109,13 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->address = base_address + cpu->y;
         cpu->pc += 2;
 
-        if (instruction.opcode != STA && instruction.opcode != STX && instruction.opcode != STY) {
-            if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+        // If we cross page boundaries, we increment cur_cycle by 1.
+        // However, this is not the case for some opcodes
+        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+            switch (instruction.opcode) {
+            case STA: case SLO: case RLA: case SRE: case RRA: case DCP: case ISB: case NOP:
+                break;
+            default:
                 cpu->cur_cycle++;
             }
         }
@@ -141,9 +152,15 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->address = base_address + cpu->y;
         cpu->pc++;
 
-        // Add an extra cycle if the new address crosses a page boundary
+        // If we cross page boundaries, we increment cur_cycle by 1.
+        // However, this is not the case for some opcodes
         if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
-            cpu->cur_cycle++;
+            switch (instruction.opcode) {
+            case STA: case SLO: case RLA: case SRE: case RRA: case DCP: case ISB: case NOP:
+                break;
+            default:
+                cpu->cur_cycle++;
+            }
         }
         break;
     }
@@ -540,23 +557,40 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case DCP: { // Illegal
-        // todo: implement DCP
-        exit(EXIT_FAILURE);
+        // Perform DEC
+        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        m = (m - 1) & 0xFF;
+        cpu_write_mem_8(mem, cpu->address, m);
+        // Perform CMP
+        uint8_t a = cpu->ac;
+        set_flag(cpu, CARRY_MASK, a >= m);
+        set_ZN_flags(cpu, a - m);
         break;
     }
-    case ISC: { // Illegal
-        // todo: implement ISC
-        exit(EXIT_FAILURE);
+    case ISB: { // Illegal
+        // Perform INC
+        uint8_t A = cpu->ac;
+        uint8_t M = cpu_read_mem_8(mem, cpu->address) + 1;
+        cpu_write_mem_8(mem, cpu->address, M);
+
+        // Perform SBC
+        uint16_t R = A + (M ^ 0xFF) + get_flag(cpu, CARRY_MASK);
+        cpu->ac = R & 0xFF;
+        set_flag(cpu, CARRY_MASK, R > 0xFF);
+        set_flag(cpu, OVERFLOW_MASK, ((A ^ R) & (A ^ M) & 0x80) != 0);
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
+
     case LAS: { // Illegal
         // todo: implement LAS
         exit(EXIT_FAILURE);
         break;
     }
     case LAX: { // Illegal
-        // todo: implement LAX
-        exit(EXIT_FAILURE);
+        cpu->ac = cpu_read_mem_8(mem, cpu->address); // Perform LDA
+        cpu->x = cpu->ac; // Perform LDX
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case LXA: { // Illegal
@@ -565,18 +599,33 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case RLA: { // Illegal
-        // todo: implement RLA
-        exit(EXIT_FAILURE);
+        // Perform ROL
+        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t rotated = (m << 1) | get_flag(cpu, CARRY_MASK);
+        set_flag(cpu, CARRY_MASK, m & 0x80);
+        cpu_write_mem_8(mem, cpu->address, rotated);
+        // Perform AND
+        cpu->ac &= rotated;
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case RRA: { // Illegal
-        // todo: implement RRA
-        exit(EXIT_FAILURE);
+        // Perform ROR
+        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t rotated = (get_flag(cpu, CARRY_MASK) << 7) | (m >> 1);
+        cpu_write_mem_8(mem, cpu->address, rotated);
+        set_flag(cpu, CARRY_MASK, m & 0x01);
+        // Perform ADC
+        uint16_t a = cpu->ac;
+        uint16_t r = a + rotated + get_flag(cpu, CARRY_MASK);
+        cpu->ac = r & 0xFF;
+        set_flag(cpu, CARRY_MASK, r >= 0x100);
+        set_flag(cpu, OVERFLOW_MASK, ((a ^ r) & (a ^ rotated) & 0x80) != 0);
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case SAX: { // Illegal
-        // todo: implement SAX
-        exit(EXIT_FAILURE);
+        cpu_write_mem_8(mem, cpu->address, cpu->ac & cpu->x);
         break;
     }
     case SBX: { // Illegal
@@ -600,13 +649,25 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case SLO: { // Illegal
-        // todo: implement SLO
-        exit(EXIT_FAILURE);
+        // Perform ASL
+        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        set_flag(cpu, CARRY_MASK, m & 0x80);
+        uint8_t shifted = m << 1;
+        cpu_write_mem_8(mem, cpu->address, shifted);
+        // Perform ORA
+        cpu->ac |= shifted;
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case SRE: { // Illegal
-        // todo: implement SRE
-        exit(EXIT_FAILURE);
+        // Perform LSR
+        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        set_flag(cpu, CARRY_MASK, m & 0x1);
+        uint8_t shifted = m >> 1;
+        cpu_write_mem_8(mem, cpu->address, shifted);
+        // Perform EOR
+        cpu->ac ^= shifted;
+        set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case TAS: { // Illegal

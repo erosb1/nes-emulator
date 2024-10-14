@@ -20,7 +20,7 @@ typedef enum Opcode{
 
     // Illegal Opcodes
     ALR, ANC, AN2, ANE, ARR,
-    DCP, ISC, LAS, LAX, LXA,
+    DCP, ISB, LAS, LAX, LXA,
     RLA, RRA, SAX, SBX, SHA,
     SHX, SHY, SLO, SRE, TAS,
     UBC, JAM,
@@ -88,10 +88,10 @@ static const Instruction instruction_lookup[] = {
     {INY, IMP}, {CMP, IMM}, {DEX, IMP}, {SBX, IMM}, {CPY, ABS}, {CMP, ABS}, {DEC, ABS}, {DCP, ABS}, // 0xC8 - 0xCF
     {BNE, REL}, {CMP, YIN}, {JAM, UNK}, {DCP, YIN}, {NOP, ZPX}, {CMP, ZPX}, {DEC, ZPX}, {DCP, ZPX}, // 0xD0 - 0xD7
     {CLD, IMP}, {CMP, ABY}, {NOP, IMP}, {DCP, ABY}, {NOP, ABX}, {CMP, ABX}, {DEC, ABX}, {DCP, ABX}, // 0xD8 - 0xDF
-    {CPX, IMM}, {SBC, XIN}, {NOP, IMM}, {ISC, XIN}, {CPX, ZP0}, {SBC, ZP0}, {INC, ZP0}, {ISC, ZP0}, // 0xE0 - 0xE7
-    {INX, IMP}, {SBC, IMM}, {NOP, IMP}, {SBC, IMM}, {CPX, ABS}, {SBC, ABS}, {INC, ABS}, {ISC, ABS}, // 0xE8 - 0xEF
-    {BEQ, REL}, {SBC, YIN}, {JAM, UNK}, {ISC, YIN}, {NOP, ZPX}, {SBC, ZPX}, {INC, ZPX}, {ISC, ZPX}, // 0xF0 - 0xF7
-    {SED, IMP}, {SBC, ABY}, {NOP, IMP}, {ISC, ABY}, {NOP, ABX}, {SBC, ABX}, {INC, ABX}, {ISC, ABX}  // 0xF8 - 0xFF
+    {CPX, IMM}, {SBC, XIN}, {NOP, IMM}, {ISB, XIN}, {CPX, ZP0}, {SBC, ZP0}, {INC, ZP0}, {ISB, ZP0}, // 0xE0 - 0xE7
+    {INX, IMP}, {SBC, IMM}, {NOP, IMP}, {SBC, IMM}, {CPX, ABS}, {SBC, ABS}, {INC, ABS}, {ISB, ABS}, // 0xE8 - 0xEF
+    {BEQ, REL}, {SBC, YIN}, {JAM, UNK}, {ISB, YIN}, {NOP, ZPX}, {SBC, ZPX}, {INC, ZPX}, {ISB, ZPX}, // 0xF0 - 0xF7
+    {SED, IMP}, {SBC, ABY}, {NOP, IMP}, {ISB, ABY}, {NOP, ABX}, {SBC, ABX}, {INC, ABX}, {ISB, ABX}  // 0xF8 - 0xFF
 };
 
 
@@ -131,7 +131,7 @@ static const char* opcode_name_lookup[] = {
 
     // Illegal
     "ALR", "ANC", "AN2", "ANE", "ARR",
-    "DCP", "ISC", "LAS", "LAX", "LXA",
+    "DCP", "ISB", "LAS", "LAX", "LXA",
     "RLA", "RRA", "SAX", "SBX", "SHA",
     "SHX", "SHY", "SLO", "SRE", "TAS",
     "UBC", "JAM"
