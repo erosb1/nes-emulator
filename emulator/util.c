@@ -3,6 +3,139 @@
 #include "opcodes.h"
 #include "cpu_mem.h"
 
+#define ADDRESS_MODE_COLUMN_WIDTH 28
+
+/**
+ *  This is a rather complex function that logs info about the addressing mode
+ *  of the instruction that is currently about to be executed.
+ *
+ *  This function mimics the behavior of set_address in cpu.c,
+ *  without actually updating the internal values of the cpu
+ */
+static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
+    CPUMemory *mem = cpu->mem;
+    uint8_t byte1 = cpu_read_mem_8(mem, cpu->pc + 1);
+    uint8_t byte2 = cpu_read_mem_8(mem, cpu->pc + 2);
+    size_t cur_column_width = 0;
+    uint16_t address = 0x0000;
+
+    switch (instruction.address_mode) {
+    case ACC: {
+        printf("A ");
+        cur_column_width += 2;
+        break;
+    }
+    case ABS: {
+        address = (byte2 << 8) | byte1;
+        printf("$%04X ", address);
+        cur_column_width += 6;
+        break;
+    }
+    case ABX: {
+        uint16_t address_pre = (byte2 << 8) | byte1;
+        address = address_pre + cpu->x;
+        printf("$%04X,X @ %04X ", address_pre, address);
+        cur_column_width += 15;
+        break;
+    }
+    case ABY: {
+        uint16_t address_pre = (byte2 << 8) | byte1;
+        address = address_pre + cpu->y;
+        printf("$%04X,Y @ %04X ", address_pre, address);
+        cur_column_width += 15;
+        break;
+    }
+    case IMM: {
+        address = cpu->pc;
+        printf("#$%02X ", byte1);
+        cur_column_width += 5;
+        break;
+    }
+    case IMP: {
+        break;
+    }
+    case REL: {
+        address = (cpu->pc + 2) + byte1;
+        printf("$%04X ", address);
+        cur_column_width += 6;
+        break;
+    }
+    case IND: {
+        uint16_t address_pre = (byte2 << 8) | byte1;
+        address = cpu_read_mem_8(mem, address_pre) |
+            (cpu_read_mem_8(mem, (address_pre & 0xFF00) | ((address_pre + 1) & 0xFF)) << 8);
+        printf("($%04X) = %04X ", address_pre, address);
+        cur_column_width += 15;
+        break;
+    }
+    case XIN: {
+        uint16_t zp_address = (byte1 + cpu->x) & 0xFF;
+        uint16_t hi_byte = cpu_read_mem_8(mem, (zp_address + 1) & 0xFF);
+        uint16_t low_byte = cpu_read_mem_8(mem, zp_address & 0xFF);
+        address = (hi_byte << 8) | low_byte;
+        printf("($%02X,X) @ %02X = %04X ", byte1, zp_address, address);
+        cur_column_width += 20;
+        break;
+    }
+    case YIN: {
+        uint16_t zp_address = byte1;
+        uint16_t hi_byte = cpu_read_mem_8(mem, (zp_address + 1) & 0xFF);
+        uint16_t low_byte = cpu_read_mem_8(mem, zp_address & 0xFF);
+        uint16_t real_address = (hi_byte << 8) | low_byte;
+        address = (real_address + cpu->y) & 0xFFFF;
+        printf("($%02X),Y = %04X @ %04X ", byte1, real_address, address);
+        cur_column_width += 22;
+        break;
+    }
+    case ZP0: {
+        address = byte1;
+        printf("$%02X ", address);
+        cur_column_width += 4;
+        break;
+    }
+    case ZPX: {
+        address = ((uint16_t)(byte1 + cpu->x)) & 0xFF;
+        printf("$%02X,X @ %02X ", byte1, address);
+        cur_column_width += 11;
+        break;
+    }
+    case ZPY: {
+        address = ((uint16_t)(byte1 + cpu->y)) & 0xFF;
+        printf("$%02X,Y @ %02X ", byte1, address);
+        cur_column_width += 11;
+        break;
+    }
+    case UNK: default: {
+        printf("???");
+        cur_column_width += 3;
+        break;
+    }}
+
+    // This is a rather ugly nested switch statement
+    // Some instructions in the log show the value at the address it operates on.
+    // This switch statement finds those instructions and prints the value.
+    switch (instruction.address_mode) {
+    case IMM: case ACC: case IND:
+        break;
+    default:
+        switch (instruction.opcode) {
+        case STA: case STX: case STY: case BIT: case LDA: case LDX: case LDY: case CPY:
+        case AND: case ORA: case EOR: case ADC: case SBC: case CMP: case CPX: case LSR:
+        case ASL: case ROR: case ROL: case INC: case DEC:
+            printf("= %02X", cpu_read_mem_8(mem, address));
+                cur_column_width += 4;
+                break;
+        default: break;
+        }
+    }
+
+
+    // Print blank spaces so that the entire column width is equal to ADDRESS_MODE_COLUMN_WIDTH
+    for (int i = 0; i < ADDRESS_MODE_COLUMN_WIDTH - cur_column_width; i++) {
+        printf(" ");
+    }
+}
+
 
 void log_disassembled_instruction(const CPU *cpu) {
     CPUMemory *mem = cpu->mem;
@@ -29,197 +162,9 @@ void log_disassembled_instruction(const CPU *cpu) {
     // Print the name of the current instruction, for example: JMP
     printf("%s ", opcode_name_lookup[instruction.opcode]);
 
-    switch (instruction.address_mode) {
-    case ACC: {
-        printf("A                           ");
-        break;
-    }
-    case ABS: {
-        uint16_t address = (byte2 << 8) | byte1;
-        switch (instruction.opcode) {
-        case STA: case STX: case STY: case BIT: case LDA: case LDX: case LDY: case CPY:
-        case AND: case ORA: case EOR: case ADC: case SBC: case CMP: case CPX: case LSR:
-        case ASL: case ROR: case ROL: case INC: case DEC:
-            printf("$%04X = %02X                  ", address, cpu_read_mem_8(mem, address));
-            break;
-        default:
-            printf("$%04X                       ", address);
-        }
-        break;
-    }
-    case ABX: {
-        uint16_t address = (byte2 << 8) | byte1;
-        uint16_t address_incremented = address + cpu->x;
-        switch (instruction.opcode) {
-        case STA: case STX: case STY: case BIT: case LDA: case LDX: case LDY: case CPY:
-        case AND: case ORA: case EOR: case ADC: case SBC: case CMP: case CPX: case LSR:
-        case ASL: case ROR: case ROL: case INC: case DEC:
-            printf("$%04X,X @ %04X = %02X         ", address, address_incremented, cpu_read_mem_8(mem, address_incremented));
-            break;
-        default:
-            printf("$%04X                      ", address);
-        }
-        break;
-    }
-    case ABY: {
-        uint16_t address = (byte2 << 8) | byte1;
-        uint16_t address_incremented = address + cpu->y;
-        switch (instruction.opcode) {
-        case STA: case STX: case STY: case BIT: case LDA: case LDX: case LDY: case CPY:
-        case AND: case ORA: case EOR: case ADC: case SBC: case CMP: case CPX: case LSR:
-        case ASL: case ROR: case ROL: case INC: case DEC:
-            printf("$%04X,Y @ %04X = %02X         ", address, address_incremented, cpu_read_mem_8(mem, address_incremented));
-            break;
-        default:
-            printf("$%04X                      ", address);
-        }
-        break;
-    }
-    case IMM: {
-        printf("#$%02X                        ", byte1);
-        break;
-    }
-    case IMP: {
-        printf("                            ");
-        break;
-    }
-    case REL: {
-        uint16_t address = cpu->pc + byte1 + 2;
-        printf("$%04X                       ", address);
-        break;
-    }
-    case IND: {
-        uint16_t address = (byte2 << 8) | byte1;
-        uint16_t indirect_address = cpu_read_mem_8(mem, address) |
-            (cpu_read_mem_8(mem, (address & 0xFF00) | ((address + 1) & 0xFF)) << 8);
-        printf("($%04X) = %04X              ", address, indirect_address);
-        break;
-    }
-    case XIN: {
-        uint16_t zp_address = (byte1 + cpu->x) & 0xFF;
-        uint16_t hi_byte = cpu_read_mem_8(mem, (zp_address + 1) & 0xFF);
-        uint16_t low_byte = cpu_read_mem_8(mem, zp_address & 0xFF);
-        uint16_t real_address = (hi_byte << 8) | low_byte;
-        uint8_t value = cpu_read_mem_8(mem, real_address);
-        printf("($%02X,X) @ %02X = %04X = %02X    ", byte1, zp_address, real_address, value);
-        break;
-    }
-    case YIN: {
-        uint16_t zp_address = byte1;
-        uint16_t hi_byte = cpu_read_mem_8(mem, (zp_address + 1) & 0xFF);
-        uint16_t low_byte = cpu_read_mem_8(mem, zp_address & 0xFF);
-        uint16_t real_address = (hi_byte << 8) | low_byte;
-        uint16_t real_address_incremented = (real_address + cpu->y) & 0xFFFF;
-        uint8_t value = cpu_read_mem_8(mem, real_address_incremented);
-        printf("($%02X),Y = %04X @ %04X = %02X  ", byte1, real_address, real_address_incremented, value);
-        break;
-    }
-    case ZP0: {
-        switch (instruction.opcode) {
-        case STA: case STX: case STY: case BIT: case LDA: case LDX: case LDY: case CPY:
-        case AND: case ORA: case EOR: case ADC: case SBC: case CMP: case CPX: case LSR:
-        case ASL: case ROR: case ROL: case INC: case DEC:
-            printf("$%02X = %02X                    ", byte1, cpu_read_mem_8(mem, byte1));
-            break;
-        default:
-            printf("$%02X                         ", byte1);
-        }
-        break;
-    }
-    case ZPX: {
-        uint16_t address = ((uint16_t)(byte1 + cpu->x)) & 0xFF;
-        switch (instruction.opcode) {
-        case STA: case STX: case STY: case BIT: case LDA: case LDX: case LDY: case CPY:
-        case AND: case ORA: case EOR: case ADC: case SBC: case CMP: case CPX: case LSR:
-        case ASL: case ROR: case ROL: case INC: case DEC:
-            printf("$%02X,X @ %02X = %02X             ", byte1, address, cpu_read_mem_8(mem, address));
-            break;
-        default:
-            printf("$%02X,X @ %02X             ", byte1, address);
-        }
-        break;
-    }
-    case ZPY: {
-        uint16_t address = ((uint16_t)(byte1 + cpu->y)) & 0xFF;
-        switch (instruction.opcode) {
-        case STA: case STX: case STY: case BIT: case LDA: case LDX: case LDY: case CPY:
-        case AND: case ORA: case EOR: case ADC: case SBC: case CMP: case CPX: case LSR:
-        case ASL: case ROR: case ROL: case INC: case DEC:
-            printf("$%02X,Y @ %02X = %02X             ", byte1, address, cpu_read_mem_8(mem, address));
-            break;
-        default:
-            printf("$%02X,Y @ %02X             ", byte1, address);
-        }
-        break;
-    }
-    default: {
-        printf("???                         ");
-    }}
-
-    // ($80,X) @ 80 = 0200 = 5A
+    log_address_mode_info(cpu, instruction);
 
     // Print the state of the CPU before the instruction is executed
     printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu\n",
         cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp, cpu->cur_cycle);
 }
-
-// Print the address that the instruction operates on
-//switch (instruction.address_mode) {
-//case IMM:  // Immediate addressing
-//    printf("#$%02X", cpu_read_mem_8(cpu->mem, cpu->address));
-//    break;
-//
-//case ZP0:  // Zeropage addressing
-//    printf("$%02X", cpu->address & 0xFF);
-//    break;
-//
-//case ZPX:  // Zeropage, X-indexed addressing
-//    printf("$%02X,X", cpu->address & 0xFF);
-//    break;
-//
-//case ZPY:  // Zeropage, Y-indexed addressing
-//    printf("$%02X,Y", cpu->address & 0xFF);
-//    break;
-//
-//case ABS:  // Absolute addressing
-//    uint16_t address =
-//    printf("$%04X", cpu->address);
-//    break;
-//
-//case ABX:  // Absolute, X-indexed addressing
-//    printf("$%04X,X", cpu->address);
-//    break;
-//
-//case ABY:  // Absolute, Y-indexed addressing
-//    printf("$%04X,Y", cpu->address);
-//    break;
-//
-//case IND:  // Indirect addressing
-//    printf("($%04X)", cpu->address);
-//    break;
-//
-//case XIN:  // X-indexed, Indirect (Pre-Indexed Indirect)
-//    printf("($%02X,X)", cpu->address & 0xFF);
-//    break;
-//
-//case YIN:  // Indirect, Y-indexed (Post-Indexed Indirect)
-//    printf("($%02X),Y", cpu->address & 0xFF);
-//    break;
-//
-//case REL:  // Relative addressing
-//    printf("$%04X", cpu->address); // absolute address has already been calculated
-//    break;
-//
-//case ACC:  // Accumulator addressing
-//    printf("A");
-//    break;
-//
-//case IMP:  // Implied addressing
-//    // No operand for implied instructions
-//        break;
-//
-//case UNK:  // Unknown or illegal addressing mode
-//default:
-//    printf("???");
-//    break;
-//}

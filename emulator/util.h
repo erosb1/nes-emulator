@@ -17,6 +17,13 @@ typedef struct CPU CPU;
 #define NIBBLE_HI_MASK 0xF0
 #define NIBBLE_LO_MASK 0x0F
 
+/**
+ *  This function prints a bunch of info about the instruction that is about to be executed
+ *  I.E the instruction that starts at cpu->pc
+ *
+ *  It follows the same notation as used for nestest.txt:
+ *  https://github.com/christopherpow/nes-test-roms/blob/master/other/nestest.log
+ */
 void log_disassembled_instruction(const CPU *cpu);
 
 #endif
