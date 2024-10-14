@@ -202,8 +202,6 @@ void cpu_run_instruction(CPU *cpu) {
     Instruction instruction = instruction_lookup[byte];
     set_address(cpu, instruction);
 
-     // This has to be printed after `set_address` and before incrementing `cur_cycle`
-
     cpu->cur_cycle += cycle_lookup[byte];
 
     switch(instruction.opcode) {
@@ -620,7 +618,7 @@ void cpu_run_instruction(CPU *cpu) {
         uint16_t r = a + rotated + get_flag(cpu, CARRY_MASK);
         cpu->ac = r & 0xFF;
         set_flag(cpu, CARRY_MASK, r >= 0x100);
-        set_flag(cpu, OVERFLOW_MASK, ((a ^ r) & (a ^ rotated) & 0x80) != 0);
+        set_flag(cpu, OVERFLOW_MASK, (~(a ^ rotated) & (a ^ r) & 0x80) != 0);
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
@@ -692,6 +690,11 @@ void cpu_run_instruction(CPU *cpu) {
 
 void cpu_run_instructions(CPU *cpu, size_t cycles) {
     cpu->sr = SR_START;
+    cpu_write_mem_8(cpu->mem, 0x4004, 0xFF);
+    cpu_write_mem_8(cpu->mem, 0x4005, 0xFF);
+    cpu_write_mem_8(cpu->mem, 0x4006, 0xFF);
+    cpu_write_mem_8(cpu->mem, 0x4007, 0xFF);
+    cpu_write_mem_8(cpu->mem, 0x4015, 0xFF);
 
     while (cpu->cur_cycle < cycles) {
         cpu_run_instruction(cpu);
@@ -702,6 +705,4 @@ void cpu_run_instructions(CPU *cpu, size_t cycles) {
         }
 #endif /* ifdef BREAKPOINT */
     }
-
-    exit(EXIT_SUCCESS);
 }

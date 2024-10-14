@@ -5,6 +5,15 @@
 
 #define ADDRESS_MODE_COLUMN_WIDTH 28
 
+
+int is_illegal(uint8_t byte) {
+    Instruction instruction = instruction_lookup[byte];
+    return (instruction.opcode >= 56) || // Illegal operand
+        (instruction.opcode == NOP && byte != 0xEA) || // Illegal NOP
+            byte == 0xEB; // USBC (treated as SBC IMM)
+}
+
+
 /**
  *  This is a rather complex function that logs info about the addressing mode
  *  of the instruction that is currently about to be executed.
@@ -55,7 +64,7 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
         break;
     }
     case REL: {
-        address = (cpu->pc + 2) + byte1;
+        address = (cpu->pc + 2) + (int8_t) byte1;
         printf("$%04X ", address);
         cur_column_width += 6;
         break;
@@ -115,13 +124,14 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
     // Some instructions in the log show the value at the address it operates on.
     // This switch statement finds those instructions and prints the value.
     switch (instruction.address_mode) {
-    case IMM: case ACC: case IND:
+    case IMM: case ACC: case IND: case IMP:
         break;
     default:
         switch (instruction.opcode) {
         case STA: case STX: case STY: case BIT: case LDA: case LDX: case LDY: case CPY:
         case AND: case ORA: case EOR: case ADC: case SBC: case CMP: case CPX: case LSR:
-        case ASL: case ROR: case ROL: case INC: case DEC:
+        case ASL: case ROR: case ROL: case INC: case DEC: case NOP: case LAX: case SAX:
+        case DCP: case ISB: case SLO: case RLA: case SRE: case RRA:
             printf("= %02X", cpu_read_mem_8(mem, address));
                 cur_column_width += 4;
                 break;
@@ -150,14 +160,18 @@ void log_disassembled_instruction(const CPU *cpu) {
     // Print the bytes of the current instruction, for example: 4C F5 C5
     switch (instruction.address_mode) {
     case IMM: case ZP0: case ZPX: case ZPY: case XIN: case YIN: case REL: // Instruction is 2 bytes long
-        printf("%02X %02X     ", byte0, byte1);
+        printf("%02X %02X    ", byte0, byte1);
         break;
     case ABS: case ABX: case ABY: case IND: // Instruction is 3 bytes long
-        printf("%02X %02X %02X  ", byte0, byte1, byte2);
+        printf("%02X %02X %02X ", byte0, byte1, byte2);
         break;
     default: // Instruction is 1 byte long
-        printf("%02X        ", byte0);
+        printf("%02X       ", byte0);
     }
+
+    // Illegal opcodes are prepended with a '*'
+    if (is_illegal(byte0)) printf("*");
+    else printf(" ");
 
     // Print the name of the current instruction, for example: JMP
     printf("%s ", opcode_name_lookup[instruction.opcode]);

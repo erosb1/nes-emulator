@@ -18,6 +18,14 @@ typedef struct CPU CPU;
 #define NIBBLE_LO_MASK 0x0F
 
 /**
+ * A helper function to check if an instruction is illegal or not
+ *
+ * @return 1 if illegal, 0 if legal
+ */
+int is_illegal(uint8_t byte);
+
+
+/**
  *  This function prints a bunch of info about the instruction that is about to be executed
  *  I.E the instruction that starts at cpu->pc
  *
