@@ -25,12 +25,17 @@
 // stack parameters
 #define STACK_OFFSET 0x0100
 
+typedef struct CPU CPU;
+typedef struct PPU PPU;
+
 typedef struct CPUMemory {
     uint8_t ram[RAM_SIZE];
-    uint8_t ppu_reg[PPU_REGISTER_SIZE];
+    // PPU registers are stored in the PPU struct
     uint8_t apu_io_reg[APU_IO_REGISTER_SIZE];
     uint8_t cartridge_ram[PRG_RAM_SIZE];
     uint8_t cartridge_rom[PRG_ROM_SIZE];
+    CPU* cpu;
+    PPU* ppu;
 } CPUMemory;
 
 void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value);
@@ -38,8 +43,6 @@ uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address);
 
 void cpu_write_mem_16(CPUMemory *mem, uint16_t address, uint16_t value);
 uint16_t cpu_read_mem_16(CPUMemory *mem, uint16_t address);
-
-typedef struct CPU CPU;
 
 void push_stack_16(CPU *cpu, uint16_t value);
 uint16_t pop_stack_16(CPU *cpu);

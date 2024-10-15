@@ -62,6 +62,8 @@ typedef union {
 } PPU_16_BIT_REGISTER;
 
 typedef struct PPU {
+    uint8_t extra_cycle_active;
+    uint8_t extra_cycle_vblank;
 
     // PPU Registers (for communication with CPU)
     PPU_CTRL_REGISTER control;
@@ -72,6 +74,7 @@ typedef struct PPU {
     PPU_16_BIT_REGISTER scroll;
     PPU_16_BIT_REGISTER vram_addr;
     uint8_t vram_data;
+    int write_toggle;
 
     PPUMemory *mem;
 } PPU;

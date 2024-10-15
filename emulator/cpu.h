@@ -39,6 +39,8 @@ typedef struct CPU {
     size_t cur_cycle;
 } CPU;
 
+void cpu_init(CPU *cpu, CPUMemory *mem);
+
 void ppu_vblank_set(CPUMemory *mem, uint8_t bool);
 void ppu_maybe_nmi(CPU *cpu);
 

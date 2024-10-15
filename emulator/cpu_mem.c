@@ -2,26 +2,69 @@
 #include "cpu.h"
 #include "util.h"
 
+#include <ppu.h>
+
+typedef enum {
+    PPU_CTRL = 0x2000,
+    PPU_MASK,
+    PPU_STATUS,
+    OAM_ADDR,
+    OAM_DATA,
+    PPU_SCROLL,
+    VRAM_ADDR,
+    VRAM_DATA,
+} PPURegister;
+
 void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {
-    if (address < RAM_END) {
-        mem->ram[address] = value;
-        return;
-    }
-
     if (address < RAM_MIRROR_END) {
-        mem->ram[address % RAM_SIZE] =
-            value; // Calculate corresponding address in RAM
-        return;
-    }
-
-    if (address < PPU_REGISTER_END) {
-        mem->ppu_reg[address - RAM_MIRROR_END] = value;
+        mem->ram[address % RAM_SIZE] = value; // Handle RAM mirroring
         return;
     }
 
     if (address < PPU_MIRROR_END) {
-        mem->ppu_reg[(address - RAM_MIRROR_END) % PPU_REGISTER_SIZE] = value;
-        return;
+        address = RAM_MIRROR_END + (address - RAM_MIRROR_END) % PPU_REGISTER_SIZE; // Handle PPU register mirroring
+        PPU* ppu = mem->ppu;
+
+        switch (address) {
+        case PPU_CTRL:
+            ppu->control.reg = value;
+            break;
+        case PPU_MASK:
+            ppu->mask.reg = value;
+            break;
+        case PPU_STATUS:
+            // PPU_STATUS is read only
+            break;
+        case OAM_ADDR:
+            ppu->oam_addr = value;
+            break;
+        case OAM_DATA:
+            ppu->oam_data = value;
+            break;
+        case PPU_SCROLL:
+            if (ppu->write_toggle == 0) {
+                ppu->scroll.bytes.low = value;
+                ppu->write_toggle = 1;
+            } else {
+                ppu->scroll.bytes.high = value;
+                ppu->write_toggle = 0;
+            }
+            break;
+        case VRAM_ADDR:
+            if (ppu->write_toggle == 0) {
+                ppu->vram_addr.bytes.high = value;
+                ppu->write_toggle = 1;
+            } else {
+                ppu->vram_addr.bytes.low = value;
+                ppu->write_toggle = 0;
+            }
+            break;
+        case VRAM_DATA:
+            ppu->vram_data = value;
+            break;
+        default:
+            break;
+        }
     }
 
     if (address < APU_IO_REGISTER_END) {
@@ -34,32 +77,39 @@ void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {
         return;
     }
 
-    // you should not be able to write to this region. This will be
-    // handled by mappers
-    // if (address < PRG_ROM_END) {
-    //     mem->cartridge_rom[address - PRG_RAM_END] = value;
-    //     return;
-    // }
-
     printf("Tried to write to illegal memory address: %ui", address);
     assert(FALSE);
 }
 
 uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address) {
-    if (address < RAM_END) {
-        return mem->ram[address];
-    }
-
     if (address < RAM_MIRROR_END) {
         return mem->ram[address % RAM_SIZE];
     }
 
-    if (address < PPU_REGISTER_END) {
-        return mem->ppu_reg[address - RAM_MIRROR_END];
-    }
-
     if (address < PPU_MIRROR_END) {
-        return mem->ppu_reg[(address - RAM_MIRROR_END) % PPU_REGISTER_SIZE];
+        address = RAM_MIRROR_END + (address - RAM_MIRROR_END) % PPU_REGISTER_SIZE; // Handle PPU register mirroring
+        PPU* ppu = mem->ppu;
+
+        switch (address) {
+        case PPU_CTRL:
+            return ppu->control.reg;
+        case PPU_MASK:
+            return ppu->mask.reg;
+        case PPU_STATUS:
+            return ppu->status.reg;
+        case OAM_ADDR:
+            return ppu->oam_addr;
+        case OAM_DATA:
+            return ppu->oam_data;
+        case PPU_SCROLL:
+            return 0x00; // Write Only (we return 0 when reading)
+        case VRAM_ADDR:
+            return 0x00; // Write Only (we return 0 when reading)
+        case VRAM_DATA:
+            return ppu->vram_data;
+        default:
+            return 0x00;
+        }
     }
 
     if (address < APU_IO_REGISTER_END) {

@@ -21,6 +21,15 @@
 #define NMI_VECTOR_OFFSET 0xFFFA
 #define IRQ_VECTOR_OFFSET 0xFFFE
 
+void cpu_init(CPU *cpu, CPUMemory *mem) {
+    cpu->mem = mem;
+    cpu->ac = cpu->x = cpu->y = 0x00;
+    cpu->cur_cycle = 0;
+    cpu->sr = 0x24;
+    cpu->sp = 0xFD;
+    cpu->pc = 0xC000;
+}
+
 void ppu_vblank_set(CPUMemory *mem, uint8_t bool) {
     uint8_t ppuctrl = cpu_read_mem_8(mem, PPUCTRL_OFFSET);
     if (bool) {

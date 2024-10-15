@@ -96,8 +96,10 @@ int main(int argc, char *argv[]) {
 
 #endif // !RISC_V
     CPUMemory mem = {};
-    CPU cpu = {.sp = SP_START, .mem = &mem};
+    CPU cpu;
     PPU ppu = {}; // partially initialize to zero all fields
+    mem.ppu = &ppu;
+    cpu_init(&cpu, &mem);
 
     //read_header_debug(buffer);
     static_memmap(buffer, cpu.mem, ppu.mem);
