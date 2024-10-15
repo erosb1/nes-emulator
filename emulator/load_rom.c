@@ -56,32 +56,40 @@ size_t load_rom(uint8_t **buffer, const char *path) {
 #endif /* ifdef RISC_V */
 }
 
-// https://www.nesdev.org/wiki/INES#iNES_file_format
-void read_header_debug(const uint8_t *buffer) {
-    printf("File Identifier:\n");
-    for (int i = 0; i < 4; ++i) {
-        printf("0x%02hX", buffer[i]);
-        printf("(%c) ", buffer[i]);
+
+NESType detect_nes_file_type(const uint8_t *buffer) {
+    // Check for iNES/NES 2.0 format (first 4 bytes should be "NES\x1A")
+    if (strncmp((const char *)buffer, "NES\x1A", 4) == 0) {
+        // Check for NES 2.0 format in byte 7
+        if ((buffer[7] & 0x0C) == 0x08) {
+            return NES_NES20;  // NES 2.0
+        }
+        return NES_INES;  // Standard iNES
     }
-    printf("\n");
 
-    printf("PRG-ROM size (16kb units):\n");
-    printf("0x%02hX", buffer[PRG_SIZE_HEADER_IDX]);
-    printf("\n");
+    // Check for UNIF format (first 4 bytes should be "UNIF")
+    if (strncmp((const char *)buffer, "UNIF", 4) == 0) {
+        return NES_UNIF;  // UNIF format
+    }
 
-    printf("CHR-ROM size (8kb units):\n");
-    printf("0x%02hX", buffer[CHR_SIZE_HEADER_IDX]);
-    printf("\n");
+    // Check for FDS format (first 4 bytes should be "FDS\x1A")
+    if (strncmp((const char *)buffer, "FDS\x1A", 4) == 0) {
+        return NES_FDS;  // Famicom Disk System format
+    }
 
-    printf("Flags 6:\n");
-    printf("0x%02hX", buffer[6]);
-    printf("\n");
-
-    printf("Flags 7:\n");
-    printf("0x%02hX", buffer[7]);
-    printf("\n");
-    printf("\n");
+    return NES_UNKNOWN;
 }
+
+
+
+
+iNES_Header read_iNES_header(const uint8_t *buffer) {
+    iNES_Header header;
+    // Copy the first 16 bytes from the buffer into the iNES_Header struct
+    memcpy(&header, buffer, sizeof(iNES_Header));
+    return header;
+}
+
 
 void static_memmap(uint8_t *buffer, CPUMemory *cpu_mem, PPUMemory *ppu_mem) {
     size_t prg_size = buffer[PRG_SIZE_HEADER_IDX];

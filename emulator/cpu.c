@@ -4,45 +4,20 @@
 #include "util.h"
 
 
-// PPUCTRL
-// offset
-#define PPUCTRL_OFFSET 0x2000
-// masks    TODO: add the rest of these
-#define NMI_ENABLE_MASK 0x80
-
-// PPUSTATUS masks
-// offset
-#define PPUSTATUS_OFFSET 0x2002
-// masks    TODO: add the rest of these
-#define VBLANK_MASK 0x80
 
 // vector offsets
 #define RESET_VECTOR_OFFSET 0xFFFC
 #define NMI_VECTOR_OFFSET 0xFFFA
 #define IRQ_VECTOR_OFFSET 0xFFFE
 
-void cpu_init(CPU *cpu, CPUMemory *mem) {
-    cpu->mem = mem;
+void init_cpu(CPU *cpu) {
     cpu->ac = cpu->x = cpu->y = 0x00;
     cpu->cur_cycle = 0;
     cpu->sr = 0x24;
     cpu->sp = 0xFD;
     cpu->pc = 0xC000;
-}
 
-void ppu_vblank_set(CPUMemory *mem, uint8_t bool) {
-    uint8_t ppuctrl = cpu_read_mem_8(mem, PPUCTRL_OFFSET);
-    if (bool) {
-        cpu_write_mem_8(mem, PPUCTRL_OFFSET, ppuctrl | VBLANK_MASK);
-    } else {
-        cpu_write_mem_8(mem, PPUCTRL_OFFSET, ppuctrl & ~VBLANK_MASK);
-    }
-}
-
-void ppu_maybe_nmi(CPU *cpu) {
-    if (cpu_read_mem_8(cpu->mem, PPUSTATUS_OFFSET) & NMI_ENABLE_MASK) {
-        cpu->pc = cpu_read_mem_16(cpu->mem, NMI_VECTOR_OFFSET);
-    }
+    cpu->is_logging = 0;
 }
 
 static int get_flag(CPU *cpu, CPUFlag flag) {
@@ -202,9 +177,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
 
 
 void cpu_run_instruction(CPU *cpu) {
-#if(CPU_LOGGING)
-    log_disassembled_instruction(cpu);
-#endif
+    if (cpu->is_logging) log_disassembled_instruction(cpu);
 
     CPUMemory *mem = cpu->mem;
     uint8_t byte = cpu_read_mem_8(mem, cpu->pc++);
@@ -692,27 +665,4 @@ void cpu_run_instruction(CPU *cpu) {
         exit(EXIT_FAILURE);
         break;
     }}
-}
-
-
-
-
-void cpu_run_instructions(CPU *cpu, size_t cycles) {
-    cpu->sr = SR_START;
-    cpu_write_mem_8(cpu->mem, 0x4004, 0xFF);
-    cpu_write_mem_8(cpu->mem, 0x4005, 0xFF);
-    cpu_write_mem_8(cpu->mem, 0x4006, 0xFF);
-    cpu_write_mem_8(cpu->mem, 0x4007, 0xFF);
-    cpu_write_mem_8(cpu->mem, 0x4015, 0xFF);
-
-    while (cpu->cur_cycle < cycles) {
-        cpu_run_instruction(cpu);
-
-#ifdef BREAKPOINT
-        if (cpu->pc == BREAKPOINT) {
-            exit(EXIT_SUCCESS);
-        }
-#endif /* ifdef BREAKPOINT */
-    }
-    exit(EXIT_SUCCESS);
 }

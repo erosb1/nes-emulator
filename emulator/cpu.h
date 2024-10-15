@@ -3,15 +3,6 @@
 
 #include "common.h"
 
-// options
-#define CPU_LOGGING 1
-#define TESTING 0xC000 // entrypoint for nestest "automation mode" (comment
-#define SR_START 0x24
-// out for normal entrypoint behavior)
-#define BREAKPOINT 0xC5F6 // uncomment to run normally
-
-#define CPU_MEM_SIZE 0x10000 // 64KiB
-
 // forward declarations
 typedef struct CPUMemory CPUMemory;
 
@@ -37,15 +28,13 @@ typedef struct CPU {
     uint8_t sp;  // stack pointer (wraps)
     CPUMemory *mem;
     size_t cur_cycle;
+
+    int is_logging;
 } CPU;
 
-void cpu_init(CPU *cpu, CPUMemory *mem);
-
-void ppu_vblank_set(CPUMemory *mem, uint8_t bool);
-void ppu_maybe_nmi(CPU *cpu);
+void init_cpu(CPU *cpu);
 
 void cpu_run_instruction(CPU *cpu);
-void cpu_run_instructions(CPU *cpu, size_t cycles);
 
 #undef CPU_MEM_SIZE
 
