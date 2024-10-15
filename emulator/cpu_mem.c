@@ -78,7 +78,7 @@ void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {
     }
 
     printf("Tried to write to illegal memory address: %ui", address);
-    assert(FALSE);
+    exit(EXIT_FAILURE);
 }
 
 uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address) {

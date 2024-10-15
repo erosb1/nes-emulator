@@ -96,8 +96,9 @@ int main(int argc, char *argv[]) {
 
 #endif // !RISC_V
     CPUMemory mem = {};
+    PPUMemory ppu_mem = {};
     CPU cpu;
-    PPU ppu = {}; // partially initialize to zero all fields
+    PPU ppu = {.mem = &ppu_mem}; // partially initialize to zero all fields
     mem.ppu = &ppu;
     cpu_init(&cpu, &mem);
 

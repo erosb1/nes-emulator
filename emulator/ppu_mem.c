@@ -45,7 +45,7 @@ uint8_t ppu_read_mem_8(PPUMemory *mem, uint16_t address) {
     }
 
     printf("Tried to read from illegal memory address: %ui", address);
-    assert(FALSE);
+    exit(EXIT_FAILURE);
     return 0;
 }
 

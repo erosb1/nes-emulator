@@ -4,8 +4,6 @@
 #include "common.h"
 #include "ppu_mem.h"
 
-#define PPU_MEM_SIZE 0x4000 // 16KiB
-
 #define SCREEN_WIDTH 256
 #define SCREEN_HEIGHT 224
 
@@ -15,6 +13,11 @@
 #define PIXELS_PER_SCANLINE 341
 #define VISIBLE_PIXELS_PER_SCANLINE 256
 
+/*
+ * This is a bitfield for easy access into the PPU CTRL register ($2000)
+ *
+ * src: https://www.nesdev.org/wiki/PPU_registers#PPUCTRL
+ */
 typedef union {
     struct {
         uint8_t nametable_x : 1;
@@ -29,6 +32,11 @@ typedef union {
     uint8_t reg;
 } PPU_CTRL_REGISTER;
 
+/*
+ * This is a bitfield for easy access into the PPU MASK register ($2001)
+ *
+ * src: https://www.nesdev.org/wiki/PPU_registers#PPUMASK
+ */
 typedef union {
     struct {
         uint8_t grayscale : 1;
@@ -43,6 +51,11 @@ typedef union {
     uint8_t reg;
 } PPU_MASK_REGISTER;
 
+/*
+ * This is a bitfield for easy access into the PPU STATUS register ($2002)
+ *
+ * src: https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS
+ */
 typedef union {
     struct {
         uint8_t unused : 5;
@@ -53,6 +66,12 @@ typedef union {
     uint8_t reg;
 } PPU_STATUS_REGISTER;
 
+/*
+ * This is a struct for easy access into the 16 bit registers, i.e the PPUSCROLL and PPUADDR (vram_addr) registers
+ *
+ * These registers are write-only for the CPU, and needs two separate writes.
+ * The first write is to the low byte and the second one is to the high byte.
+ */
 typedef union {
     struct {
         uint8_t low;
@@ -61,11 +80,14 @@ typedef union {
     uint16_t full;
 } PPU_16_BIT_REGISTER;
 
+
+
 typedef struct PPU {
     uint8_t extra_cycle_active;
     uint8_t extra_cycle_vblank;
 
     // PPU Registers (for communication with CPU)
+    // On hardware these are located on memory addresses $2000 to $2007
     PPU_CTRL_REGISTER control;
     PPU_MASK_REGISTER mask;
     PPU_STATUS_REGISTER status;
@@ -78,7 +100,5 @@ typedef struct PPU {
 
     PPUMemory *mem;
 } PPU;
-
-#undef PPU_MEM_SIZE
 
 #endif
