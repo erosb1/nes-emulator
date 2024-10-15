@@ -29,8 +29,16 @@ void run_emulator(Emulator *emulator) {
 
     // Frame loop
     while (emulator->is_running) {
+
+        // Instruction accurate emulation
         while (cpu->cur_cycle < NTSC_CPU_CYCLES_PER_FRAME) {
+            size_t cycle_before = cpu->cur_cycle;
             cpu_run_instruction(cpu);
+            size_t cpu_instruction_cycle_count = cpu->cur_cycle - cycle_before;
+
+            for (int i = 0; i < cpu_instruction_cycle_count * 3; i++) {
+                ppu_run_cycle(ppu);
+            }
         }
 
         exit(EXIT_SUCCESS);

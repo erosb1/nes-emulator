@@ -8,10 +8,11 @@
 #define SCREEN_HEIGHT 224
 
 #define NTSC_SCANLINES_PER_FRAME 262
-#define NTSC_VISIBLE_SCANLINES 240
-// Todo: Add support for PAL rendering
-#define PIXELS_PER_SCANLINE 341
-#define VISIBLE_PIXELS_PER_SCANLINE 256
+#define PAL_SCANLINES_PER_FRAME 311
+
+#define VISIBLE_SCANLINES 240
+#define DOTS_PER_SCANLINE 341
+#define VISIBLE_DOTS_PER_SCANLINE 256
 
 /*
  * This is a bitfield for easy access into the PPU CTRL register ($2000)
@@ -99,10 +100,16 @@ typedef struct PPU {
     uint8_t vram_data;
     int write_toggle;
 
+    // Internal state
+    size_t cur_scanline;
+    size_t cur_dot;
+    size_t cur_frame;
+
+    // References to other components
     PPUMemory *ppu_mem;
 } PPU;
 
-
 void init_ppu(Emulator *emulator);
+void ppu_run_cycle(PPU *ppu);
 
 #endif
