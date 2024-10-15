@@ -1,15 +1,9 @@
 #include "emulator.h"
-#include "load_rom.h"
 
 #define NTSC_FRAME_RATE 60
 #define NTSC_CPU_CYCLES_PER_FRAME 29780
 
 void init_emulator(Emulator *emulator, uint8_t *rom) {
-    if (detect_nes_file_type(rom) != NES_INES) {
-        printf("This emulator only supports ROMs of type iNES");
-        exit(EXIT_FAILURE);
-    }
-
     // Set the rom
     emulator->rom = rom;
 
