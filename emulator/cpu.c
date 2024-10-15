@@ -3,19 +3,28 @@
 #include "opcodes.h"
 #include "util.h"
 
+#include <emulator.h>
 
+// CPU init values
+#define SR_INIT_VALUE 0x24
+#define SP_INIT_VALUE 0xFD
+#define PC_INIT_VALUE 0xC000
 
 // vector offsets
 #define RESET_VECTOR_OFFSET 0xFFFC
 #define NMI_VECTOR_OFFSET 0xFFFA
 #define IRQ_VECTOR_OFFSET 0xFFFE
 
-void init_cpu(CPU *cpu) {
+void init_cpu(Emulator *emulator) {
+    CPU *cpu = &emulator->cpu;
+    cpu->cpu_mem = &emulator->cpu_mem;
+    cpu->ppu = &emulator->ppu;
+
     cpu->ac = cpu->x = cpu->y = 0x00;
     cpu->cur_cycle = 0;
-    cpu->sr = 0x24;
-    cpu->sp = 0xFD;
-    cpu->pc = 0xC000;
+    cpu->sr = SR_INIT_VALUE;
+    cpu->sp = SP_INIT_VALUE;
+    cpu->pc = PC_INIT_VALUE;
 
     cpu->is_logging = 0;
 }
@@ -59,7 +68,7 @@ static void branch_if(CPU *cpu, int predicate) {
 // This function sets up the cpu->address variable depending on the addressing mode
 // It also updates cpu->cur_cycle if an indirect addressing mode crosses a page boundary
 static void set_address(CPU *cpu, Instruction instruction) {
-    CPUMemory* mem = cpu->mem;
+    CPUMemory* mem = cpu->cpu_mem;
 
     switch (instruction.address_mode) {
     case ACC: { // Accumulator
@@ -179,7 +188,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
 void cpu_run_instruction(CPU *cpu) {
     if (cpu->is_logging) log_disassembled_instruction(cpu);
 
-    CPUMemory *mem = cpu->mem;
+    CPUMemory *mem = cpu->cpu_mem;
     uint8_t byte = cpu_read_mem_8(mem, cpu->pc++);
     Instruction instruction = instruction_lookup[byte];
     set_address(cpu, instruction);

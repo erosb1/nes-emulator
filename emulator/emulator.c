@@ -14,17 +14,11 @@ void init_emulator(Emulator *emulator, uint8_t *rom) {
     emulator->rom = rom;
 
     // Initialize components.
-    init_cpu(&emulator->cpu);
+    init_cpu(emulator);
+    init_ppu(emulator);
+    init_cpu_mem(emulator);
+    //init_ppu_mem(emulator);
     init_mapper(emulator);
-
-    //static_memmap(rom, &emulator->cpu_mem, &emulator->ppu_mem);
-
-    // Link components.
-    emulator->cpu.mem = &emulator->cpu_mem;
-    emulator->ppu.mem = &emulator->ppu_mem;
-    emulator->cpu_mem.cpu = &emulator->cpu;
-    emulator->cpu_mem.ppu = &emulator->ppu;
-    emulator->cpu_mem.mapper = &emulator->mapper;
 }
 
 

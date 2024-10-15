@@ -4,7 +4,9 @@
 #include "common.h"
 
 // forward declarations
+typedef struct Emulator Emulator;
 typedef struct CPUMemory CPUMemory;
+typedef struct PPU PPU;
 
 // enum shorthand for toggling CPU flags
 typedef enum CPUFlag {
@@ -26,14 +28,16 @@ typedef struct CPU {
     uint8_t y;   // y register
     uint8_t sr;  // status register [NV-BDIZC]
     uint8_t sp;  // stack pointer (wraps)
-    CPUMemory *mem;
     size_t cur_cycle;
+
+    // References to other devices
+    CPUMemory *cpu_mem;
+    PPU *ppu;
 
     int is_logging;
 } CPU;
 
-void init_cpu(CPU *cpu);
-
+void init_cpu(Emulator *emulator);
 void cpu_run_instruction(CPU *cpu);
 
 #undef CPU_MEM_SIZE

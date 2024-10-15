@@ -2,6 +2,8 @@
 #include "cpu.h"
 #include "mapper.h"
 #include "util.h"
+
+#include <emulator.h>
 #include <ppu.h>
 
 typedef enum {
@@ -14,6 +16,13 @@ typedef enum {
     VRAM_ADDR,
     VRAM_DATA,
 } PPURegister;
+
+void init_cpu_mem(Emulator *emulator) {
+    CPUMemory *cpu_memory = &emulator->cpu_mem;
+    cpu_memory->cpu = &emulator->cpu;
+    cpu_memory->ppu = &emulator->ppu;
+    cpu_memory->mapper = &emulator->mapper;
+}
 
 void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {
     if (address < RAM_MIRROR_END) {
@@ -135,13 +144,13 @@ uint16_t cpu_read_mem_16(CPUMemory *mem, uint16_t address) {
 }
 
 void push_stack_8(CPU *cpu, uint8_t value) {
-    cpu_write_mem_8(cpu->mem, STACK_OFFSET + cpu->sp, value);
+    cpu_write_mem_8(cpu->cpu_mem, STACK_OFFSET + cpu->sp, value);
     cpu->sp -= 1;
 }
 
 uint8_t pop_stack_8(CPU *cpu) {
     cpu->sp += 1;
-    uint16_t value = cpu_read_mem_8(cpu->mem, STACK_OFFSET + cpu->sp);
+    uint16_t value = cpu_read_mem_8(cpu->cpu_mem, STACK_OFFSET + cpu->sp);
     return value;
 }
 

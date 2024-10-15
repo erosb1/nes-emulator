@@ -80,7 +80,8 @@ typedef union {
     uint16_t full;
 } PPU_16_BIT_REGISTER;
 
-
+// Forward Declarations
+typedef struct Emulator Emulator;
 
 typedef struct PPU {
     uint8_t extra_cycle_active;
@@ -98,7 +99,10 @@ typedef struct PPU {
     uint8_t vram_data;
     int write_toggle;
 
-    PPUMemory *mem;
+    PPUMemory *ppu_mem;
 } PPU;
+
+
+void init_ppu(Emulator *emulator);
 
 #endif

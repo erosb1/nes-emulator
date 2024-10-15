@@ -22,7 +22,7 @@ int is_illegal(uint8_t byte) {
  *  without actually updating the internal values of the cpu
  */
 static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
-    CPUMemory *mem = cpu->mem;
+    CPUMemory *mem = cpu->cpu_mem;
     uint8_t byte1 = cpu_read_mem_8(mem, cpu->pc + 1);
     uint8_t byte2 = cpu_read_mem_8(mem, cpu->pc + 2);
     size_t cur_column_width = 0;
@@ -148,7 +148,7 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
 
 
 void log_disassembled_instruction(const CPU *cpu) {
-    CPUMemory *mem = cpu->mem;
+    CPUMemory *mem = cpu->cpu_mem;
     uint8_t byte0 = cpu_read_mem_8(mem, cpu->pc);
     uint8_t byte1 = cpu_read_mem_8(mem, cpu->pc + 1);
     uint8_t byte2 = cpu_read_mem_8(mem, cpu->pc + 2);

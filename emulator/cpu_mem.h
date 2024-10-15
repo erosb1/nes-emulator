@@ -23,6 +23,7 @@
 #define PRG_ROM_SIZE (PRG_ROM_END - PRG_RAM_END)
 
 // Forward declarations
+typedef struct Emulator Emulator;
 typedef struct CPU CPU;
 typedef struct PPU PPU;
 typedef struct Mapper Mapper;
@@ -37,6 +38,8 @@ typedef struct CPUMemory {
     PPU* ppu;
     Mapper* mapper;
 } CPUMemory;
+
+void init_cpu_mem(Emulator *emulator);
 
 void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value);
 uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address);

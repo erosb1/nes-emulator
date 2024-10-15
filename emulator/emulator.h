@@ -16,7 +16,7 @@
  *
  */
 typedef struct Emulator {
-    // Rom
+    // Rom reference (non-owning)
     uint8_t *rom;
 
     // Devices

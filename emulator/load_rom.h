@@ -47,6 +47,5 @@ size_t read_rom_from_file(uint8_t **buffer, const char *path);
 
 iNES_Header read_iNES_header(const uint8_t *buffer);
 NESType detect_nes_file_type(const uint8_t *buffer);
-void static_memmap(uint8_t *buffer, CPUMemory *cpu_mem, PPUMemory *ppu_mem);
 
 #endif
