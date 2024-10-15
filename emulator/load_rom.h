@@ -32,11 +32,17 @@ typedef struct CPUMemory CPUMemory;
 typedef struct PPUMemory PPUMemory;
 
 
+
 /*
  * Loads the ROM in the file specified by `path`
  * Stores it as a byte array in `buffer`
+ *
+ * This function is only available when compiling for development.
+ *  i.e. for a regular computer and not the RISC-V board
  */
-size_t load_rom(uint8_t **buffer, const char *path);
+#ifndef RISC_V
+size_t read_rom_from_file(uint8_t **buffer, const char *path);
+#endif
 
 
 iNES_Header read_iNES_header(const uint8_t *buffer);

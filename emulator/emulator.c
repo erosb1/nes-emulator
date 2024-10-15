@@ -41,10 +41,12 @@ void run_emulator(Emulator *emulator) {
 }
 
 #define NESTEST_MAX_CYCLES 26554
+#define NESTEST_START_CYCLE 7
 
 void run_nestest(Emulator *emulator) {
     emulator->cpu.is_logging = 1;
     CPU *cpu = &emulator->cpu;
+    cpu->cur_cycle = NESTEST_START_CYCLE;
     CPUMemory *mem = &emulator->cpu_mem;
 
     // These APU registers needs to be set to 0xFF at the start in order for nestest to complete

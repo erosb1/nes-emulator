@@ -23,11 +23,8 @@
 // ppu
 #define NROM_CHR_OFFSET 0x0000
 
-size_t load_rom(uint8_t **buffer, const char *path) {
-#ifdef RISC_V
-    *buffer = (uint8_t *)0x2000000;
-    return 0x2000000; // arbitrary
-#else
+#ifndef RISC_V
+size_t read_rom_from_file(uint8_t **buffer, const char *path) {
     FILE *fp;
     size_t expected_size;
     size_t actual_size;
@@ -52,9 +49,8 @@ size_t load_rom(uint8_t **buffer, const char *path) {
         exit(EXIT_FAILURE);
     }
     return actual_size;
-
-#endif /* ifdef RISC_V */
 }
+#endif
 
 
 NESType detect_nes_file_type(const uint8_t *buffer) {
@@ -86,7 +82,10 @@ NESType detect_nes_file_type(const uint8_t *buffer) {
 iNES_Header read_iNES_header(const uint8_t *buffer) {
     iNES_Header header;
     // Copy the first 16 bytes from the buffer into the iNES_Header struct
-    memcpy(&header, buffer, sizeof(iNES_Header));
+    for (int i = 0; i < sizeof(iNES_Header); i++) {
+        ((uint8_t *)&header)[i] = buffer[i];
+    }
+
     return header;
 }
 

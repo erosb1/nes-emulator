@@ -3,24 +3,27 @@
 
 
 int main(int argc, char *argv[]) {
-    uint8_t *buffer;
 
-#ifdef RISC_V
-    load_rom(&buffer, NULL);
-#else
+
+#ifdef RISC_V // This code will run on the DTEKV RISC-V board
+    uint8_t *buffer = (uint8_t *)0x2000000;
+    Emulator NES;
+    init_emulator(&NES, buffer);
+    run_emulator(&NES);
+
+
+
+#else       // This code will run on a regular computer, i.e. one that has access to libc
+    uint8_t *buffer;
     if (argc < 2) {
         printf("Fatal Error: No filepath provided\n");
         exit(EXIT_FAILURE);
     }
-    load_rom(&buffer, argv[1]);
-#endif // !RISC_V
-
+    read_rom_from_file(&buffer, argv[1]);
     Emulator NES;
     init_emulator(&NES, buffer);
+    free(buffer); // We don't need buffer after initializing emulator
 
-#ifdef RISC_V
-    run_emulator(&NES);
-#else
 
     // If --nestest option is specified we run nestest
     if (argc > 2 && strcmp(argv[2], "--nestest") == 0) {
@@ -29,10 +32,7 @@ int main(int argc, char *argv[]) {
         run_emulator(&NES);
     }
 
-    free(buffer);
-#endif
-
-
+#endif // !RISC_V
 
     return EXIT_SUCCESS;
 }
