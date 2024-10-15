@@ -27,6 +27,7 @@ if(NOT RISC_V)
     # Add a custom target for testing against nestest
     add_custom_target(nestest_cpu_only_diff
         COMMAND ${CMAKE_CURRENT_BINARY_DIR}/main ${CMAKE_SOURCE_DIR}/tests/nestest.nes --nestest > ${CMAKE_CURRENT_BINARY_DIR}/output.txt
+        COMMAND echo "NESTEST Complete -- no errors detected" >> ${CMAKE_CURRENT_BINARY_DIR}/output.txt
         COMMAND diff ${CMAKE_CURRENT_BINARY_DIR}/output.txt ${CMAKE_SOURCE_DIR}/tests/nestest_cpu_only.txt | head -n 2 | tail -n 1
         DEPENDS main
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
