@@ -22,6 +22,8 @@
 #define PRG_RAM_SIZE (PRG_RAM_END - APU_IO_REGISTER_END)
 #define PRG_ROM_SIZE (PRG_ROM_END - PRG_RAM_END)
 
+#define STACK_OFFSET 0x0100
+
 // Forward declarations
 typedef struct Emulator Emulator;
 typedef struct CPU CPU;
@@ -33,7 +35,7 @@ typedef struct CPUMemory {
     // PPU registers are stored in the PPU struct
     uint8_t apu_io_reg[APU_IO_REGISTER_SIZE];
     uint8_t cartridge_ram[PRG_RAM_SIZE];
-    uint8_t cartridge_rom[PRG_ROM_SIZE];
+    // PRG_ROM is accessed through the mapper
     CPU* cpu;
     PPU* ppu;
     Mapper* mapper;

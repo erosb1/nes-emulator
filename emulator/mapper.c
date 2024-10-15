@@ -31,14 +31,16 @@ static iNES_Header read_iNES_header(const uint8_t *buffer) {
     return header;
 }
 
-
-
-uint8_t nrom_read_prg(Mapper *mapper, uint16_t address) {
+static uint8_t nrom_read_prg(Mapper *mapper, uint16_t address) {
     if (mapper->prg_rom_size == 1) {
         // NROM-128: 16 KB PRG ROM mirrored at 0x8000-0xFFFF
         return mapper->prg_rom[address % 0x4000];
     }
     return mapper->prg_rom[address - 0x8000];
+}
+
+static uint8_t nrom_read_chr(Mapper *mapper, uint16_t address) {
+    return mapper->chr_rom[address];
 }
 
 static void nrom_write_prg(const Mapper *mapper, uint16_t address, uint8_t value) {
@@ -70,8 +72,7 @@ void init_mapper(Emulator *emulator) {
     switch (mapper_num) {
     case NROM:
         mapper->read_prg = nrom_read_prg;
-        //mapper->read_chr = nrom_read_chr;
-        //mapper->write_chr = nrom_write_chr;
+        mapper->read_chr = nrom_read_chr;
         break;
     case MMC1:
         printf("Error: Unsupported mapper: MMC1");

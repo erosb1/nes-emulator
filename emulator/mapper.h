@@ -29,7 +29,7 @@ typedef struct Mapper {
     uint8_t (*read_prg)(struct Mapper *mapper, uint16_t address);
     //void (*write_prg)(struct Mapper *mapper, uint16_t address, uint8_t value);
     uint8_t (*read_chr)(struct Mapper *mapper, uint16_t address);
-    void (*write_chr)(struct Mapper *mapper, uint16_t address, uint8_t value);
+    //void (*write_chr)(struct Mapper *mapper, uint16_t address, uint8_t value);
 
     uint8_t mirroring;                 // 0: vertical mirroring, 1: horizontal mirroring
     uint8_t has_battery_backed_ram;    // 1: Battery-backed PRG RAM present

@@ -5,9 +5,23 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define SDL_WINDOW_WIDTH 800
-#define SDL_WINDOW_HEIGHT 600
+// SDL window properties
+#define SDL_WINDOW_WIDTH 1200
+#define SDL_WINDOW_HEIGHT 800
 #define SDL_WINDOW_TITLE "NES Emulator"
+
+// Where to draw the NES screen within the SDL window
+#define SDL_NES_SCREEN_WIDTH 256
+#define SDL_NES_SCREEN_HEIGHT 224
+#define SDL_NES_SCREEN_OFFSET_X 50
+#define SDL_NES_SCREEN_OFFSET_Y 50
+#define SDL_NES_SCALE_FACTOR 3
+
+// Where to draw the debug screen within the SDL window
+#define SDL_DEBUG_SCREEN_OFFSET_X \
+    (SDL_NES_SCREEN_OFFSET_X + SDL_NES_SCREEN_WIDTH * SDL_NES_SCALE_FACTOR + 50)
+#define SDL_DEBUG_SCREEN_OFFSET_Y SDL_NES_SCREEN_OFFSET_Y
+#define SDL_DEBUG_SCREEN_SCALE_FACTOR 2
 
 typedef enum SDLEmulatorEvent {
     NONE = 0,
@@ -49,5 +63,12 @@ void sdl_put_pixel(SDLInstance *sdl_instance, int x, int y, uint32_t color);
 void sdl_draw_frame(SDLInstance *sdl_instance);
 uint32_t sdl_poll_events();
 void sdl_instance_destroy(SDLInstance *sdl_instance);
+
+
+// This is used for putting a pixel inside the NES screen, which is a subsection of the entire SDL window
+void sdl_nes_put_pixel(SDLInstance *sdl_instance, int x, int y, uint32_t color);
+
+typedef struct Emulator Emulator;
+void sdl_draw_debug_info(SDLInstance *sdl_instance, Emulator *emulator);
 
 #endif

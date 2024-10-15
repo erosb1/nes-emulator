@@ -4,8 +4,6 @@
 #include "common.h"
 #include "ppu_mem.h"
 
-#define SCREEN_WIDTH 256
-#define SCREEN_HEIGHT 224
 
 #define NTSC_SCANLINES_PER_FRAME 262
 #define PAL_SCANLINES_PER_FRAME 311

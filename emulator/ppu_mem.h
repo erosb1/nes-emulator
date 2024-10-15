@@ -16,14 +16,18 @@
 #define VRAM_MIRROR_SIZE (VRAM_MIRROR_END - VRAM_END) // excluded
 #define PALETTE_CTRL_SIZE (PALETTE_CTRL_END - VRAM_END)
 
-// stack parameters
-#define STACK_OFFSET 0x0100
+// Forward declarations
+typedef struct Emulator Emulator;
+typedef struct Mapper Mapper;
 
 typedef struct PPUMemory {
-    uint8_t cartridge_rom[CHR_ROM_SIZE];
+    // CHR_ROM is accessed through the mapper
     uint8_t vram[VRAM_SIZE];
     uint8_t palette_ctrl[PALETTE_CTRL_SIZE];
+    Mapper* mapper;
 } PPUMemory;
+
+void init_ppu_mem(Emulator *emulator);
 
 void ppu_write_mem_8(PPUMemory *mem, uint16_t address, uint8_t value);
 uint8_t ppu_read_mem_8(PPUMemory *mem, uint16_t address);

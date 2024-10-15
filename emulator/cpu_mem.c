@@ -18,10 +18,10 @@ typedef enum {
 } PPURegister;
 
 void init_cpu_mem(Emulator *emulator) {
-    CPUMemory *cpu_memory = &emulator->cpu_mem;
-    cpu_memory->cpu = &emulator->cpu;
-    cpu_memory->ppu = &emulator->ppu;
-    cpu_memory->mapper = &emulator->mapper;
+    CPUMemory *cpu_mem = &emulator->cpu_mem;
+    cpu_mem->cpu = &emulator->cpu;
+    cpu_mem->ppu = &emulator->ppu;
+    cpu_mem->mapper = &emulator->mapper;
 }
 
 void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {

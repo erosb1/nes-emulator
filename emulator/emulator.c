@@ -1,6 +1,9 @@
 #include "emulator.h"
 #include "util.h"
-#include "gfx.h"
+
+#ifndef RISC_V
+extern SDLInstance SDL_INSTANCE;
+#endif
 
 #define NTSC_FRAME_RATE 60
 #define NTSC_CPU_CYCLES_PER_FRAME 29780
@@ -18,7 +21,7 @@ void init_emulator(Emulator *emulator, uint8_t *rom) {
     init_cpu(emulator);
     init_ppu(emulator);
     init_cpu_mem(emulator);
-    //init_ppu_mem(emulator);
+    init_ppu_mem(emulator);
     init_mapper(emulator);
 }
 
@@ -43,10 +46,15 @@ void run_emulator(Emulator *emulator) {
         }
 
         poll_input(emulator);
-        draw_frame();
+
+#ifndef RISC_V
+        sdl_clear_screen(&SDL_INSTANCE);
+        sdl_draw_debug_info(&SDL_INSTANCE, emulator);
+        sdl_draw_frame(&SDL_INSTANCE);
+#endif
 
         emulator->cur_frame++;
-        if (emulator->cur_frame == 60)
+        if (emulator->cur_frame == NTSC_FRAME_RATE)
             emulator->cur_frame = 0;
     }
 }
@@ -54,6 +62,7 @@ void run_emulator(Emulator *emulator) {
 
 void poll_input(Emulator *emulator){
 #ifdef RISC_V
+    // Todo get input from NES controller
 #else
     emulator->event = sdl_poll_events();
     if (emulator->event & WINDOW_QUIT) {
