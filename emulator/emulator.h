@@ -6,6 +6,7 @@
 #include "ppu.h"
 #include "cpu_mem.h"
 #include "ppu_mem.h"
+#include "mapper.h"
 
 
 
@@ -15,11 +16,15 @@
  *
  */
 typedef struct Emulator {
+    // Rom
+    uint8_t *rom;
+
     // Devices
     CPU cpu;
     PPU ppu;
     CPUMemory cpu_mem;
     PPUMemory ppu_mem;
+    Mapper mapper;
 
     // Emulator status
     int is_running; // boolean value
@@ -32,7 +37,7 @@ typedef struct Emulator {
  * and the CHR section of into `ppu_mem`.
  *
  */
-void init_emulator(Emulator *emulator, uint8_t *rom_buffer);
+void init_emulator(Emulator *emulator, uint8_t *rom);
 
 /*
  * This function runs the emulator.

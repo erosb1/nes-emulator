@@ -22,7 +22,6 @@ int main(int argc, char *argv[]) {
     read_rom_from_file(&buffer, argv[1]);
     Emulator NES;
     init_emulator(&NES, buffer);
-    free(buffer); // We don't need buffer after initializing emulator
 
 
     // If --nestest option is specified we run nestest
@@ -32,6 +31,7 @@ int main(int argc, char *argv[]) {
         run_emulator(&NES);
     }
 
+    free(buffer);
 #endif // !RISC_V
 
     return EXIT_SUCCESS;

@@ -4,24 +4,27 @@
 #define NTSC_FRAME_RATE 60
 #define NTSC_CPU_CYCLES_PER_FRAME 29780
 
-void init_emulator(Emulator *emulator, uint8_t *rom_buffer) {
-    if (detect_nes_file_type(rom_buffer) != NES_INES) {
+void init_emulator(Emulator *emulator, uint8_t *rom) {
+    if (detect_nes_file_type(rom) != NES_INES) {
         printf("This emulator only supports ROMs of type iNES");
         exit(EXIT_FAILURE);
     }
 
-    iNES_Header header = read_iNES_header(rom_buffer);
+    // Set the rom
+    emulator->rom = rom;
 
     // Initialize components.
     init_cpu(&emulator->cpu);
+    init_mapper(emulator);
 
-    static_memmap(rom_buffer, &emulator->cpu_mem, &emulator->ppu_mem);
+    //static_memmap(rom, &emulator->cpu_mem, &emulator->ppu_mem);
 
     // Link components.
     emulator->cpu.mem = &emulator->cpu_mem;
     emulator->ppu.mem = &emulator->ppu_mem;
     emulator->cpu_mem.cpu = &emulator->cpu;
     emulator->cpu_mem.ppu = &emulator->ppu;
+    emulator->cpu_mem.mapper = &emulator->mapper;
 }
 
 

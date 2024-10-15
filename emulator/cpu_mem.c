@@ -1,7 +1,7 @@
 #include "cpu_mem.h"
 #include "cpu.h"
+#include "mapper.h"
 #include "util.h"
-
 #include <ppu.h>
 
 typedef enum {
@@ -121,7 +121,7 @@ uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address) {
     }
 
     // else
-    return mem->cartridge_rom[address - PRG_RAM_END];
+    return mem->mapper->read_prg(mem->mapper, address);
 }
 
 void cpu_write_mem_16(CPUMemory *mem, uint16_t address, uint16_t value) {

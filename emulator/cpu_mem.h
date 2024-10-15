@@ -22,11 +22,10 @@
 #define PRG_RAM_SIZE (PRG_RAM_END - APU_IO_REGISTER_END)
 #define PRG_ROM_SIZE (PRG_ROM_END - PRG_RAM_END)
 
-// stack parameters
-#define STACK_OFFSET 0x0100
-
+// Forward declarations
 typedef struct CPU CPU;
 typedef struct PPU PPU;
+typedef struct Mapper Mapper;
 
 typedef struct CPUMemory {
     uint8_t ram[RAM_SIZE];
@@ -36,6 +35,7 @@ typedef struct CPUMemory {
     uint8_t cartridge_rom[PRG_ROM_SIZE];
     CPU* cpu;
     PPU* ppu;
+    Mapper* mapper;
 } CPUMemory;
 
 void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value);
