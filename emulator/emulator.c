@@ -1,4 +1,6 @@
 #include "emulator.h"
+#include "util.h"
+#include "gfx.h"
 
 #define NTSC_FRAME_RATE 60
 #define NTSC_CPU_CYCLES_PER_FRAME 29780
@@ -6,6 +8,11 @@
 void init_emulator(Emulator *emulator, uint8_t *rom) {
     // Set the rom
     emulator->rom = rom;
+
+    // Set the internal state
+    emulator->event = 0;
+    emulator->is_running = FALSE;
+    emulator->cur_frame = 0;
 
     // Initialize components.
     init_cpu(emulator);
@@ -17,7 +24,7 @@ void init_emulator(Emulator *emulator, uint8_t *rom) {
 
 
 void run_emulator(Emulator *emulator) {
-    emulator->is_running = 1;
+    emulator->is_running = TRUE;
     CPU *cpu = &emulator->cpu;
     PPU *ppu = &emulator->ppu;
 
@@ -35,9 +42,27 @@ void run_emulator(Emulator *emulator) {
             }
         }
 
-        exit(EXIT_SUCCESS);
+        poll_input(emulator);
+        draw_frame();
+
+        emulator->cur_frame++;
+        if (emulator->cur_frame == 60)
+            emulator->cur_frame = 0;
     }
 }
+
+
+void poll_input(Emulator *emulator){
+#ifdef RISC_V
+#else
+    emulator->event = sdl_poll_events();
+    if (emulator->event & WINDOW_QUIT) {
+        emulator->is_running = FALSE;
+    }
+#endif
+}
+
+
 
 #define NESTEST_MAX_CYCLES 26554
 #define NESTEST_START_CYCLE 7

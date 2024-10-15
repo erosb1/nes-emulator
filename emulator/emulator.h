@@ -9,7 +9,6 @@
 #include "mapper.h"
 
 
-
 /*
  * This struct is the entire NES emulator
  * It is the owner of the CPU, PPU CPUMemory and PPUMemory devices.
@@ -28,6 +27,8 @@ typedef struct Emulator {
 
     // Emulator status
     int is_running; // boolean value
+    uint32_t event;
+    uint32_t cur_frame;
 } Emulator;
 
 /*
@@ -45,6 +46,9 @@ void init_emulator(Emulator *emulator, uint8_t *rom);
  *
  */
 void run_emulator(Emulator *emulator);
+
+
+void poll_input(Emulator *emulator);
 
 /*
  * This function tests the CPU using the `tests/nestest.nes` rom.

@@ -2,6 +2,10 @@
 
 
 
+#ifndef RISC_V
+extern SDLInstance SDL_INSTANCE;
+#endif
+
 /*
  * Loads the ROM in the file specified by `path`
  * Stores it as a byte array in `buffer`
@@ -52,6 +56,8 @@ int main(int argc, char *argv[]) {
     run_emulator(&NES);
 
 #else       // This code will run on a regular computer, i.e. one that has access to libc
+    sdl_instance_init(&SDL_INSTANCE);
+
     uint8_t *buffer;
     if (argc < 2) {
         printf("Fatal Error: No filepath provided\n");
@@ -70,6 +76,7 @@ int main(int argc, char *argv[]) {
     }
 
     free(buffer);
+    sdl_instance_destroy(&SDL_INSTANCE);
 #endif // !RISC_V
 
     return EXIT_SUCCESS;

@@ -1,6 +1,7 @@
 
 #include "ppu.h"
 #include "util.h"
+#include "gfx.h"
 #include "emulator.h"
 
 void init_ppu(Emulator *emulator) {
