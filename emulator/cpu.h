@@ -5,7 +5,7 @@
 
 // forward declarations
 typedef struct Emulator Emulator;
-typedef struct CPUMemory CPUMemory;
+typedef struct MEM MEM;
 typedef struct PPU PPU;
 
 // enum shorthand for toggling CPU flags
@@ -31,13 +31,13 @@ typedef struct CPU {
     size_t cur_cycle;
 
     // References to other devices
-    CPUMemory *cpu_mem;
+    MEM *mem;
     PPU *ppu;
 
     int is_logging;
 } CPU;
 
-void init_cpu(Emulator *emulator);
+void cpu_init(Emulator *emulator);
 void cpu_run_instruction(CPU *cpu);
 
 #undef CPU_MEM_SIZE

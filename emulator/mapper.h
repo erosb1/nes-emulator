@@ -40,6 +40,6 @@ typedef struct Mapper {
 } Mapper;
 
 
-void init_mapper(Emulator *emulator);
+void mapper_init(Emulator *emulator);
 
 #endif

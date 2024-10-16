@@ -46,7 +46,7 @@ static uint8_t nrom_read_chr(Mapper *mapper, uint16_t address) {
 static void nrom_write_prg(const Mapper *mapper, uint16_t address, uint8_t value) {
 }
 
-void init_mapper(Emulator *emulator) {
+void mapper_init(Emulator *emulator) {
     Mapper *mapper = &emulator->mapper;
     mapper->emulator = emulator;
     uint8_t *rom = emulator->rom;

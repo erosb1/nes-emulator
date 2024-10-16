@@ -110,7 +110,7 @@ typedef struct PPU {
     uint8_t vram[0x1000];
 } PPU;
 
-void init_ppu(Emulator *emulator);
+void ppu_init(Emulator *emulator);
 void ppu_run_cycle(PPU *ppu);
 
 uint8_t ppu_read_status(PPU *ppu);

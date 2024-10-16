@@ -30,7 +30,7 @@ typedef struct CPU CPU;
 typedef struct PPU PPU;
 typedef struct Mapper Mapper;
 
-typedef struct CPUMemory {
+typedef struct MEM {
     uint8_t ram[RAM_SIZE];
     // PPU registers are stored in the PPU struct
     uint8_t apu_io_reg[APU_IO_REGISTER_SIZE];
@@ -39,20 +39,20 @@ typedef struct CPUMemory {
     CPU* cpu;
     PPU* ppu;
     Mapper* mapper;
-} CPUMemory;
+} MEM;
 
 void init_cpu_mem(Emulator *emulator);
 
-void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value);
-uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address);
+void mem_write_8(MEM *mem, uint16_t address, uint8_t value);
+uint8_t mem_read_8(MEM *mem, uint16_t address);
 
-void cpu_write_mem_16(CPUMemory *mem, uint16_t address, uint16_t value);
-uint16_t cpu_read_mem_16(CPUMemory *mem, uint16_t address);
+void mem_write_16(MEM *mem, uint16_t address, uint16_t value);
+uint16_t mem_read_16(MEM *mem, uint16_t address);
 
-void push_stack_16(CPU *cpu, uint16_t value);
+void mem_push_stack_8(CPU *cpu, uint8_t value);
+uint8_t mem_pop_stack_8(CPU *cpu);
+
+void mem_push_stack_16(CPU *cpu, uint16_t value);
 uint16_t pop_stack_16(CPU *cpu);
-
-void push_stack_8(CPU *cpu, uint8_t value);
-uint8_t pop_stack_8(CPU *cpu);
 
 #endif // CPU_MEM_H

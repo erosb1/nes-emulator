@@ -3,7 +3,7 @@
 #include "util.h"
 #include "emulator.h"
 
-void init_ppu(Emulator *emulator) {
+void ppu_init(Emulator *emulator) {
     PPU *ppu = &emulator->ppu;
     ppu->mapper = &emulator->mapper;
 

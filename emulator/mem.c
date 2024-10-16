@@ -1,19 +1,20 @@
-#include "cpu_mem.h"
+#include "mem.h"
 #include "cpu.h"
 #include "mapper.h"
 #include "util.h"
-
-#include <emulator.h>
-#include <ppu.h>
+#include "emulator.h"
+#include "ppu.h"
 
 void init_cpu_mem(Emulator *emulator) {
-    CPUMemory *cpu_mem = &emulator->cpu_mem;
-    cpu_mem->cpu = &emulator->cpu;
-    cpu_mem->ppu = &emulator->ppu;
-    cpu_mem->mapper = &emulator->mapper;
+    MEM *mem = &emulator->mem;
+    mem->cpu = &emulator->cpu;
+    mem->ppu = &emulator->ppu;
+    mem->mapper = &emulator->mapper;
+
+    memset(mem->ram, 0, sizeof(mem->ram));
 }
 
-void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {
+void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
     if (address < RAM_MIRROR_END) {
         mem->ram[address % RAM_SIZE] = value; // Handle RAM mirroring
         return;
@@ -63,7 +64,7 @@ void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {
     exit(EXIT_FAILURE);
 }
 
-uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address) {
+uint8_t mem_read_8(MEM *mem, uint16_t address) {
     if (address < RAM_MIRROR_END) {
         return mem->ram[address % RAM_SIZE];
     }
@@ -96,34 +97,34 @@ uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address) {
     return mem->mapper->read_prg(mem->mapper, address);
 }
 
-void cpu_write_mem_16(CPUMemory *mem, uint16_t address, uint16_t value) {
-    cpu_write_mem_8(mem, address + 1, value >> BYTE_SIZE);
-    cpu_write_mem_8(mem, address, value);
+void mem_write_16(MEM *mem, uint16_t address, uint16_t value) {
+    mem_write_8(mem, address + 1, value >> BYTE_SIZE);
+    mem_write_8(mem, address, value);
 }
 
-uint16_t cpu_read_mem_16(CPUMemory *mem, uint16_t address) {
-    return (cpu_read_mem_8(mem, address + 1) << BYTE_SIZE) |
-           cpu_read_mem_8(mem, address);
+uint16_t mem_read_16(MEM *mem, uint16_t address) {
+    return (mem_read_8(mem, address + 1) << BYTE_SIZE) |
+           mem_read_8(mem, address);
 }
 
-void push_stack_8(CPU *cpu, uint8_t value) {
-    cpu_write_mem_8(cpu->cpu_mem, STACK_OFFSET + cpu->sp, value);
+void mem_push_stack_8(CPU *cpu, uint8_t value) {
+    mem_write_8(cpu->mem, STACK_OFFSET + cpu->sp, value);
     cpu->sp -= 1;
 }
 
-uint8_t pop_stack_8(CPU *cpu) {
+uint8_t mem_pop_stack_8(CPU *cpu) {
     cpu->sp += 1;
-    uint16_t value = cpu_read_mem_8(cpu->cpu_mem, STACK_OFFSET + cpu->sp);
+    uint16_t value = mem_read_8(cpu->mem, STACK_OFFSET + cpu->sp);
     return value;
 }
 
-void push_stack_16(CPU *cpu, uint16_t value) {
-    push_stack_8(cpu, (value >> 8) & 0xFF);
-    push_stack_8(cpu, value & 0xFF);
+void mem_push_stack_16(CPU *cpu, uint16_t value) {
+    mem_push_stack_8(cpu, (value >> 8) & 0xFF);
+    mem_push_stack_8(cpu, value & 0xFF);
 }
 
 uint16_t pop_stack_16(CPU *cpu) {
-    uint8_t low = pop_stack_8(cpu);
-    uint8_t high = pop_stack_8(cpu);
+    uint8_t low = mem_pop_stack_8(cpu);
+    uint8_t high = mem_pop_stack_8(cpu);
     return (high << 8) | low;
 }

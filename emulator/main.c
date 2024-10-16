@@ -64,15 +64,15 @@ int main(int argc, char *argv[]) {
     }
     read_rom_from_file(&buffer, argv[1]);
     Emulator NES;
-    init_emulator(&NES, buffer);
+    emulator_init(&NES, buffer);
 
 
     // If --nestest option is specified we run nestest
     if (argc > 2 && strcmp(argv[2], "--nestest") == 0) {
-        run_nestest(&NES);
+        emulator_nestest(&NES);
     } else {
         sdl_instance_init(&SDL_INSTANCE);
-        run_emulator(&NES);
+        emulator_run(&NES);
         sdl_instance_destroy(&SDL_INSTANCE);
     }
 

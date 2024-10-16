@@ -4,8 +4,7 @@
 #include "common.h"
 #include "cpu.h"
 #include "ppu.h"
-#include "cpu_mem.h"
-#include "ppu_mem.h"
+#include "mem.h"
 #include "mapper.h"
 
 
@@ -21,8 +20,7 @@ typedef struct Emulator {
     // Devices
     CPU cpu;
     PPU ppu;
-    CPUMemory cpu_mem;
-    PPUMemory ppu_mem;
+    MEM mem;
     Mapper mapper;
 
     // Emulator status
@@ -38,17 +36,15 @@ typedef struct Emulator {
  * and the CHR section of into `ppu_mem`.
  *
  */
-void init_emulator(Emulator *emulator, uint8_t *rom);
+void emulator_init(Emulator *emulator, uint8_t *rom);
 
 /*
  * This function runs the emulator.
  * The program will spend 99.99% of it's execution time inside of this function.
  *
  */
-void run_emulator(Emulator *emulator);
+void emulator_run(Emulator *emulator);
 
-
-void poll_input(Emulator *emulator);
 
 /*
  * This function tests the CPU using the `tests/nestest.nes` rom.
@@ -59,6 +55,6 @@ void poll_input(Emulator *emulator);
  * As of now, it doesn't do anything with the PPU (this might change later)
  *
  */
-void run_nestest(Emulator *emulator);
+void emulator_nestest(Emulator *emulator);
 
 #endif

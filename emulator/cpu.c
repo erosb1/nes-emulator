@@ -1,5 +1,5 @@
 #include "cpu.h"
-#include "cpu_mem.h"
+#include "mem.h"
 #include "opcodes.h"
 #include "util.h"
 
@@ -15,9 +15,9 @@
 #define NMI_VECTOR_OFFSET 0xFFFA
 #define IRQ_VECTOR_OFFSET 0xFFFE
 
-void init_cpu(Emulator *emulator) {
+void cpu_init(Emulator *emulator) {
     CPU *cpu = &emulator->cpu;
-    cpu->cpu_mem = &emulator->cpu_mem;
+    cpu->mem = &emulator->mem;
     cpu->ppu = &emulator->ppu;
 
     cpu->ac = cpu->x = cpu->y = 0x00;
@@ -68,19 +68,19 @@ static void branch_if(CPU *cpu, int predicate) {
 // This function sets up the cpu->address variable depending on the addressing mode
 // It also updates cpu->cur_cycle if an indirect addressing mode crosses a page boundary
 static void set_address(CPU *cpu, Instruction instruction) {
-    CPUMemory* mem = cpu->cpu_mem;
+    MEM* mem = cpu->mem;
 
     switch (instruction.address_mode) {
     case ACC: { // Accumulator
         break;
     }
     case ABS: { // Absolute
-        cpu->address = cpu_read_mem_16(mem, cpu->pc);
+        cpu->address = mem_read_16(mem, cpu->pc);
         cpu->pc += 2;
         break;
     }
     case ABX: { // Absolute, X-indexed
-        uint16_t base_address = cpu_read_mem_16(mem, cpu->pc);
+        uint16_t base_address = mem_read_16(mem, cpu->pc);
         cpu->address = base_address + cpu->x;
         cpu->pc += 2;
 
@@ -98,7 +98,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
         break;
     }
     case ABY: { // Absolute, Y-indexed
-        uint16_t base_address = cpu_read_mem_16(mem, cpu->pc);
+        uint16_t base_address = mem_read_16(mem, cpu->pc);
         cpu->address = base_address + cpu->y;
         cpu->pc += 2;
 
@@ -123,25 +123,25 @@ static void set_address(CPU *cpu, Instruction instruction) {
         break;
     }
     case IND: {  // Indirect
-        uint16_t temp = cpu_read_mem_16(mem, cpu->pc);
-        uint16_t indirect_address = cpu_read_mem_8(mem, temp) |
-                                    (cpu_read_mem_8(mem, (temp & 0xFF00) | ((temp + 1) & 0xFF)) << 8);
+        uint16_t temp = mem_read_16(mem, cpu->pc);
+        uint16_t indirect_address = mem_read_8(mem, temp) |
+                                    (mem_read_8(mem, (temp & 0xFF00) | ((temp + 1) & 0xFF)) << 8);
         cpu->address = indirect_address;
         cpu->pc += 2;
         break;
     }
     case XIN: { // X-indexed, Indirect (Pre-Indexed Indirect)
-        const uint8_t zp_address = (cpu_read_mem_8(mem, cpu->pc) + cpu->x) & 0xFF;
-        uint16_t base_address = cpu_read_mem_8(mem, zp_address) |
-                                (cpu_read_mem_8(mem, (zp_address + 1) & 0xFF) << 8);
+        const uint8_t zp_address = (mem_read_8(mem, cpu->pc) + cpu->x) & 0xFF;
+        uint16_t base_address = mem_read_8(mem, zp_address) |
+                                (mem_read_8(mem, (zp_address + 1) & 0xFF) << 8);
         cpu->address = base_address;
         cpu->pc++;
         break;
     }
     case YIN: { // Indirect, Y-indexed (Post-Indexed Indirect)
-        const uint8_t zp_address = cpu_read_mem_8(mem, cpu->pc);
-        uint16_t base_address = cpu_read_mem_8(mem, zp_address) |
-                                (cpu_read_mem_8(mem, (zp_address + 1) & 0xFF) << 8);
+        const uint8_t zp_address = mem_read_8(mem, cpu->pc);
+        uint16_t base_address = mem_read_8(mem, zp_address) |
+                                (mem_read_8(mem, (zp_address + 1) & 0xFF) << 8);
         cpu->address = base_address + cpu->y;
         cpu->pc++;
 
@@ -158,23 +158,23 @@ static void set_address(CPU *cpu, Instruction instruction) {
         break;
     }
     case REL: { // Relative
-        int8_t offset = (int8_t) cpu_read_mem_8(mem, cpu->pc);
+        int8_t offset = (int8_t) mem_read_8(mem, cpu->pc);
         cpu->pc++;
         cpu->address = cpu->pc + offset;
         break;
     }
     case ZP0: { // Zeropage
-        cpu->address = (uint16_t) cpu_read_mem_8(mem, cpu->pc);
+        cpu->address = (uint16_t) mem_read_8(mem, cpu->pc);
         cpu->pc++;
         break;
     }
     case ZPX: { // Zeropage, X-indexed
-        cpu->address = ((uint16_t)(cpu_read_mem_8(mem, cpu->pc) + cpu->x)) & 0xFF;
+        cpu->address = ((uint16_t)(mem_read_8(mem, cpu->pc) + cpu->x)) & 0xFF;
         cpu->pc++;
         break;
     }
     case ZPY: { // Zeropage, Y-indexed
-        cpu->address = ((uint16_t)(cpu_read_mem_8(mem, cpu->pc) + cpu->y)) & 0xFF;
+        cpu->address = ((uint16_t)(mem_read_8(mem, cpu->pc) + cpu->y)) & 0xFF;
         cpu->pc++;
         break;
     }
@@ -188,8 +188,8 @@ static void set_address(CPU *cpu, Instruction instruction) {
 void cpu_run_instruction(CPU *cpu) {
     if (cpu->is_logging) log_disassembled_instruction(cpu);
 
-    CPUMemory *mem = cpu->cpu_mem;
-    uint8_t byte = cpu_read_mem_8(mem, cpu->pc++);
+    MEM *mem = cpu->mem;
+    uint8_t byte = mem_read_8(mem, cpu->pc++);
     Instruction instruction = instruction_lookup[byte];
     set_address(cpu, instruction);
 
@@ -197,7 +197,7 @@ void cpu_run_instruction(CPU *cpu) {
 
     switch(instruction.opcode) {
     case ADC: {
-        uint16_t A = cpu->ac; uint16_t M = cpu_read_mem_8(mem, cpu->address);
+        uint16_t A = cpu->ac; uint16_t M = mem_read_8(mem, cpu->address);
         uint16_t R = A + M + get_flag(cpu, CARRY_MASK);
         cpu->ac = R & 0xFF;
         set_flag(cpu, CARRY_MASK, R > 0xFF);
@@ -206,12 +206,12 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case AND: {
-        cpu->ac &= cpu_read_mem_8(mem, cpu->address);
+        cpu->ac &= mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case ASL: {
-        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t m = mem_read_8(mem, cpu->address);
         set_flag(cpu, CARRY_MASK, m & 0x80);
         uint8_t shifted = m << 1;
         set_ZN_flags(cpu, shifted);
@@ -219,7 +219,7 @@ void cpu_run_instruction(CPU *cpu) {
         if (instruction.address_mode == ACC)
             cpu->ac = shifted;
         else
-            cpu_write_mem_8(mem, cpu->address, shifted);
+            mem_write_8(mem, cpu->address, shifted);
         break;
     }
     case BCC: {
@@ -238,7 +238,7 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case BIT: {
-        uint8_t op = cpu_read_mem_8(mem, cpu->address);
+        uint8_t op = mem_read_8(mem, cpu->address);
         set_flag(cpu, ZERO_MASK, (cpu->ac & op) == 0);
         set_flag(cpu, NEGATIVE_MASK, op & 0x80);
         set_flag(cpu, OVERFLOW_MASK, op & 0x40);
@@ -261,9 +261,9 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case BRK: {
         cpu->pc++;
-        push_stack_16(cpu, cpu->pc);
-        push_stack_8(cpu, cpu->sr | BREAK_MASK |  UNUSED_MASK);
-        cpu->pc = cpu_read_mem_16(mem, IRQ_VECTOR_OFFSET);
+        mem_push_stack_16(cpu, cpu->pc);
+        mem_push_stack_8(cpu, cpu->sr | BREAK_MASK |  UNUSED_MASK);
+        cpu->pc = mem_read_16(mem, IRQ_VECTOR_OFFSET);
         set_flag(cpu, INTERRUPT_MASK, TRUE);
     }
     case BVC: {
@@ -294,28 +294,28 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case CMP: {
         uint16_t a = cpu->ac;
-        uint16_t m = cpu_read_mem_8(mem, cpu->address);
+        uint16_t m = mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, (a - m) & 0xFF);
         set_flag(cpu, CARRY_MASK, a >= m);
         break;
     }
     case CPX: {
         uint16_t x = cpu->x;
-        uint16_t m = cpu_read_mem_8(mem, cpu->address);
+        uint16_t m = mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, (x - m) & 0xFF);
         set_flag(cpu, CARRY_MASK, x >= m);
         break;
     }
     case CPY: {
         uint16_t y = cpu->y;
-        uint16_t m = cpu_read_mem_8(mem, cpu->address);
+        uint16_t m = mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, (y - m) & 0xFF);
         set_flag(cpu, CARRY_MASK, y >= m);
         break;
     }
     case DEC: {
-        uint8_t decremented = cpu_read_mem_8(mem, cpu->address) - 1;
-        cpu_write_mem_8(mem, cpu->address, decremented);
+        uint8_t decremented = mem_read_8(mem, cpu->address) - 1;
+        mem_write_8(mem, cpu->address, decremented);
         set_ZN_flags(cpu, decremented);
         break;
     }
@@ -330,13 +330,13 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case EOR: {
-        cpu->ac ^= cpu_read_mem_8(mem, cpu->address);
+        cpu->ac ^= mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case INC: {
-        uint8_t incremented = cpu_read_mem_8(mem, cpu->address) + 1;
-        cpu_write_mem_8(mem, cpu->address, incremented);
+        uint8_t incremented = mem_read_8(mem, cpu->address) + 1;
+        mem_write_8(mem, cpu->address, incremented);
         set_ZN_flags(cpu, incremented);
         break;
     }
@@ -356,27 +356,27 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case JSR: {
         // The return address should be (pc - 1) since the CPU will resume execution in the address immediately after the return address
-        push_stack_16(cpu, cpu->pc - 1);
+        mem_push_stack_16(cpu, cpu->pc - 1);
         cpu->pc = cpu->address;
         break;
     }
     case LDA: {
-        cpu->ac = cpu_read_mem_8(mem, cpu->address);
+        cpu->ac = mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case LDX: {
-        cpu->x = cpu_read_mem_8(mem, cpu->address);
+        cpu->x = mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, cpu->x);
         break;
     }
     case LDY: {
-        cpu->y = cpu_read_mem_8(mem, cpu->address);
+        cpu->y = mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, cpu->y);
         break;
     }
     case LSR: {
-        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t m = mem_read_8(mem, cpu->address);
         set_flag(cpu, CARRY_MASK, m & 0x1);
         uint8_t shifted = m >> 1;
         set_ZN_flags(cpu, shifted);
@@ -384,7 +384,7 @@ void cpu_run_instruction(CPU *cpu) {
         if (instruction.address_mode == ACC) //
             cpu->ac = shifted;
         else
-            cpu_write_mem_8(mem, cpu->address, shifted);
+            mem_write_8(mem, cpu->address, shifted);
         break;
     }
     case NOP: {
@@ -392,22 +392,22 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case ORA: {
-        cpu->ac |= cpu_read_mem_8(mem, cpu->address);
+        cpu->ac |= mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case PHA: {
-        push_stack_8(cpu, cpu->ac);
+        mem_push_stack_8(cpu, cpu->ac);
         break;
     }
     case PHP: {
         // BREAK and UNUSED should be set to 1 when pushed
         // src: https://www.masswerk.at/6502/6502_instruction_set.html#PHP
-        push_stack_8(cpu, cpu->sr | BREAK_MASK |  UNUSED_MASK);
+        mem_push_stack_8(cpu, cpu->sr | BREAK_MASK |  UNUSED_MASK);
         break;
     }
     case PLA: {
-        cpu->ac = pop_stack_8(cpu);
+        cpu->ac = mem_pop_stack_8(cpu);
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
@@ -416,11 +416,11 @@ void cpu_run_instruction(CPU *cpu) {
         // Except for BREAK and UNUSED as these should not be modified by the pop operation
         // src: https://www.masswerk.at/6502/6502_instruction_set.html#PLP
         cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) |
-                (pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
+                (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
         break;
     }
     case ROL: {
-        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t m = mem_read_8(mem, cpu->address);
         uint8_t rotated = (m << 1) | get_flag(cpu, CARRY_MASK);
         set_flag(cpu, CARRY_MASK, m & 0x80);
         set_ZN_flags(cpu, rotated);
@@ -428,11 +428,11 @@ void cpu_run_instruction(CPU *cpu) {
         if (instruction.address_mode == ACC)
             cpu->ac = rotated;
         else
-            cpu_write_mem_8(mem, cpu->address, rotated);
+            mem_write_8(mem, cpu->address, rotated);
         break;
     }
     case ROR: {
-        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t m = mem_read_8(mem, cpu->address);
         uint8_t rotated = (get_flag(cpu, CARRY_MASK) << 7) | (m >> 1);
         set_flag(cpu, CARRY_MASK, m & 0x1);
         set_ZN_flags(cpu, rotated);
@@ -440,12 +440,12 @@ void cpu_run_instruction(CPU *cpu) {
         if (instruction.address_mode == ACC)
             cpu->ac = rotated;
         else
-            cpu_write_mem_8(mem, cpu->address, rotated);
+            mem_write_8(mem, cpu->address, rotated);
         break;
     }
     case RTI: {
         cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) |
-               (pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
+               (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
         cpu->pc = pop_stack_16(cpu);
         break;
     }
@@ -457,7 +457,7 @@ void cpu_run_instruction(CPU *cpu) {
     case SBC: {
         // Subtraction is addition of the two's complement of M
         uint16_t A = cpu->ac;
-        uint16_t M = cpu_read_mem_8(mem, cpu->address);
+        uint16_t M = mem_read_8(mem, cpu->address);
         uint16_t R = A + (M ^ 0xFF) + get_flag(cpu, CARRY_MASK);
         cpu->ac = R & 0xFF;
         set_flag(cpu, CARRY_MASK, R > 0xFF);
@@ -478,15 +478,15 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case STA: {
-        cpu_write_mem_8(mem, cpu->address, cpu->ac);
+        mem_write_8(mem, cpu->address, cpu->ac);
         break;
     }
     case STX: {
-        cpu_write_mem_8(mem, cpu->address, cpu->x);
+        mem_write_8(mem, cpu->address, cpu->x);
         break;
     }
     case STY: {
-        cpu_write_mem_8(mem, cpu->address, cpu->y);
+        mem_write_8(mem, cpu->address, cpu->y);
         break;
     }
     case TAX: {
@@ -547,9 +547,9 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case DCP: { // Illegal
         // Perform DEC
-        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t m = mem_read_8(mem, cpu->address);
         m = (m - 1) & 0xFF;
-        cpu_write_mem_8(mem, cpu->address, m);
+        mem_write_8(mem, cpu->address, m);
         // Perform CMP
         uint8_t a = cpu->ac;
         set_flag(cpu, CARRY_MASK, a >= m);
@@ -559,8 +559,8 @@ void cpu_run_instruction(CPU *cpu) {
     case ISB: { // Illegal
         // Perform INC
         uint8_t A = cpu->ac;
-        uint8_t M = cpu_read_mem_8(mem, cpu->address) + 1;
-        cpu_write_mem_8(mem, cpu->address, M);
+        uint8_t M = mem_read_8(mem, cpu->address) + 1;
+        mem_write_8(mem, cpu->address, M);
 
         // Perform SBC
         uint16_t R = A + (M ^ 0xFF) + get_flag(cpu, CARRY_MASK);
@@ -577,7 +577,7 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case LAX: { // Illegal
-        cpu->ac = cpu_read_mem_8(mem, cpu->address); // Perform LDA
+        cpu->ac = mem_read_8(mem, cpu->address); // Perform LDA
         cpu->x = cpu->ac; // Perform LDX
         set_ZN_flags(cpu, cpu->ac);
         break;
@@ -589,10 +589,10 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case RLA: { // Illegal
         // Perform ROL
-        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t m = mem_read_8(mem, cpu->address);
         uint8_t rotated = (m << 1) | get_flag(cpu, CARRY_MASK);
         set_flag(cpu, CARRY_MASK, m & 0x80);
-        cpu_write_mem_8(mem, cpu->address, rotated);
+        mem_write_8(mem, cpu->address, rotated);
         // Perform AND
         cpu->ac &= rotated;
         set_ZN_flags(cpu, cpu->ac);
@@ -600,9 +600,9 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case RRA: { // Illegal
         // Perform ROR
-        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t m = mem_read_8(mem, cpu->address);
         uint8_t rotated = (get_flag(cpu, CARRY_MASK) << 7) | (m >> 1);
-        cpu_write_mem_8(mem, cpu->address, rotated);
+        mem_write_8(mem, cpu->address, rotated);
         set_flag(cpu, CARRY_MASK, m & 0x01);
         // Perform ADC
         uint16_t a = cpu->ac;
@@ -614,7 +614,7 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case SAX: { // Illegal
-        cpu_write_mem_8(mem, cpu->address, cpu->ac & cpu->x);
+        mem_write_8(mem, cpu->address, cpu->ac & cpu->x);
         break;
     }
     case SBX: { // Illegal
@@ -639,10 +639,10 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case SLO: { // Illegal
         // Perform ASL
-        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t m = mem_read_8(mem, cpu->address);
         set_flag(cpu, CARRY_MASK, m & 0x80);
         uint8_t shifted = m << 1;
-        cpu_write_mem_8(mem, cpu->address, shifted);
+        mem_write_8(mem, cpu->address, shifted);
         // Perform ORA
         cpu->ac |= shifted;
         set_ZN_flags(cpu, cpu->ac);
@@ -650,10 +650,10 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case SRE: { // Illegal
         // Perform LSR
-        uint8_t m = cpu_read_mem_8(mem, cpu->address);
+        uint8_t m = mem_read_8(mem, cpu->address);
         set_flag(cpu, CARRY_MASK, m & 0x1);
         uint8_t shifted = m >> 1;
-        cpu_write_mem_8(mem, cpu->address, shifted);
+        mem_write_8(mem, cpu->address, shifted);
         // Perform EOR
         cpu->ac ^= shifted;
         set_ZN_flags(cpu, cpu->ac);

@@ -1,7 +1,7 @@
 #include "util.h"
 #include "cpu.h"
 #include "opcodes.h"
-#include "cpu_mem.h"
+#include "mem.h"
 
 #define ADDRESS_MODE_COLUMN_WIDTH 28
 
@@ -22,9 +22,9 @@ int is_illegal(uint8_t byte) {
  *  without actually updating the internal values of the cpu
  */
 static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
-    CPUMemory *mem = cpu->cpu_mem;
-    uint8_t byte1 = cpu_read_mem_8(mem, cpu->pc + 1);
-    uint8_t byte2 = cpu_read_mem_8(mem, cpu->pc + 2);
+    MEM *mem = cpu->mem;
+    uint8_t byte1 = mem_read_8(mem, cpu->pc + 1);
+    uint8_t byte2 = mem_read_8(mem, cpu->pc + 2);
     size_t cur_column_width = 0;
     uint16_t address = 0x0000;
 
@@ -71,16 +71,16 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
     }
     case IND: {
         uint16_t address_pre = (byte2 << 8) | byte1;
-        address = cpu_read_mem_8(mem, address_pre) |
-            (cpu_read_mem_8(mem, (address_pre & 0xFF00) | ((address_pre + 1) & 0xFF)) << 8);
+        address = mem_read_8(mem, address_pre) |
+            (mem_read_8(mem, (address_pre & 0xFF00) | ((address_pre + 1) & 0xFF)) << 8);
         printf("($%04X) = %04X ", address_pre, address);
         cur_column_width += 15;
         break;
     }
     case XIN: {
         uint16_t zp_address = (byte1 + cpu->x) & 0xFF;
-        uint16_t hi_byte = cpu_read_mem_8(mem, (zp_address + 1) & 0xFF);
-        uint16_t low_byte = cpu_read_mem_8(mem, zp_address & 0xFF);
+        uint16_t hi_byte = mem_read_8(mem, (zp_address + 1) & 0xFF);
+        uint16_t low_byte = mem_read_8(mem, zp_address & 0xFF);
         address = (hi_byte << 8) | low_byte;
         printf("($%02X,X) @ %02X = %04X ", byte1, zp_address, address);
         cur_column_width += 20;
@@ -88,8 +88,8 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
     }
     case YIN: {
         uint16_t zp_address = byte1;
-        uint16_t hi_byte = cpu_read_mem_8(mem, (zp_address + 1) & 0xFF);
-        uint16_t low_byte = cpu_read_mem_8(mem, zp_address & 0xFF);
+        uint16_t hi_byte = mem_read_8(mem, (zp_address + 1) & 0xFF);
+        uint16_t low_byte = mem_read_8(mem, zp_address & 0xFF);
         uint16_t real_address = (hi_byte << 8) | low_byte;
         address = (real_address + cpu->y) & 0xFFFF;
         printf("($%02X),Y = %04X @ %04X ", byte1, real_address, address);
@@ -132,7 +132,7 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
         case AND: case ORA: case EOR: case ADC: case SBC: case CMP: case CPX: case LSR:
         case ASL: case ROR: case ROL: case INC: case DEC: case NOP: case LAX: case SAX:
         case DCP: case ISB: case SLO: case RLA: case SRE: case RRA:
-            printf("= %02X", cpu_read_mem_8(mem, address));
+            printf("= %02X", mem_read_8(mem, address));
                 cur_column_width += 4;
                 break;
         default: break;
@@ -148,10 +148,10 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
 
 
 void log_disassembled_instruction(const CPU *cpu) {
-    CPUMemory *mem = cpu->cpu_mem;
-    uint8_t byte0 = cpu_read_mem_8(mem, cpu->pc);
-    uint8_t byte1 = cpu_read_mem_8(mem, cpu->pc + 1);
-    uint8_t byte2 = cpu_read_mem_8(mem, cpu->pc + 2);
+    MEM *mem = cpu->mem;
+    uint8_t byte0 = mem_read_8(mem, cpu->pc);
+    uint8_t byte1 = mem_read_8(mem, cpu->pc + 1);
+    uint8_t byte2 = mem_read_8(mem, cpu->pc + 2);
     Instruction instruction = instruction_lookup[byte0];
 
     // Print the current PC

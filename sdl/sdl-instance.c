@@ -1,7 +1,6 @@
 
 #include "sdl-instance.h"
 #include "emulator.h"
-#include "ppu_mem.h"
 
 int sdl_instance_init(SDLInstance *sdl_instance) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -139,7 +138,7 @@ static uint32_t get_color(uint8_t color_index) {
     }
 }
 
-static void render_pattern_table(SDLInstance *sdl_instance, PPUMemory *ppu_mem, int screen_offset_x, int screen_offset_y, int pattern_table_index) {
+static void render_pattern_table(SDLInstance *sdl_instance, PPU *ppu, int screen_offset_x, int screen_offset_y, int pattern_table_index) {
     const int TILE_SIZE = 16;
     const int TILE_WIDTH = 8;
 
@@ -151,8 +150,8 @@ static void render_pattern_table(SDLInstance *sdl_instance, PPUMemory *ppu_mem, 
         int tile_y = (address / TILE_SIZE) / 16;
 
         for (uint8_t y = 0; y < TILE_WIDTH; y++) {
-            uint8_t low_byte = ppu_read_mem_8(ppu_mem, address + y);
-            uint8_t high_byte = ppu_read_mem_8(ppu_mem, address + y + 8);
+            uint8_t low_byte = 0; //ppu_read_mem_8(ppu_mem, address + y);
+            uint8_t high_byte = 0; //ppu_read_mem_8(ppu_mem, address + y + 8);
 
             for (uint8_t x = 0; x < TILE_WIDTH; x++) {
                 uint8_t low_bit = (low_byte >> (7 - x)) & 1;
@@ -175,7 +174,6 @@ void sdl_draw_debug_info(SDLInstance *sdl_instance, Emulator *emulator) {
         for (int j = 0; j < SDL_NES_SCREEN_HEIGHT; j++)
             sdl_nes_put_pixel(sdl_instance, i, j, 0xFFFFFF);
 
-    PPUMemory *ppu_mem = &emulator->ppu_mem;
-    render_pattern_table(sdl_instance, ppu_mem, 0, 0, 0);
-    render_pattern_table(sdl_instance, ppu_mem, 0, 80, 1);
+    render_pattern_table(sdl_instance, &emulator->ppu, 0, 0, 0);
+    render_pattern_table(sdl_instance, &emulator->ppu, 0, 80, 1);
 }
