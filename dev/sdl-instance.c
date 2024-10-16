@@ -81,24 +81,21 @@ void sdl_draw_frame() {
 }
 
 enum {
-    NES_A_BUTTON = 1 << 0,
-    NES_B_BUTTON = 1 << 1,
-    NES_SELECT_BUTTON = 1 << 2,
-    NES_START_BUTTON = 1 << 3,
-    NES_DPAD_UP = 1 << 4,
-    NES_DPAD_DOWN = 1 << 5,
-    NES_DPAD_LEFT = 1 << 6,
-    NES_DPAD_RIGHT = 1 << 7,
+    NES_A_BUTTON        = 1 << 0,
+    NES_B_BUTTON        = 1 << 1,
+    NES_SELECT_BUTTON   = 1 << 2,
+    NES_START_BUTTON    = 1 << 3,
+    NES_DPAD_UP         = 1 << 4,
+    NES_DPAD_DOWN       = 1 << 5,
+    NES_DPAD_LEFT       = 1 << 6,
+    NES_DPAD_RIGHT      = 1 << 7,
 };
 
-uint32_t sdl_poll_events() {
+uint8_t sdl_poll_events() {
     SDL_Event sdl_event;
     uint32_t event = 0;
 
     while (SDL_PollEvent(&sdl_event)) {
-        if (sdl_event.type == SDL_QUIT) {
-            event |= WINDOW_QUIT;
-        }
         const Uint8 *state = SDL_GetKeyboardState(NULL);
         if (state[SDL_SCANCODE_X]) {
             event |= NES_A_BUTTON;
@@ -127,6 +124,17 @@ uint32_t sdl_poll_events() {
     }
 
     return event;
+}
+
+int sdl_window_quit() {
+    SDL_Event sdl_event;
+
+    while (SDL_PollEvent(&sdl_event)) {
+        if (sdl_event.type == SDL_QUIT) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 void sdl_instance_destroy() {

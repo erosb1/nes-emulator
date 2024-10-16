@@ -10,8 +10,6 @@
 #define SDL_WINDOW_HEIGHT 772
 #define SDL_WINDOW_TITLE "NES Emulator"
 
-#define WINDOW_QUIT (1 << 8)
-
 typedef struct SDLInstance {
     SDL_Window *window;
     SDL_Renderer *renderer;
@@ -36,7 +34,8 @@ int sdl_instance_init();
 void sdl_clear_screen();
 void sdl_put_pixel(uint32_t x, uint32_t y, uint32_t color);
 void sdl_draw_frame();
-uint32_t sdl_poll_events();
+uint8_t sdl_poll_events();
+int sdl_window_quit();
 void sdl_instance_destroy();
 
 /*
@@ -44,20 +43,20 @@ void sdl_instance_destroy();
  * The idea is to have one WindowRegion represent the NES SCREEN and one
  * DEBUG screen:
  *
- *      |--SDL WINDOW------------------------------------------------|
- *      |                                                            |
- *      |    |--NES SCREEN---------------|   |--DEBUG SCREEN-----|   |
- *      |    |                           |   |                   |   |
- *      |    |                           |   |                   |   |
- *      |    |                           |   |                   |   |
- *      |    |                           |   |                   |   |
- *      |    |                           |   |                   |   |
- *      |    |                           |   |                   |   |
- *      |    |                           |   |                   |   |
- *      |    |                           |   |                   |   |
- *      |    |---------------------------|   |-------------------|   |
- *      |                                                            |
- *      |------------------------------------------------------------|
+ *        |--SDL WINDOW-------------------------------------------------|
+ *        |                                                             |
+ *        |    |--NES SCREEN---------------|   |--DEBUG SCREEN-----|    |
+ *        |    |                           |   |                   |    |
+ *        |    |                           |   |                   |    |
+ *        |    |                           |   |                   |    |
+ *        |    |                           |   |                   |    |
+ *        |    |                           |   |                   |    |
+ *        |    |                           |   |                   |    |
+ *        |    |                           |   |                   |    |
+ *        |    |                           |   |                   |    |
+ *        |    |---------------------------|   |-------------------|    |
+ *        |                                                             |
+ *        |-------------------------------------------------------------|
  */
 typedef struct WindowRegion {
     const uint32_t top_coord;

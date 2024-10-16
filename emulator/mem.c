@@ -48,6 +48,14 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
     }
 
     if (address < APU_IO_REGISTER_END) {
+        switch (address) {
+        case 0x4016:
+#ifdef RISC_V
+            // set latch pin
+            set_pin(LATCH_PIN_MASK, value & 1);
+#endif
+            break;
+        }
         mem->apu_io_reg[address - PPU_MIRROR_END] = value;
         return;
     }
@@ -84,6 +92,15 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
     }
 
     if (address < APU_IO_REGISTER_END) {
+        switch (address) {
+        case 0x4016:
+#ifdef RISC_V
+            // pulse clock pin
+            input_clock_pulse();
+            return get_pin(DATA_PIN_MASK);
+#endif
+            break;
+        }
         return mem->apu_io_reg[address - PPU_MIRROR_END];
     }
 

@@ -176,14 +176,19 @@ static void set_address(CPU *cpu, Instruction instruction) {
     }
     case UNK:
     default: // Unkown/Illegal
-        printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc, instruction.address_mode);
-        exit(EXIT_FAILURE);
+        //printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc, instruction.address_mode);
+        //exit(EXIT_FAILURE);
+        break;
     }
 }
 
 void cpu_run_instruction(CPU *cpu) {
     if (cpu->is_logging)
         debug_log_instruction(cpu);
+
+    if (cpu->pc == 0x3938) {
+        int x = 0;
+    }
 
     MEM *mem = &cpu->emulator->mem;
     uint8_t byte = mem_read_8(mem, cpu->pc++);

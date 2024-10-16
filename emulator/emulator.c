@@ -4,8 +4,6 @@
 #define NTSC_FRAME_RATE 60
 #define NTSC_CPU_CYCLES_PER_FRAME 29780
 
-void poll_input(Emulator *emulator);
-
 void emulator_init(Emulator *emulator, uint8_t *rom) {
     // Set the rom
     emulator->rom = rom;
@@ -41,12 +39,11 @@ void emulator_run(Emulator *emulator) {
             }
         }
 
-        poll_input(emulator);
-
 #ifndef RISC_V
         sdl_clear_screen();
         debug_draw_screen(emulator);
         sdl_draw_frame();
+        if (sdl_window_quit()) emulator->is_running = FALSE;
 #endif
 
         emulator->cur_frame++;
@@ -55,16 +52,6 @@ void emulator_run(Emulator *emulator) {
     }
 }
 
-void poll_input(Emulator *emulator) {
-#ifdef RISC_V
-    // Todo get input from NES controller
-#else
-    emulator->event = sdl_poll_events();
-    if (emulator->event & WINDOW_QUIT) {
-        emulator->is_running = FALSE;
-    }
-#endif
-}
 
 #define NESTEST_MAX_CYCLES 26554
 #define NESTEST_START_CYCLE 7
