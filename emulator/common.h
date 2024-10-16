@@ -4,6 +4,9 @@
 #define TRUE 0x1
 #define FALSE 0x0
 
+#define NES_SCREEN_WIDTH 256
+#define NES_SCREEN_HEIGHT 224
+
 #ifdef RISC_V
 
 // The DTEKV-board doesn't have access to the C standard libary.

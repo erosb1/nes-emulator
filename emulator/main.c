@@ -9,9 +9,6 @@ extern SDLInstance SDL_INSTANCE;
 /*
  * Loads the ROM in the file specified by `path`
  * Stores it as a byte array in `buffer`
- *
- * This function is only available when compiling for development.
- *  i.e. for a regular computer and not the RISC-V board
  */
 #ifndef RISC_V
 size_t read_rom_from_file(uint8_t **buffer, const char *path) {

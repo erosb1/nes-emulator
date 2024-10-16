@@ -1,6 +1,5 @@
 #include "common.h"
 
-SDLInstance SDL_INSTANCE;
 
 #ifdef RISC_V
 void sleep_us(size_t microseconds) {

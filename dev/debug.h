@@ -2,16 +2,11 @@
 #define DEBUG_H
 
 
+#include "sdl-instance.h"
+
 // forward declarations
+typedef struct Emulator Emulator;
 typedef struct CPU CPU;
-
-
-/**
- * A helper function to check if an instruction is illegal or not
- *
- * @return 1 if illegal, 0 if legal
- */
-int is_illegal(uint8_t byte);
 
 
 /**
@@ -21,7 +16,11 @@ int is_illegal(uint8_t byte);
  *  It follows the same notation as used for nestest.txt:
  *  https://github.com/christopherpow/nes-test-roms/blob/master/other/nestest.log
  */
-void log_disassembled_instruction(const CPU *cpu);
+void debug_log_instruction(CPU *cpu);
+
+
+
+void debug_draw_screen(Emulator *emulator);
 
 
 #endif

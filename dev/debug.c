@@ -3,11 +3,20 @@
 #include "cpu.h"
 #include "opcodes.h"
 #include "mem.h"
+#include "common.h"
+#include "emulator.h"
+#include "mapper.h"
+
+
+extern SDLInstance SDL_INSTANCE;
+extern WindowRegion NES_SCREEN;
+extern WindowRegion DEBUG_SCREEN;
+
 
 #define ADDRESS_MODE_COLUMN_WIDTH 28
 
 
-int is_illegal(uint8_t byte) {
+static int is_illegal(uint8_t byte) {
     Instruction instruction = instruction_lookup[byte];
     return (instruction.opcode >= 56) || // Illegal operand
         (instruction.opcode == NOP && byte != 0xEA) || // Illegal NOP
@@ -148,7 +157,7 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
 }
 
 
-void log_disassembled_instruction(const CPU *cpu) {
+void debug_log_instruction(CPU *cpu) {
     MEM *mem = cpu->mem;
     uint8_t byte0 = mem_read_8(mem, cpu->pc);
     uint8_t byte1 = mem_read_8(mem, cpu->pc + 1);
@@ -182,4 +191,57 @@ void log_disassembled_instruction(const CPU *cpu) {
     // Print the state of the CPU before the instruction is executed
     printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu\n",
         cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp, cpu->cur_cycle);
+}
+
+
+
+static uint32_t get_color(uint8_t color_index) {
+    switch (color_index) {
+    case 1: return 0x555555;
+    case 2: return 0xAAAAAA;
+    case 3: return 0xFFFFFF;
+    default: return 0x000000;
+    }
+}
+
+static void render_pattern_table(Emulator *emulator, int left_coord, int top_coord, int pattern_table_index) {
+    Mapper *mapper = &emulator->mapper;
+    const int TILE_SIZE = 16;
+    const int TILE_PIXEL_WIDTH = 8;
+
+    uint16_t start_address = pattern_table_index ? 0x1000 : 0x0000;
+    uint16_t end_address   = pattern_table_index ? 0x2000 : 0x1000;
+
+    for (uint16_t address = start_address; address < end_address; address += TILE_SIZE) {
+        int tile_x = (address / TILE_SIZE) % 16;
+        int tile_y = (address / TILE_SIZE) / 16;
+
+        for (uint8_t y = 0; y < TILE_PIXEL_WIDTH; y++) {
+            uint8_t low_byte = mapper->read_chr(mapper, address + y);
+            uint8_t high_byte = mapper->read_chr(mapper, address + y + 8);
+
+            for (uint8_t x = 0; x < TILE_PIXEL_WIDTH; x++) {
+                uint8_t low_bit = (low_byte >> (7 - x)) & 1;
+                uint8_t high_bit = (high_byte >> (7 - x)) & 1;
+                uint8_t color_index = (high_bit << 1) | low_bit;
+
+                uint32_t color = get_color(color_index);
+
+                int pixel_x = left_coord + (tile_x * TILE_PIXEL_WIDTH + x);
+                int pixel_y = top_coord + (tile_y * TILE_PIXEL_WIDTH + y);
+
+                sdl_put_pixel_region(&SDL_INSTANCE, &DEBUG_SCREEN, pixel_x, pixel_y, color);
+            }
+        }
+    }
+}
+
+
+void debug_draw_screen(Emulator *emulator) {
+    for (int i = 0; i < NES_SCREEN_WIDTH; i++)
+        for (int j = 0; j < NES_SCREEN_HEIGHT; j++)
+            sdl_put_pixel_region(&SDL_INSTANCE, &NES_SCREEN, i, j, 0xFFFFFF);
+
+    render_pattern_table(emulator, 0, 0, 0);
+    render_pattern_table(emulator, 0, 80, 1);
 }

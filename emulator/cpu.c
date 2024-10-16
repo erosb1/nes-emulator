@@ -186,7 +186,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
 
 
 void cpu_run_instruction(CPU *cpu) {
-    if (cpu->is_logging) log_disassembled_instruction(cpu);
+    if (cpu->is_logging) debug_log_instruction(cpu);
 
     MEM *mem = cpu->mem;
     uint8_t byte = mem_read_8(mem, cpu->pc++);

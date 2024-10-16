@@ -49,7 +49,7 @@ void emulator_run(Emulator *emulator) {
 
 #ifndef RISC_V
         sdl_clear_screen(&SDL_INSTANCE);
-        sdl_draw_debug_info(&SDL_INSTANCE, emulator);
+        debug_draw_screen(emulator);
         sdl_draw_frame(&SDL_INSTANCE);
 #endif
 

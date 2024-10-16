@@ -1,6 +1,34 @@
 
 #include "sdl-instance.h"
 #include "emulator.h"
+#include "common.h"
+
+// Global SDLInstance variable
+SDLInstance SDL_INSTANCE;
+
+// Setup window regions
+#define WINDOW_REGION_PADDING 50
+#define NES_SCREEN_SCALE_FACTOR 3
+
+#define DEBUG_SCREEN_SCALE_FACTOR 2
+#define DEBUG_SCREEN_WIDTH 128
+#define DEBUG_SCREEN_HEIGHT 336
+
+WindowRegion NES_SCREEN = {
+    .top_coord = 50,
+    .left_coord = 50,
+    .width = NES_SCREEN_WIDTH * NES_SCREEN_SCALE_FACTOR,
+    .height = NES_SCREEN_HEIGHT * NES_SCREEN_SCALE_FACTOR,
+    .scale_factor = NES_SCREEN_SCALE_FACTOR,
+};
+
+WindowRegion DEBUG_SCREEN = {
+    .top_coord = 50,
+    .left_coord = 868,
+    .width = DEBUG_SCREEN_WIDTH * DEBUG_SCREEN_SCALE_FACTOR,
+    .height = DEBUG_SCREEN_HEIGHT * DEBUG_SCREEN_SCALE_FACTOR,
+    .scale_factor = DEBUG_SCREEN_SCALE_FACTOR,
+};
 
 int sdl_instance_init(SDLInstance *sdl_instance) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -53,42 +81,53 @@ void sdl_draw_frame(SDLInstance *sdl_instance) {
     SDL_RenderPresent(sdl_instance->renderer);
 }
 
-uint32_t sdl_poll_events() {
-    SDL_Event event;
-    uint32_t event_mask = NONE;
+enum {
+    NES_A_BUTTON = 1 << 0,
+    NES_B_BUTTON = 1 << 1,
+    NES_SELECT_BUTTON = 1 << 2,
+    NES_START_BUTTON = 1 << 3,
+    NES_DPAD_UP = 1 << 4,
+    NES_DPAD_DOWN = 1 << 5,
+    NES_DPAD_LEFT = 1 << 6,
+    NES_DPAD_RIGHT = 1 << 7,
+};
 
-    while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_QUIT) {
-            event_mask |= WINDOW_QUIT;
+uint32_t sdl_poll_events() {
+    SDL_Event sdl_event;
+    uint32_t event = 0;
+
+    while (SDL_PollEvent(&sdl_event)) {
+        if (sdl_event.type == SDL_QUIT) {
+            event |= WINDOW_QUIT;
         }
         const Uint8 *state = SDL_GetKeyboardState(NULL);
         if (state[SDL_SCANCODE_X]) {
-            event_mask |= NES_A_BUTTON;
+            event |= NES_A_BUTTON;
         }
         if (state[SDL_SCANCODE_Z]) {
-            event_mask |= NES_B_BUTTON;
+            event |= NES_B_BUTTON;
         }
         if (state[SDL_SCANCODE_RSHIFT]) {
-            event_mask |= NES_SELECT_BUTTON;
+            event |= NES_SELECT_BUTTON;
         }
         if (state[SDL_SCANCODE_RETURN]) {
-            event_mask |= NES_START_BUTTON;
+            event |= NES_START_BUTTON;
         }
         if (state[SDL_SCANCODE_UP]) {
-            event_mask |= NES_DPAD_UP;
+            event |= NES_DPAD_UP;
         }
         if (state[SDL_SCANCODE_DOWN]) {
-            event_mask |= NES_DPAD_DOWN;
+            event |= NES_DPAD_DOWN;
         }
         if (state[SDL_SCANCODE_LEFT]) {
-            event_mask |= NES_DPAD_LEFT;
+            event |= NES_DPAD_LEFT;
         }
         if (state[SDL_SCANCODE_RIGHT]) {
-            event_mask |= NES_DPAD_RIGHT;
+            event |= NES_DPAD_RIGHT;
         }
     }
 
-    return event_mask;
+    return event;
 }
 
 void sdl_instance_destroy(SDLInstance *sdl_instance) {
@@ -103,77 +142,20 @@ void sdl_instance_destroy(SDLInstance *sdl_instance) {
     SDL_Quit();
 }
 
-void sdl_nes_put_pixel(SDLInstance *sdl_instance, int x, int y, uint32_t color) {
-    if (0 <= x && x < SDL_NES_SCREEN_WIDTH && 0 <= y && y < SDL_NES_SCREEN_HEIGHT) {
-        int screen_offset_x = SDL_NES_SCREEN_OFFSET_X + x * SDL_NES_SCALE_FACTOR;
-        int screen_offset_y = SDL_NES_SCREEN_OFFSET_Y + y * SDL_NES_SCALE_FACTOR;
+void sdl_put_pixel_region(SDLInstance *sdl_instance, WindowRegion *window_region, int relative_x, int relative_y, uint32_t color) {
+    int x = relative_x, y = relative_y;
 
-        // Draw a block of size (SDL_NES_SCALE_FACTOR x SDL_NES_SCALE_FACTOR)
-        for (int i = 0; i < SDL_NES_SCALE_FACTOR; i++) {
-            for (int j = 0; j < SDL_NES_SCALE_FACTOR; j++) {
-                sdl_put_pixel(sdl_instance, screen_offset_x + i, screen_offset_y + j, color);
-            }
-        }
-    }
-}
+    // Bounds checking for the window region
+    if (x < 0 || (x + 1) * window_region->scale_factor > window_region->width ||
+        y < 0 || (y + 1) * window_region->scale_factor > window_region->height)
+        return;
 
-static void put_debug_screen_pixel(SDLInstance *sdl_instance, int x, int y, uint32_t color) {
-    int screen_offset_x = SDL_DEBUG_SCREEN_OFFSET_X + x * SDL_DEBUG_SCREEN_SCALE_FACTOR;
-    int screen_offset_y = SDL_DEBUG_SCREEN_OFFSET_Y + y * SDL_DEBUG_SCREEN_SCALE_FACTOR;
+    uint32_t screen_offset_x = window_region->left_coord + x * window_region->scale_factor;
+    uint32_t screen_offset_y = window_region->top_coord + y * window_region->scale_factor;
 
-    // Draw a block of size (SDL_NES_SCALE_FACTOR x SDL_NES_SCALE_FACTOR)
-    for (int i = 0; i < SDL_DEBUG_SCREEN_SCALE_FACTOR; i++) {
-        for (int j = 0; j < SDL_DEBUG_SCREEN_SCALE_FACTOR; j++) {
+    for (int i = 0; i < window_region->scale_factor; i++) {
+        for (int j = 0; j < window_region->scale_factor; j++) {
             sdl_put_pixel(sdl_instance, screen_offset_x + i, screen_offset_y + j, color);
         }
     }
-}
-
-static uint32_t get_color(uint8_t color_index) {
-    switch (color_index) {
-    case 1: return 0x555555;
-    case 2: return 0xAAAAAA;
-    case 3: return 0xFFFFFF;
-    default: return 0x000000;
-    }
-}
-
-static void render_pattern_table(SDLInstance *sdl_instance, PPU *ppu, int screen_offset_x, int screen_offset_y, int pattern_table_index) {
-    const int TILE_SIZE = 16;
-    const int TILE_WIDTH = 8;
-
-    const uint16_t start_address = pattern_table_index ? 0x1000 : 0x0000;
-    const uint16_t end_address   = pattern_table_index ? 0x2000 : 0x1000;
-
-    for (uint16_t address = start_address; address < end_address; address += TILE_SIZE) {
-        int tile_x = (address / TILE_SIZE) % 16;
-        int tile_y = (address / TILE_SIZE) / 16;
-
-        for (uint8_t y = 0; y < TILE_WIDTH; y++) {
-            uint8_t low_byte = 0; //ppu_read_mem_8(ppu_mem, address + y);
-            uint8_t high_byte = 0; //ppu_read_mem_8(ppu_mem, address + y + 8);
-
-            for (uint8_t x = 0; x < TILE_WIDTH; x++) {
-                uint8_t low_bit = (low_byte >> (7 - x)) & 1;
-                uint8_t high_bit = (high_byte >> (7 - x)) & 1;
-                uint8_t color_index = (high_bit << 1) | low_bit;
-
-                uint32_t color = get_color(color_index);
-
-                int pixel_x = screen_offset_x + (tile_x * TILE_WIDTH + x);
-                int pixel_y = screen_offset_y + (tile_y * TILE_WIDTH + y);
-
-                if (color != 0) put_debug_screen_pixel(sdl_instance, pixel_x, pixel_y, color);
-            }
-        }
-    }
-}
-
-void sdl_draw_debug_info(SDLInstance *sdl_instance, Emulator *emulator) {
-    for (int i = 0; i < SDL_NES_SCREEN_WIDTH; i++)
-        for (int j = 0; j < SDL_NES_SCREEN_HEIGHT; j++)
-            sdl_nes_put_pixel(sdl_instance, i, j, 0xFFFFFF);
-
-    render_pattern_table(sdl_instance, &emulator->ppu, 0, 0, 0);
-    render_pattern_table(sdl_instance, &emulator->ppu, 0, 80, 1);
 }
