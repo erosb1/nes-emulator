@@ -54,3 +54,18 @@ cmake -DCMAKE_TOOLCHAIN_FILE=../riscv-toolchain.cmake ..
 make
 ```
 The executable will be named `main.bin`. Additionally, a disassembled RISC-V assembly dump will be generated in `main.elf.txt`.
+
+## Running nestest.nes
+This is how you can test the CPU using the `tests/nestest.nes` rom:
+```sh
+cd build
+cmake ..
+make
+make nestest_cpu_only_diff
+```
+
+This will run a bash script that:
+1. Runs the program with the `test/nestest.nes` rom as input.
+2. Outputs the cpu execution log to a file named `build/output.txt`.
+3. Compares the difference between `build/output.txt` file and the `tests/nestest_cpu_only.txt` file (which has the correct logs).
+4. Outputs to the console the first line it finds that differs between the two log files.

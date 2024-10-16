@@ -48,17 +48,17 @@ void new_frame(CPU *cpu, PPU *ppu) {
 
 // https://www.masswerk.at/6502/6502_instruction_set.html
 void run_prg(CPU *cpu, PPU *ppu) {
-    printf("Execution: (");
+    //printf("Execution: (");
 
     uint16_t entrypoint = cpu_read_mem_16(cpu->mem, RESET_VECTOR_OFFSET);
 
 #ifdef TESTING
     entrypoint = TESTING;
-    printf("breakpoint: 0x%04hX, ", BREAKPOINT);
+    //printf("breakpoint: 0x%04hX, ", BREAKPOINT);
     cpu->cur_cycle = BOOTUP_SEQUENCE_CYCLES;
 #endif // TESTING
 
-    printf("entrypoint: 0x%04hX)\n", entrypoint);
+    //printf("entrypoint: 0x%04hX)\n", entrypoint);
 
     cpu->pc = entrypoint;
 
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
     CPU cpu = {.sp = SP_START, .mem = &mem};
     PPU ppu = {}; // partially initialize to zero all fields
 
-    read_header_debug(buffer);
+    //read_header_debug(buffer);
     static_memmap(buffer, cpu.mem, ppu.mem);
 
 #ifndef RISC_V
