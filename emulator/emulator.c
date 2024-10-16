@@ -14,10 +14,10 @@ void emulator_init(Emulator *emulator, uint8_t *rom) {
     emulator->cur_frame = 0;
 
     // Initialize components.
-    cpu_init(emulator);
     ppu_init(emulator);
     init_cpu_mem(emulator);
     mapper_init(emulator);
+    cpu_init(emulator);
 }
 
 void emulator_run(Emulator *emulator) {

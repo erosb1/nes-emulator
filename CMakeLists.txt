@@ -8,6 +8,8 @@ set(CMAKE_C_STANDARD 11)
 if(NOT RISC_V)
     message(STATUS "Building CMake for host system (development)")
 
+    add_compile_options("-Wall")
+
     # Include directories
     include_directories(${CMAKE_SOURCE_DIR}/dev)
     include_directories(${CMAKE_SOURCE_DIR}/emulator)

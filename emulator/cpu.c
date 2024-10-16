@@ -8,7 +8,6 @@
 // CPU init values
 #define SR_INIT_VALUE 0x24
 #define SP_INIT_VALUE 0xFD
-#define PC_INIT_VALUE 0xC000
 
 // vector offsets
 #define RESET_VECTOR_OFFSET 0xFFFC
@@ -23,7 +22,7 @@ void cpu_init(Emulator *emulator) {
     cpu->cur_cycle = 0;
     cpu->sr = SR_INIT_VALUE;
     cpu->sp = SP_INIT_VALUE;
-    cpu->pc = PC_INIT_VALUE;
+    cpu->pc = mem_read_16(&emulator->mem, RESET_VECTOR_OFFSET);
 
     cpu->is_logging = 0;
 }
@@ -185,10 +184,6 @@ static void set_address(CPU *cpu, Instruction instruction) {
 void cpu_run_instruction(CPU *cpu) {
     if (cpu->is_logging)
         debug_log_instruction(cpu);
-
-    if (cpu->pc == 0x3938) {
-        int x = 0;
-    }
 
     MEM *mem = &cpu->emulator->mem;
     uint8_t byte = mem_read_8(mem, cpu->pc++);
