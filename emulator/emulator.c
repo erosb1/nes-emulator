@@ -1,5 +1,4 @@
 #include "emulator.h"
-#include "util.h"
 
 #define NTSC_FRAME_RATE 60
 #define NTSC_CPU_CYCLES_PER_FRAME 29780
@@ -43,7 +42,8 @@ void emulator_run(Emulator *emulator) {
         sdl_clear_screen();
         debug_draw_screen(emulator);
         sdl_draw_frame();
-        if (sdl_window_quit()) emulator->is_running = FALSE;
+        if (sdl_window_quit())
+            emulator->is_running = FALSE;
 #endif
 
         emulator->cur_frame++;
@@ -51,7 +51,6 @@ void emulator_run(Emulator *emulator) {
             emulator->cur_frame = 0;
     }
 }
-
 
 #define NESTEST_MAX_CYCLES 26554
 #define NESTEST_START_CYCLE 7

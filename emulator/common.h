@@ -13,6 +13,7 @@
 // Therefore we have to write alternatives in this file
 #include "dtekv-lib.h"
 void exit(int code);
+#include "nes-controller.h"
 
 #else
 

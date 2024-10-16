@@ -3,7 +3,6 @@
 #include "emulator.h"
 #include "mapper.h"
 #include "ppu.h"
-#include "util.h"
 
 void init_cpu_mem(Emulator *emulator) {
     MEM *mem = &emulator->mem;

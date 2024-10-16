@@ -37,8 +37,8 @@ int main(int argc, char *argv[]) {
 #ifdef RISC_V // This code will run on the DTEKV RISC-V board
     uint8_t *buffer = (uint8_t *)0x2000000;
     Emulator NES;
-    init_emulator(&NES, buffer);
-    run_emulator(&NES);
+    emulator_init(&NES, buffer);
+    emulator_run(&NES);
 
 #else  // This code will run on a regular computer, i.e. one that has access to
        // libc

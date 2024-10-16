@@ -77,7 +77,7 @@ typedef union {
 } PPU_STATUS_REGISTER;
 
 // Forward Declarations
-struct Emulator;
+typedef struct Emulator Emulator;
 
 typedef struct PPU {
     // PPU Registers (for communication with CPU)

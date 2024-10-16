@@ -1,7 +1,6 @@
 
 #include "ppu.h"
 #include "emulator.h"
-#include "util.h"
 
 void ppu_init(Emulator *emulator) {
     PPU *ppu = &emulator->ppu;

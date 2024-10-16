@@ -1,9 +1,8 @@
 #include "cpu.h"
 #include "mem.h"
 #include "opcodes.h"
-#include "util.h"
 
-#include <emulator.h>
+#include "emulator.h"
 
 // CPU init values
 #define SR_INIT_VALUE 0x24
@@ -85,11 +84,21 @@ static void set_address(CPU *cpu, Instruction instruction) {
         // However, this is not the case for some opcodes
         if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
             switch (instruction.opcode) {
-            case STA: case ASL: case DEC: case INC: case LSR: case ROL: case ROR:
-            case SLO: case RLA: case SRE: case RRA: case DCP: case ISB: case SHY:
-                break;
-            default:
-                cpu->cur_cycle++;
+            case STA:
+            case ASL:
+            case DEC:
+            case INC:
+            case LSR:
+            case ROL:
+            case ROR:
+            case SLO:
+            case RLA:
+            case SRE:
+            case RRA:
+            case DCP:
+            case ISB:
+            case SHY: break;
+            default: cpu->cur_cycle++;
             }
         }
         break;
@@ -103,10 +112,15 @@ static void set_address(CPU *cpu, Instruction instruction) {
         // However, this is not the case for some opcodes
         if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
             switch (instruction.opcode) {
-            case STA: case SLO: case RLA: case SRE: case RRA: case DCP: case ISB: case NOP:
-                break;
-            default:
-                cpu->cur_cycle++;
+            case STA:
+            case SLO:
+            case RLA:
+            case SRE:
+            case RRA:
+            case DCP:
+            case ISB:
+            case NOP: break;
+            default: cpu->cur_cycle++;
             }
         }
         break;
@@ -144,10 +158,15 @@ static void set_address(CPU *cpu, Instruction instruction) {
         // However, this is not the case for some opcodes
         if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
             switch (instruction.opcode) {
-            case STA: case SLO: case RLA: case SRE: case RRA: case DCP: case ISB: case NOP:
-                break;
-            default:
-                cpu->cur_cycle++;
+            case STA:
+            case SLO:
+            case RLA:
+            case SRE:
+            case RRA:
+            case DCP:
+            case ISB:
+            case NOP: break;
+            default: cpu->cur_cycle++;
             }
         }
         break;
@@ -175,15 +194,17 @@ static void set_address(CPU *cpu, Instruction instruction) {
     }
     case UNK:
     default: // Unkown/Illegal
-        //printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc, instruction.address_mode);
-        //exit(EXIT_FAILURE);
+        // printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc, instruction.address_mode);
+        // exit(EXIT_FAILURE);
         break;
     }
 }
 
 void cpu_run_instruction(CPU *cpu) {
+#ifndef RISC_V
     if (cpu->is_logging)
         debug_log_instruction(cpu);
+#endif // RISC_V
 
     MEM *mem = &cpu->emulator->mem;
     uint8_t byte = mem_read_8(mem, cpu->pc++);

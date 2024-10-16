@@ -19,7 +19,7 @@
 #define RAM_MIRROR_SIZE             (RAM_MIRROR_END - RAM_END)
 #define PPU_REGISTER_SIZE           (PPU_REGISTER_END - RAM_MIRROR_END)
 #define PPU_MIRROR_SIZE             (PPU_MIRROR_END - PPU_REGISTER_END)
-#define APU_IO_REGISTER_SIZE        (APU_IO_REGISTER_END - PPU_REGISTER_END)
+#define APU_IO_REGISTER_SIZE        (APU_IO_REGISTER_END - PPU_MIRROR_END)
 #define PRG_RAM_SIZE                (PRG_RAM_END - APU_IO_REGISTER_END)
 #define PRG_ROM_SIZE                (PRG_ROM_END - PRG_RAM_END)
 // clang-format on
@@ -27,7 +27,8 @@
 #define STACK_OFFSET 0x0100
 
 // Forward declarations
-struct Emulator;
+typedef struct Emulator Emulator;
+typedef struct CPU CPU;
 
 typedef struct MEM {
     uint8_t ram[RAM_SIZE];

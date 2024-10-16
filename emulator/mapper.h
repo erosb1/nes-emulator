@@ -12,7 +12,7 @@ enum {
 };
 
 // Forward declarations
-struct Emulator;
+typedef struct Emulator Emulator;
 
 typedef struct Mapper {
     uint8_t *prg_rom;

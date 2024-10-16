@@ -4,7 +4,7 @@
 #include "common.h"
 
 // forward declarations
-struct Emulator;
+typedef struct Emulator Emulator;
 
 // clang-format off
 // enum shorthand for toggling CPU flags
