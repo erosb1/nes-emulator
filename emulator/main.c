@@ -56,7 +56,6 @@ int main(int argc, char *argv[]) {
     run_emulator(&NES);
 
 #else       // This code will run on a regular computer, i.e. one that has access to libc
-    sdl_instance_init(&SDL_INSTANCE);
 
     uint8_t *buffer;
     if (argc < 2) {
@@ -72,11 +71,12 @@ int main(int argc, char *argv[]) {
     if (argc > 2 && strcmp(argv[2], "--nestest") == 0) {
         run_nestest(&NES);
     } else {
+        sdl_instance_init(&SDL_INSTANCE);
         run_emulator(&NES);
+        sdl_instance_destroy(&SDL_INSTANCE);
     }
 
     free(buffer);
-    sdl_instance_destroy(&SDL_INSTANCE);
 #endif // !RISC_V
 
     return EXIT_SUCCESS;

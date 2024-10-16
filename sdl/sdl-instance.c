@@ -164,7 +164,7 @@ static void render_pattern_table(SDLInstance *sdl_instance, PPUMemory *ppu_mem, 
                 int pixel_x = screen_offset_x + (tile_x * TILE_WIDTH + x);
                 int pixel_y = screen_offset_y + (tile_y * TILE_WIDTH + y);
 
-                put_debug_screen_pixel(sdl_instance, pixel_x, pixel_y, color);
+                if (color != 0) put_debug_screen_pixel(sdl_instance, pixel_x, pixel_y, color);
             }
         }
     }

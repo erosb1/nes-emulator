@@ -6,17 +6,6 @@
 #include <emulator.h>
 #include <ppu.h>
 
-typedef enum {
-    PPU_CTRL = 0x2000,
-    PPU_MASK,
-    PPU_STATUS,
-    OAM_ADDR,
-    OAM_DATA,
-    PPU_SCROLL,
-    VRAM_ADDR,
-    VRAM_DATA,
-} PPURegister;
-
 void init_cpu_mem(Emulator *emulator) {
     CPUMemory *cpu_mem = &emulator->cpu_mem;
     cpu_mem->cpu = &emulator->cpu;
@@ -35,41 +24,25 @@ void cpu_write_mem_8(CPUMemory *mem, uint16_t address, uint8_t value) {
         PPU* ppu = mem->ppu;
 
         switch (address) {
-        case PPU_CTRL:
+        case 0x2000: // PPU_CONTROL
             ppu->control.reg = value;
             break;
-        case PPU_MASK:
+        case 0x2001: // PPU_MASK
             ppu->mask.reg = value;
             break;
-        case PPU_STATUS:
-            // PPU_STATUS is read only
-            break;
-        case OAM_ADDR:
+        case 0x2003: // OAM_ADDRESS
             ppu->oam_addr = value;
             break;
-        case OAM_DATA:
+        case 0x2004: // OAM_DATA
             ppu->oam_data = value;
             break;
-        case PPU_SCROLL:
-            if (ppu->write_toggle == 0) {
-                ppu->scroll.bytes.low = value;
-                ppu->write_toggle = 1;
-            } else {
-                ppu->scroll.bytes.high = value;
-                ppu->write_toggle = 0;
-            }
+        case 0x2005: // PPU_SCROLL
             break;
-        case VRAM_ADDR:
-            if (ppu->write_toggle == 0) {
-                ppu->vram_addr.bytes.high = value;
-                ppu->write_toggle = 1;
-            } else {
-                ppu->vram_addr.bytes.low = value;
-                ppu->write_toggle = 0;
-            }
+        case 0x2006: // PPU_ADDR (vram address)
+            ppu_set_vram_addr(ppu, value);
             break;
-        case VRAM_DATA:
-            ppu->vram_data = value;
+        case 0x2007: // PPU_DATA (vram data)
+            ppu_write_vram_data(ppu, value);
             break;
         default:
             break;
@@ -100,24 +73,14 @@ uint8_t cpu_read_mem_8(CPUMemory *mem, uint16_t address) {
         PPU* ppu = mem->ppu;
 
         switch (address) {
-        case PPU_CTRL:
-            return ppu->control.reg;
-        case PPU_MASK:
-            return ppu->mask.reg;
-        case PPU_STATUS:
-            return ppu->status.reg;
-        case OAM_ADDR:
-            return ppu->oam_addr;
-        case OAM_DATA:
+        case 0x2002: // PPU_STATUS
+            return ppu_read_status(ppu);
+        case 0x2004: // OAM_DATA
             return ppu->oam_data;
-        case PPU_SCROLL:
-            return 0x00; // Write Only (we return 0 when reading)
-        case VRAM_ADDR:
-            return 0x00; // Write Only (we return 0 when reading)
-        case VRAM_DATA:
-            return ppu->vram_data;
+        case 0x2007: // PPU_DATA
+            return ppu_read_vram_data(ppu);
         default:
-            return 0x00;
+            return 0x00; // This is returned when reading rom a WRITE_ONLY PPU register
         }
     }
 
