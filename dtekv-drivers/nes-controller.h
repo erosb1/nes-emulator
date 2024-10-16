@@ -5,18 +5,20 @@
 
 // Driver for the NES controller (this file is only run on the DTEK-V board)
 
-typedef enum Button {
-    A_BUTTON_MASK = (1 << 0),
-    B_BUTTON_MASK = (1 << 1),
-    SELECT_BUTTON_MASK = (1 << 2),
-    START_BUTTON_MASK = (1 << 3),
-    UP_BUTTON_MASK = (1 << 4),
-    DOWN_BUTTON_MASK = (1 << 5),
-    LEFT_BUTTON_MASK = (1 << 6),
-    RIGHT_BUTTON_MASK = (1 << 7),
-} Button;
+typedef enum ControllerPin {
+    CLOCK_PIN_MASK = (1 << 26),
+    LATCH_PIN_MASK = (1 << 27),
+    DATA_PIN_MASK = (1 << 28),
+
+} ControllerPin;
+
+typedef enum State { HIGH = 1, LOW = 0 } State;
 
 void setup_input();
 uint8_t poll_input();
+
+void input_clock_pulse();
+uint8_t get_pin(uint32_t pin);
+void set_pin(uint32_t pin, uint32_t state);
 
 #endif // NES_CONTROLLER_H

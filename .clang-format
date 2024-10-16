@@ -1,4 +1,9 @@
 ---
 BasedOnStyle: LLVM
 IndentWidth: 4
+ColumnLimit: 120
+PenaltyBreakAssignment: 100
+PenaltyBreakBeforeFirstCallParameter: 200
+AllowShortFunctionsOnASingleLine: All
+AllowShortCaseLabelsOnASingleLine: true
 ---

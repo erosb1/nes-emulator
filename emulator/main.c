@@ -1,114 +1,68 @@
+#include "emulator.h"
+
 /*
- * NES emulator compatible with iNES games without bank switching
- * (https://www.nesdev.org/wiki/INES)
+ * Loads the ROM in the file specified by `path`
+ * Stores it as a byte array in `buffer`
  */
-#include "cpu.h"
-#include "cpu_mem.h"
-#include "load_rom.h"
-#include "ppu.h"
-#include "util.h"
+#ifndef RISC_V
+size_t read_rom_from_file(uint8_t **buffer, const char *path) {
+    FILE *fp;
+    size_t expected_size;
+    size_t actual_size;
 
-// vector offsets
-#define RESET_VECTOR_OFFSET 0xFFFC
-#define NMI_VECTOR_OFFSET 0xFFFA
-
-// timing math
-
-// NTSC https://www.emulationonline.com/systems/nes/nes-system-timing
-// https://www.nesdev.org/wiki/Cycle_reference_chart
-#define NTSC_CPU_CYCLES_PER_FRAME 29780
-#define NTSC_CPU_CYCLES_PER_FRAME_VBLANK 2273
-#define NTSC_CPU_CYCLES_PER_FRAME_ACTIVE                                       \
-    (NTSC_CPU_CYCLES_PER_FRAME - NTSC_CPU_CYCLES_PER_FRAME_VBLANK)
-#define NTSC_CPU_EXTRA_ACTIVE_CYCLE 2 // TODO: should be 3 if rendering is
-// disabled during the 20th scanline
-#define NTSC_CPU_EXTRA_VBLANK_CYCLE 3
-
-// only needed for nestest
-#define BOOTUP_SEQUENCE_CYCLES 0x07
-#define SP_START 0x00FD
-
-void new_frame(CPU *cpu, PPU *ppu) {
-
-    // maybe TODO: implement true cycle accurate timing (draw scanlines instead
-    // of frames)
-
-    ppu_vblank_set(cpu->mem, FALSE);
-    cpu_run_instructions(cpu, NTSC_CPU_CYCLES_PER_FRAME_ACTIVE +
-                                  ppu->extra_cycle_active);
-
-    // TODO: draw frame
-
-    ppu_vblank_set(cpu->mem, TRUE);
-    ppu_maybe_nmi(cpu);
-
-    cpu_run_instructions(cpu, NTSC_CPU_CYCLES_PER_FRAME_VBLANK +
-                                  ppu->extra_cycle_active);
-}
-
-// https://www.masswerk.at/6502/6502_instruction_set.html
-void run_prg(CPU *cpu, PPU *ppu) {
-    //printf("Execution: (");
-
-    uint16_t entrypoint = cpu_read_mem_16(cpu->mem, RESET_VECTOR_OFFSET);
-
-#ifdef TESTING
-    entrypoint = TESTING;
-    //printf("breakpoint: 0x%04hX, ", BREAKPOINT);
-    cpu->cur_cycle = BOOTUP_SEQUENCE_CYCLES;
-#endif // TESTING
-
-    //printf("entrypoint: 0x%04hX)\n", entrypoint);
-
-    cpu->pc = entrypoint;
-
-    ppu->extra_cycle_active = 0;
-    ppu->extra_cycle_vblank = 0;
-    for (size_t frame = 0; TRUE; ++frame) {
-        if (frame ==
-            NTSC_CPU_EXTRA_ACTIVE_CYCLE * NTSC_CPU_EXTRA_VBLANK_CYCLE) {
-            frame = 0; // to prevent overflow
-        }
-        if (frame % NTSC_CPU_EXTRA_ACTIVE_CYCLE == 0) {
-            ppu->extra_cycle_active = 1;
-        }
-        if (frame % NTSC_CPU_EXTRA_VBLANK_CYCLE == 0) {
-            ppu->extra_cycle_vblank = 1;
-        }
-        new_frame(cpu, ppu);
+    fp = fopen(path, "rb");
+    if (fp == NULL) {
+        printf("Fatal Error: Failed to open file %s\n", path);
+        exit(EXIT_FAILURE);
     }
+
+    fseek(fp, 0, SEEK_END); // seek to end of file
+    expected_size = ftell(fp);
+    fseek(fp, 0, SEEK_SET); // seek to start of file
+    *buffer = malloc(expected_size);
+
+    actual_size = fread(*buffer, sizeof **buffer, expected_size, fp); // read
+    fclose(fp);
+
+    if (actual_size != expected_size) {
+        printf("Fatal Error: Expected size (%zu) != actual size (%zu) %s\n", expected_size, actual_size, path);
+        exit(EXIT_FAILURE);
+    }
+    return actual_size;
 }
+#endif
 
 int main(int argc, char *argv[]) {
-    uint8_t *buffer;
 
-#ifdef RISC_V
-    load_rom(&buffer, NULL);
-#else
-    if (argc != 2) {
+#ifdef RISC_V // This code will run on the DTEKV RISC-V board
+    uint8_t *buffer = (uint8_t *)0x2000000;
+    Emulator NES;
+    emulator_init(&NES, buffer);
+    emulator_run(&NES);
+
+#else  // This code will run on a regular computer, i.e. one that has access to
+       // libc
+
+    uint8_t *buffer;
+    if (argc < 2) {
         printf("Fatal Error: No filepath provided\n");
-        assert(FALSE);
+        exit(EXIT_FAILURE);
+    }
+    read_rom_from_file(&buffer, argv[1]);
+    Emulator NES;
+    emulator_init(&NES, buffer);
+
+    // If --nestest option is specified we run nestest
+    if (argc > 2 && strcmp(argv[2], "--nestest") == 0) {
+        emulator_nestest(&NES);
+    } else {
+        sdl_instance_init();
+        emulator_run(&NES);
+        sdl_instance_destroy();
     }
 
-    /* size_t size = */ load_rom(&buffer,
-                                 argv[1]); // size is needed to calculate
-    // the misc roms section size for NES 2.0
-
-#endif // !RISC_V
-    CPUMemory mem = {};
-    CPU cpu = {.sp = SP_START, .mem = &mem};
-    PPU ppu = {}; // partially initialize to zero all fields
-
-    //read_header_debug(buffer);
-    static_memmap(buffer, cpu.mem, ppu.mem);
-
-#ifndef RISC_V
-    // no need to free on the DTEK
     free(buffer);
 #endif // !RISC_V
-
-    // skip trainer for now
-    run_prg(&cpu, &ppu);
 
     return EXIT_SUCCESS;
 }

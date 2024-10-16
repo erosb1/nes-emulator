@@ -8,16 +8,18 @@ set(CMAKE_C_STANDARD 11)
 if(NOT RISC_V)
     message(STATUS "Building CMake for host system (development)")
 
+    add_compile_options("-Wall")
+
     # Include directories
-    include_directories(${CMAKE_SOURCE_DIR}/sdl)
+    include_directories(${CMAKE_SOURCE_DIR}/dev)
     include_directories(${CMAKE_SOURCE_DIR}/emulator)
 
     # Collect all source files from sdl and emulator
-    file(GLOB_RECURSE SDL_SOURCES ${CMAKE_SOURCE_DIR}/sdl/*.c)
+    file(GLOB_RECURSE DEV_SOURCES ${CMAKE_SOURCE_DIR}/dev/*.c)
     file(GLOB_RECURSE EMULATOR_SOURCES ${CMAKE_SOURCE_DIR}/emulator/*.c)
 
     # Add executable
-    add_executable(main ${SDL_SOURCES} ${EMULATOR_SOURCES})
+    add_executable(main ${DEV_SOURCES} ${EMULATOR_SOURCES})
 
     # Find SDL2 (for development)
     find_package(SDL2 REQUIRED)
@@ -26,7 +28,8 @@ if(NOT RISC_V)
 
     # Add a custom target for testing against nestest
     add_custom_target(nestest_cpu_only_diff
-        COMMAND ${CMAKE_CURRENT_BINARY_DIR}/main ${CMAKE_SOURCE_DIR}/tests/nestest.nes > ${CMAKE_CURRENT_BINARY_DIR}/output.txt
+        COMMAND ${CMAKE_CURRENT_BINARY_DIR}/main ${CMAKE_SOURCE_DIR}/tests/nestest.nes --nestest > ${CMAKE_CURRENT_BINARY_DIR}/output.txt
+        COMMAND echo "NESTEST Complete -- No Errors Detected" >> ${CMAKE_CURRENT_BINARY_DIR}/output.txt
         COMMAND diff ${CMAKE_CURRENT_BINARY_DIR}/output.txt ${CMAKE_SOURCE_DIR}/tests/nestest_cpu_only.txt | head -n 2 | tail -n 1
         DEPENDS main
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

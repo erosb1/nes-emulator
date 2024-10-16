@@ -41,24 +41,13 @@ Corresponding DTEK-V pins:
 // delay in microseconds to help with shift register setup/hold timing
 #define SHIFT_DELAY 20
 
-typedef enum ControllerPin {
-    CLOCK_PIN_MASK = (1 << 26),
-    LATCH_PIN_MASK = (1 << 27),
-    DATA_PIN_MASK = (1 << 28),
-
-} ControllerPin;
-
-typedef enum State { HIGH = 1, LOW = 0 } State;
-
 typedef enum Direction { OUTPUT = 1, INPUT = 0 } Direction;
 
-uint8_t get_pin(uint32_t pin) {
-    return (*(volatile int32_t *)GPIO_DATA & pin) != 0;
-}
+uint8_t get_pin(uint32_t pin) { return (*(volatile int32_t *)GPIO_DATA & pin) != 0; }
 
-void set_pin(uint32_t pin, State state) {
+void set_pin(uint32_t pin, uint32_t state) {
     volatile uint32_t *reg = (uint32_t *)GPIO_DATA;
-    if (state == HIGH) {
+    if (state) {
         *reg |= pin;
     } else {
         *reg &= ~pin;
@@ -74,11 +63,10 @@ void set_pin_direction(uint32_t pin, Direction dir) {
     }
 }
 
-void pulse(uint32_t pin) {
-    set_pin(pin, HIGH);
-    sleep_us(
-        SHIFT_DELAY); // may or may not be needed depending on the clock speed
-    set_pin(pin, LOW);
+void input_clock_pulse() {
+    set_pin(CLOCK_PIN_MASK, HIGH);
+    sleep_us(SHIFT_DELAY); // may or may not be needed depending on the clock speed
+    set_pin(CLOCK_PIN_MASK, LOW);
 }
 
 void setup_input() {
@@ -93,31 +81,29 @@ void setup_input() {
 }
 
 uint8_t poll_input() {
-    // NES controller button states are asynchronously loaded into the 4021
-    // while latch is high
-
-    // when the latch pin goes low, the first data bit is
-    // shifted to data
-
-    // button data is shifted to the data pin on each low to high
-    // transition of the clock pin
-
-    // latch pulse
-    pulse(LATCH_PIN_MASK);
-
-    uint8_t controller_state = 0;
-    for (uint8_t i = 0; i < BUTTON_COUNT;
-         ++i) { // read in the 8 controller buttons that
-                // were latched into the 4021
-        controller_state |=
-            get_pin(DATA_PIN_MASK)
-            << i; // store the current button state on the data input
-
-        // generate a clock pulse to bring the
-        // next button to the data input
-        pulse(CLOCK_PIN_MASK);
-    }
-
-    // order bit0->bit7 = a, b, select, start, up, down, left, right
-    return ~controller_state;
+    // // NES controller button states are asynchronously loaded into the 4021
+    // // while latch is high
+    //
+    // // when the latch pin goes low, the first data bit is
+    // // shifted to data
+    //
+    // // button data is shifted to the data pin on each low to high
+    // // transition of the clock pin
+    //
+    // // latch pulse
+    // pulse(LATCH_PIN_MASK);
+    //
+    // uint8_t controller_state = 0;
+    // for (uint8_t i = 0; i < BUTTON_COUNT; ++i) {         // read in the 8 controller buttons that
+    //                                                      // were latched into the 4021
+    //     controller_state |= get_pin(DATA_PIN_MASK) << i; // store the current button state on the data input
+    //
+    //     // generate a clock pulse to bring the
+    //     // next button to the data input
+    //     pulse(CLOCK_PIN_MASK);
+    // }
+    //
+    // // order bit0->bit7 = a, b, select, start, up, down, left, right
+    // return ~controller_state;
+    return 0;
 }
