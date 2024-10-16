@@ -98,12 +98,12 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
 }
 
 void mem_write_16(MEM *mem, uint16_t address, uint16_t value) {
-    mem_write_8(mem, address + 1, value >> BYTE_SIZE);
+    mem_write_8(mem, address + 1, value >> 8);
     mem_write_8(mem, address, value);
 }
 
 uint16_t mem_read_16(MEM *mem, uint16_t address) {
-    return (mem_read_8(mem, address + 1) << BYTE_SIZE) |
+    return (mem_read_8(mem, address + 1) << 8) |
            mem_read_8(mem, address);
 }
 

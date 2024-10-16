@@ -9,15 +9,15 @@ if(NOT RISC_V)
     message(STATUS "Building CMake for host system (development)")
 
     # Include directories
-    include_directories(${CMAKE_SOURCE_DIR}/sdl)
+    include_directories(${CMAKE_SOURCE_DIR}/dev)
     include_directories(${CMAKE_SOURCE_DIR}/emulator)
 
     # Collect all source files from sdl and emulator
-    file(GLOB_RECURSE SDL_SOURCES ${CMAKE_SOURCE_DIR}/sdl/*.c)
+    file(GLOB_RECURSE DEV_SOURCES ${CMAKE_SOURCE_DIR}/dev/*.c)
     file(GLOB_RECURSE EMULATOR_SOURCES ${CMAKE_SOURCE_DIR}/emulator/*.c)
 
     # Add executable
-    add_executable(main ${SDL_SOURCES} ${EMULATOR_SOURCES})
+    add_executable(main ${DEV_SOURCES} ${EMULATOR_SOURCES})
 
     # Find SDL2 (for development)
     find_package(SDL2 REQUIRED)

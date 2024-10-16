@@ -1,6 +1,9 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#define TRUE 0x1
+#define FALSE 0x0
+
 #ifdef RISC_V
 
 // The DTEKV-board doesn't have access to the C standard libary.
@@ -18,6 +21,7 @@ void exit(int code);
 #include <time.h>
 
 #include "sdl-instance.h"
+#include "debug.h"
 
 #endif // RISC_V
 void sleep_us(size_t microseconds);
