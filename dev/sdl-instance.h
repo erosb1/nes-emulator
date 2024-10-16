@@ -69,12 +69,14 @@ typedef struct WindowRegion {
 
 /*
  * This function puts a pixel relative to the top left of the WindowRegion.
- * It does this by calculating where that pixel should go in the pixel_buffer of the SDLInstance
+ * It does this by calculating where that pixel should go in the pixel_buffer of
+ * the SDLInstance
  *
  * The size and width of the pixel will be equal to window_region->scale_factor
- * This is because the actual resolution of the NES is very tiny by today's standards
+ * This is because the actual resolution of the NES is very tiny by today's
+ * standards
  */
-void sdl_put_pixel_region(WindowRegion *window_region, int relative_x, int relative_y, uint32_t color);
-
+void sdl_put_pixel_region(WindowRegion *window_region, int relative_x,
+                          int relative_y, uint32_t color);
 
 #endif

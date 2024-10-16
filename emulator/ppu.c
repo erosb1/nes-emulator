@@ -1,7 +1,7 @@
 
 #include "ppu.h"
-#include "util.h"
 #include "emulator.h"
+#include "util.h"
 
 void ppu_init(Emulator *emulator) {
     PPU *ppu = &emulator->ppu;
@@ -50,8 +50,7 @@ void ppu_set_vram_addr(PPU *ppu, uint8_t half_address) {
         // First write: Set the high byte (bits 8-14)
         ppu->t = (ppu->t & 0x00FF) | ((half_address & 0x3F) << 8);
         ppu->w = 1;
-    }
-    else {
+    } else {
         // Second write: Set the low byte (bits 0-7)
         ppu->t = (ppu->t & 0x7F00) | half_address;
         ppu->v = ppu->t;

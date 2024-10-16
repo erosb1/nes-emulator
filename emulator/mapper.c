@@ -1,7 +1,6 @@
 #include "mapper.h"
 #include "emulator.h"
 
-
 typedef struct {
     char magic[4];
     uint8_t prg_rom_size;
@@ -21,7 +20,8 @@ static iNES_Header read_iNES_header(const uint8_t *buffer) {
         ((uint8_t *)&header)[i] = buffer[i];
     }
 
-    if (header.magic[0] != 'N' || header.magic[1] != 'E' || header.magic[2] != 'S' || header.magic[3] != 0x1A) {
+    if (header.magic[0] != 'N' || header.magic[1] != 'E' ||
+        header.magic[2] != 'S' || header.magic[3] != 0x1A) {
         printf("Error when reading rom header: rom is not of type iNES");
         exit(EXIT_FAILURE);
     }
@@ -41,8 +41,8 @@ static uint8_t nrom_read_chr(Mapper *mapper, uint16_t address) {
     return mapper->chr_rom[address];
 }
 
-static void nrom_write_prg(const Mapper *mapper, uint16_t address, uint8_t value) {
-}
+static void nrom_write_prg(const Mapper *mapper, uint16_t address,
+                           uint8_t value) {}
 
 void mapper_init(Emulator *emulator) {
     Mapper *mapper = &emulator->mapper;
@@ -63,7 +63,6 @@ void mapper_init(Emulator *emulator) {
     size_t trainer_offset = (rom_header.flags_6 & 0x04) ? 512 : 0;
     mapper->prg_rom = rom + 16 + trainer_offset;
     mapper->chr_rom = mapper->prg_rom + (rom_header.prg_rom_size * 16 * 1024);
-
 
     int mapper_num = (rom_header.flags_7 & 0xF0) | (rom_header.flags_6 >> 4);
 

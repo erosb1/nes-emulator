@@ -1,7 +1,7 @@
 
 #include "sdl-instance.h"
-#include "emulator.h"
 #include "common.h"
+#include "emulator.h"
 
 // Global SDLInstance variable
 SDLInstance SDL_INSTANCE;
@@ -36,26 +36,30 @@ int sdl_instance_init() {
         return -1;
     }
 
-    SDL_INSTANCE.window = SDL_CreateWindow(SDL_WINDOW_TITLE, SDL_WINDOWPOS_UNDEFINED,
-                                      SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_WIDTH,
-                                      SDL_WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
+    SDL_INSTANCE.window = SDL_CreateWindow(
+        SDL_WINDOW_TITLE, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOW_WIDTH, SDL_WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
     if (SDL_INSTANCE.window == NULL) {
         printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
         return -1;
     }
 
-    SDL_INSTANCE.renderer = SDL_CreateRenderer(SDL_INSTANCE.window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_INSTANCE.renderer =
+        SDL_CreateRenderer(SDL_INSTANCE.window, -1, SDL_RENDERER_ACCELERATED);
     if (!SDL_INSTANCE.renderer) {
-        printf("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
+        printf("Renderer could not be created! SDL_Error: %s\n",
+               SDL_GetError());
         SDL_DestroyWindow(SDL_INSTANCE.window);
         return -1;
     }
 
-    SDL_INSTANCE.texture = SDL_CreateTexture(SDL_INSTANCE.renderer, SDL_PIXELFORMAT_ARGB8888,
-                            SDL_TEXTUREACCESS_STREAMING, SDL_WINDOW_WIDTH, SDL_WINDOW_HEIGHT);
+    SDL_INSTANCE.texture = SDL_CreateTexture(
+        SDL_INSTANCE.renderer, SDL_PIXELFORMAT_ARGB8888,
+        SDL_TEXTUREACCESS_STREAMING, SDL_WINDOW_WIDTH, SDL_WINDOW_HEIGHT);
 
     SDL_INSTANCE.title = SDL_WINDOW_TITLE;
-    SDL_INSTANCE.pixel_buffer = (uint32_t *)malloc(SDL_WINDOW_WIDTH * SDL_WINDOW_HEIGHT * sizeof(uint32_t));
+    SDL_INSTANCE.pixel_buffer = (uint32_t *)malloc(
+        SDL_WINDOW_WIDTH * SDL_WINDOW_HEIGHT * sizeof(uint32_t));
     SDL_INSTANCE.width = SDL_WINDOW_WIDTH;
     SDL_INSTANCE.height = SDL_WINDOW_HEIGHT;
 
@@ -75,7 +79,8 @@ void sdl_put_pixel(uint32_t x, uint32_t y, uint32_t color) {
 }
 
 void sdl_draw_frame() {
-    SDL_UpdateTexture(SDL_INSTANCE.texture, NULL, SDL_INSTANCE.pixel_buffer, SDL_INSTANCE.width * sizeof(uint32_t));
+    SDL_UpdateTexture(SDL_INSTANCE.texture, NULL, SDL_INSTANCE.pixel_buffer,
+                      SDL_INSTANCE.width * sizeof(uint32_t));
     SDL_RenderClear(SDL_INSTANCE.renderer);
     SDL_RenderCopy(SDL_INSTANCE.renderer, SDL_INSTANCE.texture, NULL, NULL);
     SDL_RenderPresent(SDL_INSTANCE.renderer);
@@ -142,7 +147,8 @@ void sdl_instance_destroy() {
     SDL_Quit();
 }
 
-void sdl_put_pixel_region(WindowRegion *window_region, int relative_x, int relative_y, uint32_t color) {
+void sdl_put_pixel_region(WindowRegion *window_region, int relative_x,
+                          int relative_y, uint32_t color) {
     int x = relative_x, y = relative_y;
 
     // Bounds checking for the window region
@@ -150,8 +156,10 @@ void sdl_put_pixel_region(WindowRegion *window_region, int relative_x, int relat
         y < 0 || (y + 1) * window_region->scale_factor > window_region->height)
         return;
 
-    uint32_t screen_offset_x = window_region->left_coord + x * window_region->scale_factor;
-    uint32_t screen_offset_y = window_region->top_coord + y * window_region->scale_factor;
+    uint32_t screen_offset_x =
+        window_region->left_coord + x * window_region->scale_factor;
+    uint32_t screen_offset_y =
+        window_region->top_coord + y * window_region->scale_factor;
 
     for (int i = 0; i < window_region->scale_factor; i++) {
         for (int j = 0; j < window_region->scale_factor; j++) {

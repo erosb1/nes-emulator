@@ -29,9 +29,7 @@ void cpu_init(Emulator *emulator) {
     cpu->is_logging = 0;
 }
 
-static int get_flag(CPU *cpu, CPUFlag flag) {
-    return (cpu->sr & flag) ? 1 : 0;
-}
+static int get_flag(CPU *cpu, CPUFlag flag) { return (cpu->sr & flag) ? 1 : 0; }
 
 static void set_flag(CPU *cpu, CPUFlag flag, int value) {
     if (value) {
@@ -41,9 +39,9 @@ static void set_flag(CPU *cpu, CPUFlag flag, int value) {
     }
 }
 
-// This is a helper function that sets the Z and N flags depending on the `value` integer.
-// If value == 0 then Z is set
-// If bit 7 in value is set then N is set (indicating a negative number)
+// This is a helper function that sets the Z and N flags depending on the
+// `value` integer. If value == 0 then Z is set If bit 7 in value is set then N
+// is set (indicating a negative number)
 static void set_ZN_flags(CPU *cpu, uint8_t value) {
     set_flag(cpu, ZERO_MASK, value == 0);
     set_flag(cpu, NEGATIVE_MASK, value & 0x80);
@@ -65,10 +63,11 @@ static void branch_if(CPU *cpu, int predicate) {
     }
 }
 
-// This function sets up the cpu->address variable depending on the addressing mode
-// It also updates cpu->cur_cycle if an indirect addressing mode crosses a page boundary
+// This function sets up the cpu->address variable depending on the addressing
+// mode It also updates cpu->cur_cycle if an indirect addressing mode crosses a
+// page boundary
 static void set_address(CPU *cpu, Instruction instruction) {
-    MEM* mem = cpu->mem;
+    MEM *mem = cpu->mem;
 
     switch (instruction.address_mode) {
     case ACC: { // Accumulator
@@ -84,6 +83,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->address = base_address + cpu->x;
         cpu->pc += 2;
 
+        // clang-format off
         // If we cross page boundaries, we increment cur_cycle by 1.
         // However, this is not the case for some opcodes
         if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
@@ -96,12 +96,14 @@ static void set_address(CPU *cpu, Instruction instruction) {
             }
         }
         break;
+        // clang-format on
     }
     case ABY: { // Absolute, Y-indexed
         uint16_t base_address = mem_read_16(mem, cpu->pc);
         cpu->address = base_address + cpu->y;
         cpu->pc += 2;
 
+        // clang-format off
         // If we cross page boundaries, we increment cur_cycle by 1.
         // However, this is not the case for some opcodes
         if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
@@ -113,6 +115,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
             }
         }
         break;
+        // clang-format on
     }
     case IMM: { // Immediate
         cpu->address = cpu->pc;
@@ -122,10 +125,11 @@ static void set_address(CPU *cpu, Instruction instruction) {
     case IMP: { // Implied
         break;
     }
-    case IND: {  // Indirect
+    case IND: { // Indirect
         uint16_t temp = mem_read_16(mem, cpu->pc);
-        uint16_t indirect_address = mem_read_8(mem, temp) |
-                                    (mem_read_8(mem, (temp & 0xFF00) | ((temp + 1) & 0xFF)) << 8);
+        uint16_t indirect_address =
+            mem_read_8(mem, temp) |
+            (mem_read_8(mem, (temp & 0xFF00) | ((temp + 1) & 0xFF)) << 8);
         cpu->address = indirect_address;
         cpu->pc += 2;
         break;
@@ -145,6 +149,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->address = base_address + cpu->y;
         cpu->pc++;
 
+        // clang-format off
         // If we cross page boundaries, we increment cur_cycle by 1.
         // However, this is not the case for some opcodes
         if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
@@ -156,15 +161,16 @@ static void set_address(CPU *cpu, Instruction instruction) {
             }
         }
         break;
+        // clang-format on
     }
     case REL: { // Relative
-        int8_t offset = (int8_t) mem_read_8(mem, cpu->pc);
+        int8_t offset = (int8_t)mem_read_8(mem, cpu->pc);
         cpu->pc++;
         cpu->address = cpu->pc + offset;
         break;
     }
     case ZP0: { // Zeropage
-        cpu->address = (uint16_t) mem_read_8(mem, cpu->pc);
+        cpu->address = (uint16_t)mem_read_8(mem, cpu->pc);
         cpu->pc++;
         break;
     }
@@ -178,15 +184,17 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->pc++;
         break;
     }
-    case UNK: default: // Unkown/Illegal
-        printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc, instruction.address_mode);
+    case UNK:
+    default: // Unkown/Illegal
+        printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc,
+               instruction.address_mode);
         exit(EXIT_FAILURE);
     }
 }
 
-
 void cpu_run_instruction(CPU *cpu) {
-    if (cpu->is_logging) debug_log_instruction(cpu);
+    if (cpu->is_logging)
+        debug_log_instruction(cpu);
 
     MEM *mem = cpu->mem;
     uint8_t byte = mem_read_8(mem, cpu->pc++);
@@ -195,9 +203,10 @@ void cpu_run_instruction(CPU *cpu) {
 
     cpu->cur_cycle += cycle_lookup[byte];
 
-    switch(instruction.opcode) {
+    switch (instruction.opcode) {
     case ADC: {
-        uint16_t A = cpu->ac; uint16_t M = mem_read_8(mem, cpu->address);
+        uint16_t A = cpu->ac;
+        uint16_t M = mem_read_8(mem, cpu->address);
         uint16_t R = A + M + get_flag(cpu, CARRY_MASK);
         cpu->ac = R & 0xFF;
         set_flag(cpu, CARRY_MASK, R > 0xFF);
@@ -262,7 +271,7 @@ void cpu_run_instruction(CPU *cpu) {
     case BRK: {
         cpu->pc++;
         mem_push_stack_16(cpu, cpu->pc);
-        mem_push_stack_8(cpu, cpu->sr | BREAK_MASK |  UNUSED_MASK);
+        mem_push_stack_8(cpu, cpu->sr | BREAK_MASK | UNUSED_MASK);
         cpu->pc = mem_read_16(mem, IRQ_VECTOR_OFFSET);
         set_flag(cpu, INTERRUPT_MASK, TRUE);
     }
@@ -355,7 +364,8 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case JSR: {
-        // The return address should be (pc - 1) since the CPU will resume execution in the address immediately after the return address
+        // The return address should be (pc - 1) since the CPU will resume
+        // execution in the address immediately after the return address
         mem_push_stack_16(cpu, cpu->pc - 1);
         cpu->pc = cpu->address;
         break;
@@ -403,7 +413,7 @@ void cpu_run_instruction(CPU *cpu) {
     case PHP: {
         // BREAK and UNUSED should be set to 1 when pushed
         // src: https://www.masswerk.at/6502/6502_instruction_set.html#PHP
-        mem_push_stack_8(cpu, cpu->sr | BREAK_MASK |  UNUSED_MASK);
+        mem_push_stack_8(cpu, cpu->sr | BREAK_MASK | UNUSED_MASK);
         break;
     }
     case PLA: {
@@ -413,10 +423,11 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case PLP: {
         // Pop all flags from the stack
-        // Except for BREAK and UNUSED as these should not be modified by the pop operation
-        // src: https://www.masswerk.at/6502/6502_instruction_set.html#PLP
+        // Except for BREAK and UNUSED as these should not be modified by the
+        // pop operation src:
+        // https://www.masswerk.at/6502/6502_instruction_set.html#PLP
         cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) |
-                (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
+                  (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
         break;
     }
     case ROL: {
@@ -445,12 +456,13 @@ void cpu_run_instruction(CPU *cpu) {
     }
     case RTI: {
         cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) |
-               (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
+                  (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
         cpu->pc = pop_stack_16(cpu);
         break;
     }
     case RTS: {
-        // return the stored address and continue execution from the address after it
+        // return the stored address and continue execution from the address
+        // after it
         cpu->pc = pop_stack_16(cpu) + 1;
         break;
     }
@@ -576,9 +588,9 @@ void cpu_run_instruction(CPU *cpu) {
         exit(EXIT_FAILURE);
         break;
     }
-    case LAX: { // Illegal
+    case LAX: {                                  // Illegal
         cpu->ac = mem_read_8(mem, cpu->address); // Perform LDA
-        cpu->x = cpu->ac; // Perform LDX
+        cpu->x = cpu->ac;                        // Perform LDX
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
@@ -673,5 +685,6 @@ void cpu_run_instruction(CPU *cpu) {
         // todo: implement JAM
         exit(EXIT_FAILURE);
         break;
-    }}
+    }
+    }
 }

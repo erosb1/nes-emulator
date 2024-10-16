@@ -137,6 +137,5 @@ static const char* opcode_name_lookup[] = {
     "UBC", "JAM"
 };
 
-
 // clang-format on
 #endif

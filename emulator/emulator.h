@@ -3,14 +3,13 @@
 
 #include "common.h"
 #include "cpu.h"
-#include "ppu.h"
-#include "mem.h"
 #include "mapper.h"
-
+#include "mem.h"
+#include "ppu.h"
 
 /*
  * This struct is the entire NES emulator
- * It is the owner of the CPU, PPU CPUMemory and PPUMemory devices.
+ * It is the owner of the CPU, PPU, MEM and Mapper devices.
  *
  */
 typedef struct Emulator {
@@ -32,19 +31,15 @@ typedef struct Emulator {
 /*
  * This function initialises the emulator and all of its components.
  *
- * It also loads the PRG section of `rom_buffer` into `cpu_mem`,
- * and the CHR section of into `ppu_mem`.
- *
  */
 void emulator_init(Emulator *emulator, uint8_t *rom);
 
 /*
  * This function runs the emulator.
- * The program will spend 99.99% of it's execution time inside of this function.
+ * The program will spend 99.99% of its execution time inside of this function.
  *
  */
 void emulator_run(Emulator *emulator);
-
 
 /*
  * This function tests the CPU using the `tests/nestest.nes` rom.

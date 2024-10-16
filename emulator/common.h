@@ -23,8 +23,8 @@ void exit(int code);
 #include <string.h>
 #include <time.h>
 
-#include "sdl-instance.h"
 #include "debug.h"
+#include "sdl-instance.h"
 
 #endif // RISC_V
 void sleep_us(size_t microseconds);

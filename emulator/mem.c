@@ -1,9 +1,9 @@
 #include "mem.h"
 #include "cpu.h"
-#include "mapper.h"
-#include "util.h"
 #include "emulator.h"
+#include "mapper.h"
 #include "ppu.h"
+#include "util.h"
 
 void init_cpu_mem(Emulator *emulator) {
     MEM *mem = &emulator->mem;
@@ -21,8 +21,10 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
     }
 
     if (address < PPU_MIRROR_END) {
-        address = RAM_MIRROR_END + (address - RAM_MIRROR_END) % PPU_REGISTER_SIZE; // Handle PPU register mirroring
-        PPU* ppu = mem->ppu;
+        address = RAM_MIRROR_END +
+                  (address - RAM_MIRROR_END) %
+                      PPU_REGISTER_SIZE; // Handle PPU register mirroring
+        PPU *ppu = mem->ppu;
 
         switch (address) {
         case 0x2000: // PPU_CONTROL
@@ -70,8 +72,10 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
     }
 
     if (address < PPU_MIRROR_END) {
-        address = RAM_MIRROR_END + (address - RAM_MIRROR_END) % PPU_REGISTER_SIZE; // Handle PPU register mirroring
-        PPU* ppu = mem->ppu;
+        address = RAM_MIRROR_END +
+                  (address - RAM_MIRROR_END) %
+                      PPU_REGISTER_SIZE; // Handle PPU register mirroring
+        PPU *ppu = mem->ppu;
 
         switch (address) {
         case 0x2002: // PPU_STATUS
@@ -81,7 +85,8 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
         case 0x2007: // PPU_DATA
             return ppu_read_vram_data(ppu);
         default:
-            return 0x00; // This is returned when reading rom a WRITE_ONLY PPU register
+            return 0x00; // This is returned when reading rom a WRITE_ONLY PPU
+                         // register
         }
     }
 
@@ -103,8 +108,7 @@ void mem_write_16(MEM *mem, uint16_t address, uint16_t value) {
 }
 
 uint16_t mem_read_16(MEM *mem, uint16_t address) {
-    return (mem_read_8(mem, address + 1) << 8) |
-           mem_read_8(mem, address);
+    return (mem_read_8(mem, address + 1) << 8) | mem_read_8(mem, address);
 }
 
 void mem_push_stack_8(CPU *cpu, uint8_t value) {

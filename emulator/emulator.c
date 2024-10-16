@@ -22,7 +22,6 @@ void emulator_init(Emulator *emulator, uint8_t *rom) {
     mapper_init(emulator);
 }
 
-
 void emulator_run(Emulator *emulator) {
     emulator->is_running = TRUE;
     CPU *cpu = &emulator->cpu;
@@ -56,8 +55,7 @@ void emulator_run(Emulator *emulator) {
     }
 }
 
-
-void poll_input(Emulator *emulator){
+void poll_input(Emulator *emulator) {
 #ifdef RISC_V
     // Todo get input from NES controller
 #else
@@ -68,8 +66,6 @@ void poll_input(Emulator *emulator){
 #endif
 }
 
-
-
 #define NESTEST_MAX_CYCLES 26554
 #define NESTEST_START_CYCLE 7
 
@@ -79,7 +75,8 @@ void emulator_nestest(Emulator *emulator) {
     cpu->cur_cycle = NESTEST_START_CYCLE;
     MEM *mem = &emulator->mem;
 
-    // These APU registers needs to be set to 0xFF at the start in order for nestest to complete
+    // These APU registers needs to be set to 0xFF at the start in order for
+    // nestest to complete
     mem_write_8(mem, 0x4004, 0xFF);
     mem_write_8(mem, 0x4005, 0xFF);
     mem_write_8(mem, 0x4006, 0xFF);
@@ -90,4 +87,3 @@ void emulator_nestest(Emulator *emulator) {
         cpu_run_instruction(cpu);
     }
 }
-

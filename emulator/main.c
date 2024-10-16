@@ -33,11 +33,6 @@ size_t read_rom_from_file(uint8_t **buffer, const char *path) {
 }
 #endif
 
-
-
-
-
-
 int main(int argc, char *argv[]) {
 
 #ifdef RISC_V // This code will run on the DTEKV RISC-V board
@@ -46,7 +41,8 @@ int main(int argc, char *argv[]) {
     init_emulator(&NES, buffer);
     run_emulator(&NES);
 
-#else       // This code will run on a regular computer, i.e. one that has access to libc
+#else  // This code will run on a regular computer, i.e. one that has access to
+       // libc
 
     uint8_t *buffer;
     if (argc < 2) {
@@ -56,7 +52,6 @@ int main(int argc, char *argv[]) {
     read_rom_from_file(&buffer, argv[1]);
     Emulator NES;
     emulator_init(&NES, buffer);
-
 
     // If --nestest option is specified we run nestest
     if (argc > 2 && strcmp(argv[2], "--nestest") == 0) {

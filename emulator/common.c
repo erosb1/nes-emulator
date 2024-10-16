@@ -1,6 +1,5 @@
 #include "common.h"
 
-
 #ifdef RISC_V
 void sleep_us(size_t microseconds) {
     const uint8_t cycles = microseconds * 30;
