@@ -32,12 +32,12 @@ typedef struct SDLInstance {
  * to quit the window. sdl_instance_destroy() needs to be called when quitting
  * the window, to avoid memory leaks.
  */
-int sdl_instance_init(SDLInstance *sdl_instance);
-void sdl_clear_screen(SDLInstance *sdl_instance);
-void sdl_put_pixel(SDLInstance *sdl_instance, int x, int y, uint32_t color);
-void sdl_draw_frame(SDLInstance *sdl_instance);
+int sdl_instance_init();
+void sdl_clear_screen();
+void sdl_put_pixel(uint32_t x, uint32_t y, uint32_t color);
+void sdl_draw_frame();
 uint32_t sdl_poll_events();
-void sdl_instance_destroy(SDLInstance *sdl_instance);
+void sdl_instance_destroy();
 
 /*
  * This struct represents a square region within the entire SDL window.
@@ -74,7 +74,7 @@ typedef struct WindowRegion {
  * The size and width of the pixel will be equal to window_region->scale_factor
  * This is because the actual resolution of the NES is very tiny by today's standards
  */
-void sdl_put_pixel_region(SDLInstance *sdl_instance, WindowRegion *window_region, int relative_x, int relative_y, uint32_t color);
+void sdl_put_pixel_region(WindowRegion *window_region, int relative_x, int relative_y, uint32_t color);
 
 
 #endif

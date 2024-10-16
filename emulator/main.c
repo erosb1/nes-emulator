@@ -1,11 +1,5 @@
 #include "emulator.h"
 
-
-
-#ifndef RISC_V
-extern SDLInstance SDL_INSTANCE;
-#endif
-
 /*
  * Loads the ROM in the file specified by `path`
  * Stores it as a byte array in `buffer`
@@ -68,9 +62,9 @@ int main(int argc, char *argv[]) {
     if (argc > 2 && strcmp(argv[2], "--nestest") == 0) {
         emulator_nestest(&NES);
     } else {
-        sdl_instance_init(&SDL_INSTANCE);
+        sdl_instance_init();
         emulator_run(&NES);
-        sdl_instance_destroy(&SDL_INSTANCE);
+        sdl_instance_destroy();
     }
 
     free(buffer);

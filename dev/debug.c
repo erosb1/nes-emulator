@@ -230,7 +230,7 @@ static void render_pattern_table(Emulator *emulator, int left_coord, int top_coo
                 int pixel_x = left_coord + (tile_x * TILE_PIXEL_WIDTH + x);
                 int pixel_y = top_coord + (tile_y * TILE_PIXEL_WIDTH + y);
 
-                sdl_put_pixel_region(&SDL_INSTANCE, &DEBUG_SCREEN, pixel_x, pixel_y, color);
+                sdl_put_pixel_region(&DEBUG_SCREEN, pixel_x, pixel_y, color);
             }
         }
     }
@@ -240,7 +240,7 @@ static void render_pattern_table(Emulator *emulator, int left_coord, int top_coo
 void debug_draw_screen(Emulator *emulator) {
     for (int i = 0; i < NES_SCREEN_WIDTH; i++)
         for (int j = 0; j < NES_SCREEN_HEIGHT; j++)
-            sdl_put_pixel_region(&SDL_INSTANCE, &NES_SCREEN, i, j, 0xFFFFFF);
+            sdl_put_pixel_region(&NES_SCREEN, i, j, 0xFFFFFF);
 
     render_pattern_table(emulator, 0, 0, 0);
     render_pattern_table(emulator, 0, 80, 1);

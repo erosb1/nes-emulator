@@ -30,55 +30,55 @@ WindowRegion DEBUG_SCREEN = {
     .scale_factor = DEBUG_SCREEN_SCALE_FACTOR,
 };
 
-int sdl_instance_init(SDLInstance *sdl_instance) {
+int sdl_instance_init() {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return -1;
     }
 
-    sdl_instance->window = SDL_CreateWindow(SDL_WINDOW_TITLE, SDL_WINDOWPOS_UNDEFINED,
+    SDL_INSTANCE.window = SDL_CreateWindow(SDL_WINDOW_TITLE, SDL_WINDOWPOS_UNDEFINED,
                                       SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_WIDTH,
                                       SDL_WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
-    if (sdl_instance->window == NULL) {
+    if (SDL_INSTANCE.window == NULL) {
         printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
         return -1;
     }
 
-    sdl_instance->renderer = SDL_CreateRenderer(sdl_instance->window, -1, SDL_RENDERER_ACCELERATED);
-    if (!sdl_instance->renderer) {
+    SDL_INSTANCE.renderer = SDL_CreateRenderer(SDL_INSTANCE.window, -1, SDL_RENDERER_ACCELERATED);
+    if (!SDL_INSTANCE.renderer) {
         printf("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
-        SDL_DestroyWindow(sdl_instance->window);
+        SDL_DestroyWindow(SDL_INSTANCE.window);
         return -1;
     }
 
-    sdl_instance->texture = SDL_CreateTexture(sdl_instance->renderer, SDL_PIXELFORMAT_ARGB8888,
+    SDL_INSTANCE.texture = SDL_CreateTexture(SDL_INSTANCE.renderer, SDL_PIXELFORMAT_ARGB8888,
                             SDL_TEXTUREACCESS_STREAMING, SDL_WINDOW_WIDTH, SDL_WINDOW_HEIGHT);
 
-    sdl_instance->title = SDL_WINDOW_TITLE;
-    sdl_instance->pixel_buffer = (uint32_t *)malloc(SDL_WINDOW_WIDTH * SDL_WINDOW_HEIGHT * sizeof(uint32_t));
-    sdl_instance->width = SDL_WINDOW_WIDTH;
-    sdl_instance->height = SDL_WINDOW_HEIGHT;
+    SDL_INSTANCE.title = SDL_WINDOW_TITLE;
+    SDL_INSTANCE.pixel_buffer = (uint32_t *)malloc(SDL_WINDOW_WIDTH * SDL_WINDOW_HEIGHT * sizeof(uint32_t));
+    SDL_INSTANCE.width = SDL_WINDOW_WIDTH;
+    SDL_INSTANCE.height = SDL_WINDOW_HEIGHT;
 
     return 0;
 }
 
-void sdl_clear_screen(SDLInstance *sdl_instance) {
-    for (int i = 0; i < sdl_instance->width * sdl_instance->height; i++) {
-        sdl_instance->pixel_buffer[i] = 0x00000000;
+void sdl_clear_screen() {
+    for (int i = 0; i < SDL_INSTANCE.width * SDL_INSTANCE.height; i++) {
+        SDL_INSTANCE.pixel_buffer[i] = 0x00000000;
     }
 }
 
-void sdl_put_pixel(SDLInstance *sdl_instance, int x, int y, uint32_t color) {
-    if (x >= 0 && x < sdl_instance->width && y >= 0 && y < sdl_instance->height) {
-        sdl_instance->pixel_buffer[y * sdl_instance->width + x] = color;
+void sdl_put_pixel(uint32_t x, uint32_t y, uint32_t color) {
+    if (x >= 0 && x < SDL_INSTANCE.width && y >= 0 && y < SDL_INSTANCE.height) {
+        SDL_INSTANCE.pixel_buffer[y * SDL_INSTANCE.width + x] = color;
     }
 }
 
-void sdl_draw_frame(SDLInstance *sdl_instance) {
-    SDL_UpdateTexture(sdl_instance->texture, NULL, sdl_instance->pixel_buffer, sdl_instance->width * sizeof(uint32_t));
-    SDL_RenderClear(sdl_instance->renderer);
-    SDL_RenderCopy(sdl_instance->renderer, sdl_instance->texture, NULL, NULL);
-    SDL_RenderPresent(sdl_instance->renderer);
+void sdl_draw_frame() {
+    SDL_UpdateTexture(SDL_INSTANCE.texture, NULL, SDL_INSTANCE.pixel_buffer, SDL_INSTANCE.width * sizeof(uint32_t));
+    SDL_RenderClear(SDL_INSTANCE.renderer);
+    SDL_RenderCopy(SDL_INSTANCE.renderer, SDL_INSTANCE.texture, NULL, NULL);
+    SDL_RenderPresent(SDL_INSTANCE.renderer);
 }
 
 enum {
@@ -130,19 +130,19 @@ uint32_t sdl_poll_events() {
     return event;
 }
 
-void sdl_instance_destroy(SDLInstance *sdl_instance) {
-    if (sdl_instance->pixel_buffer)
-        free(sdl_instance->pixel_buffer);
-    if (sdl_instance->texture)
-        SDL_DestroyTexture(sdl_instance->texture);
-    if (sdl_instance->renderer)
-        SDL_DestroyRenderer(sdl_instance->renderer);
-    if (sdl_instance->window)
-        SDL_DestroyWindow(sdl_instance->window);
+void sdl_instance_destroy() {
+    if (SDL_INSTANCE.pixel_buffer)
+        free(SDL_INSTANCE.pixel_buffer);
+    if (SDL_INSTANCE.texture)
+        SDL_DestroyTexture(SDL_INSTANCE.texture);
+    if (SDL_INSTANCE.renderer)
+        SDL_DestroyRenderer(SDL_INSTANCE.renderer);
+    if (SDL_INSTANCE.window)
+        SDL_DestroyWindow(SDL_INSTANCE.window);
     SDL_Quit();
 }
 
-void sdl_put_pixel_region(SDLInstance *sdl_instance, WindowRegion *window_region, int relative_x, int relative_y, uint32_t color) {
+void sdl_put_pixel_region(WindowRegion *window_region, int relative_x, int relative_y, uint32_t color) {
     int x = relative_x, y = relative_y;
 
     // Bounds checking for the window region
@@ -155,7 +155,7 @@ void sdl_put_pixel_region(SDLInstance *sdl_instance, WindowRegion *window_region
 
     for (int i = 0; i < window_region->scale_factor; i++) {
         for (int j = 0; j < window_region->scale_factor; j++) {
-            sdl_put_pixel(sdl_instance, screen_offset_x + i, screen_offset_y + j, color);
+            sdl_put_pixel(screen_offset_x + i, screen_offset_y + j, color);
         }
     }
 }

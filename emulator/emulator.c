@@ -1,10 +1,6 @@
 #include "emulator.h"
 #include "util.h"
 
-#ifndef RISC_V
-extern SDLInstance SDL_INSTANCE;
-#endif
-
 #define NTSC_FRAME_RATE 60
 #define NTSC_CPU_CYCLES_PER_FRAME 29780
 void poll_input(Emulator *emulator);
@@ -48,9 +44,9 @@ void emulator_run(Emulator *emulator) {
         poll_input(emulator);
 
 #ifndef RISC_V
-        sdl_clear_screen(&SDL_INSTANCE);
+        sdl_clear_screen();
         debug_draw_screen(emulator);
-        sdl_draw_frame(&SDL_INSTANCE);
+        sdl_draw_frame();
 #endif
 
         emulator->cur_frame++;
