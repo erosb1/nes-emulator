@@ -3,7 +3,6 @@
 
 #include "common.h"
 
-
 enum {
     NROM  = 000,
     MMC1  = 001,
@@ -12,7 +11,7 @@ enum {
     MMC3  = 004,
 };
 
-
+// Forward declarations
 typedef struct Emulator Emulator;
 
 typedef struct Mapper {
@@ -39,7 +38,12 @@ typedef struct Mapper {
     Emulator *emulator;
 } Mapper;
 
-
+/*
+ * Initializes the mapper by reading emulator->rom.
+ *
+ * Sets upp the `read_prg` and `read_chr` function pointers
+ * depending on mapper ID specified in the iNES header.
+ */
 void mapper_init(Emulator *emulator);
 
 #endif

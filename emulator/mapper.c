@@ -2,8 +2,6 @@
 #include "emulator.h"
 
 
-
-
 typedef struct {
     char magic[4];
     uint8_t prg_rom_size;

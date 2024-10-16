@@ -3,6 +3,7 @@
 
 #define NTSC_FRAME_RATE 60
 #define NTSC_CPU_CYCLES_PER_FRAME 29780
+
 void poll_input(Emulator *emulator);
 
 void emulator_init(Emulator *emulator, uint8_t *rom) {
