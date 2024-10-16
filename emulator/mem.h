@@ -27,10 +27,7 @@
 #define STACK_OFFSET 0x0100
 
 // Forward declarations
-typedef struct Emulator Emulator;
-typedef struct CPU CPU;
-typedef struct PPU PPU;
-typedef struct Mapper Mapper;
+struct Emulator;
 
 typedef struct MEM {
     uint8_t ram[RAM_SIZE];
@@ -38,9 +35,7 @@ typedef struct MEM {
     uint8_t apu_io_reg[APU_IO_REGISTER_SIZE];
     uint8_t cartridge_ram[PRG_RAM_SIZE];
     // PRG_ROM is accessed through the mapper
-    CPU *cpu;
-    PPU *ppu;
-    Mapper *mapper;
+    Emulator *emulator;
 } MEM;
 
 void init_cpu_mem(Emulator *emulator);

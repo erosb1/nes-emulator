@@ -47,16 +47,11 @@ void dtekv_print_hex32(unsigned int x) {
 
 /* function: handle_exception
    Description: This code handles an exception. */
-void handle_exception(unsigned arg0, unsigned arg1, unsigned arg2,
-                      unsigned arg3, unsigned arg4, unsigned arg5,
+void handle_exception(unsigned arg0, unsigned arg1, unsigned arg2, unsigned arg3, unsigned arg4, unsigned arg5,
                       unsigned mcause, unsigned syscall_num) {
     switch (mcause) {
-    case 0:
-        dtekv_print("\n[EXCEPTION] Instruction address misalignment. ");
-        break;
-    case 2:
-        dtekv_print("\n[EXCEPTION] Illegal instruction. ");
-        break;
+    case 0: dtekv_print("\n[EXCEPTION] Instruction address misalignment. "); break;
+    case 2: dtekv_print("\n[EXCEPTION] Illegal instruction. "); break;
     case 11:
         if (syscall_num == 4)
             dtekv_print((char *)arg0);
@@ -64,9 +59,7 @@ void handle_exception(unsigned arg0, unsigned arg1, unsigned arg2,
             dtekv_printc(arg0);
         return;
         break;
-    default:
-        dtekv_print("\n[EXCEPTION] Unknown error. ");
-        break;
+    default: dtekv_print("\n[EXCEPTION] Unknown error. "); break;
     }
 
     dtekv_print("Exception Address: ");

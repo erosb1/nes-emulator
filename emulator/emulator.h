@@ -22,8 +22,8 @@ typedef struct Emulator {
     MEM mem;
     Mapper mapper;
 
-    // Emulator status
-    int is_running; // boolean value
+    // State
+    int is_running;
     uint32_t event;
     uint32_t cur_frame;
 } Emulator;

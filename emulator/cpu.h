@@ -4,9 +4,7 @@
 #include "common.h"
 
 // forward declarations
-typedef struct Emulator Emulator;
-typedef struct MEM MEM;
-typedef struct PPU PPU;
+struct Emulator;
 
 // clang-format off
 // enum shorthand for toggling CPU flags
@@ -34,8 +32,7 @@ typedef struct CPU {
     size_t cur_cycle;
 
     // References to other devices
-    MEM *mem;
-    PPU *ppu;
+    Emulator *emulator;
 
     int is_logging;
 } CPU;

@@ -17,7 +17,7 @@ static int is_illegal(uint8_t byte) {
     Instruction instruction = instruction_lookup[byte];
     return (instruction.opcode >= 56) ||                  // Illegal operand
            (instruction.opcode == NOP && byte != 0xEA) || // Illegal NOP
-           byte == 0xEB; // USBC (treated as SBC IMM)
+           byte == 0xEB;                                  // USBC (treated as SBC IMM)
 }
 
 /**
@@ -27,8 +27,8 @@ static int is_illegal(uint8_t byte) {
  *  This function mimics the behavior of set_address in cpu.c,
  *  without actually updating the internal values of the cpu
  */
-static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
-    MEM *mem = cpu->mem;
+static void log_address_mode_info(CPU *cpu, Instruction instruction) {
+    MEM *mem = &cpu->emulator->mem;
     uint8_t byte1 = mem_read_8(mem, cpu->pc + 1);
     uint8_t byte2 = mem_read_8(mem, cpu->pc + 2);
     size_t cur_column_width = 0;
@@ -78,9 +78,7 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
     case IND: {
         uint16_t address_pre = (byte2 << 8) | byte1;
         address = mem_read_8(mem, address_pre) |
-                  (mem_read_8(mem, (address_pre & 0xFF00) |
-                                       ((address_pre + 1) & 0xFF))
-                   << 8);
+                  (mem_read_8(mem, (address_pre & 0xFF00) | ((address_pre + 1) & 0xFF)) << 8);
         printf("($%04X) = %04X ", address_pre, address);
         cur_column_width += 15;
         break;
@@ -130,7 +128,6 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
     }
     }
 
-    // clang-format off
     // This is a rather ugly nested switch statement
     // Some instructions in the log show the value at the address it operates on.
     // This switch statement finds those instructions and prints the value.
@@ -149,7 +146,6 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
         default: break;
         }
     }
-    // clang-format on
 
     // Print blank spaces so that the entire column width is equal to
     // ADDRESS_MODE_COLUMN_WIDTH
@@ -159,7 +155,7 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
 }
 
 void debug_log_instruction(CPU *cpu) {
-    MEM *mem = cpu->mem;
+    MEM *mem = &cpu->emulator->mem;
     uint8_t byte0 = mem_read_8(mem, cpu->pc);
     uint8_t byte1 = mem_read_8(mem, cpu->pc + 1);
     uint8_t byte2 = mem_read_8(mem, cpu->pc + 2);
@@ -170,19 +166,10 @@ void debug_log_instruction(CPU *cpu) {
 
     // Print the bytes of the current instruction, for example: 4C F5 C5
     switch (instruction.address_mode) {
-    case IMM:
-    case ZP0:
-    case ZPX:
-    case ZPY:
-    case XIN:
-    case YIN:
-    case REL: // Instruction is 2 bytes long
+    case IMM: case ZP0: case ZPX: case ZPY: case XIN: case YIN: case REL: // Instruction is 2 bytes long
         printf("%02X %02X    ", byte0, byte1);
         break;
-    case ABS:
-    case ABX:
-    case ABY:
-    case IND: // Instruction is 3 bytes long
+    case ABS:case ABX: case ABY: case IND: // Instruction is 3 bytes long
         printf("%02X %02X %02X ", byte0, byte1, byte2);
         break;
     default: // Instruction is 1 byte long
@@ -201,8 +188,7 @@ void debug_log_instruction(CPU *cpu) {
     log_address_mode_info(cpu, instruction);
 
     // Print the state of the CPU before the instruction is executed
-    printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu\n", cpu->ac, cpu->x,
-           cpu->y, cpu->sr, cpu->sp, cpu->cur_cycle);
+    printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu\n", cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp, cpu->cur_cycle);
 }
 
 static uint32_t get_color(uint8_t color_index) {
@@ -218,8 +204,7 @@ static uint32_t get_color(uint8_t color_index) {
     }
 }
 
-static void render_pattern_table(Emulator *emulator, int left_coord,
-                                 int top_coord, int pattern_table_index) {
+static void render_pattern_table(Emulator *emulator, int left_coord, int top_coord, int pattern_table_index) {
     Mapper *mapper = &emulator->mapper;
     const int TILE_SIZE = 16;
     const int TILE_PIXEL_WIDTH = 8;
@@ -227,8 +212,7 @@ static void render_pattern_table(Emulator *emulator, int left_coord,
     uint16_t start_address = pattern_table_index ? 0x1000 : 0x0000;
     uint16_t end_address = pattern_table_index ? 0x2000 : 0x1000;
 
-    for (uint16_t address = start_address; address < end_address;
-         address += TILE_SIZE) {
+    for (uint16_t address = start_address; address < end_address; address += TILE_SIZE) {
         int tile_x = (address / TILE_SIZE) % 16;
         int tile_y = (address / TILE_SIZE) / 16;
 

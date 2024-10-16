@@ -7,9 +7,7 @@
 
 void init_cpu_mem(Emulator *emulator) {
     MEM *mem = &emulator->mem;
-    mem->cpu = &emulator->cpu;
-    mem->ppu = &emulator->ppu;
-    mem->mapper = &emulator->mapper;
+    mem->emulator = emulator;
 
     memset(mem->ram, 0, sizeof(mem->ram));
 }
@@ -21,10 +19,8 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
     }
 
     if (address < PPU_MIRROR_END) {
-        address = RAM_MIRROR_END +
-                  (address - RAM_MIRROR_END) %
-                      PPU_REGISTER_SIZE; // Handle PPU register mirroring
-        PPU *ppu = mem->ppu;
+        address = RAM_MIRROR_END + (address - RAM_MIRROR_END) % PPU_REGISTER_SIZE; // Handle PPU register mirroring
+        PPU *ppu = &mem->emulator->ppu;
 
         switch (address) {
         case 0x2000: // PPU_CONTROL
@@ -47,8 +43,7 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
         case 0x2007: // PPU_DATA (vram data)
             ppu_write_vram_data(ppu, value);
             break;
-        default:
-            break;
+        default: break;
         }
     }
 
@@ -72,10 +67,8 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
     }
 
     if (address < PPU_MIRROR_END) {
-        address = RAM_MIRROR_END +
-                  (address - RAM_MIRROR_END) %
-                      PPU_REGISTER_SIZE; // Handle PPU register mirroring
-        PPU *ppu = mem->ppu;
+        address = RAM_MIRROR_END + (address - RAM_MIRROR_END) % PPU_REGISTER_SIZE; // Handle PPU register mirroring
+        PPU *ppu = &mem->emulator->ppu;
 
         switch (address) {
         case 0x2002: // PPU_STATUS
@@ -99,7 +92,8 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
     }
 
     // else
-    return mem->mapper->read_prg(mem->mapper, address);
+    Mapper *mapper = &mem->emulator->mapper;
+    return mapper->read_prg(mapper, address);
 }
 
 void mem_write_16(MEM *mem, uint16_t address, uint16_t value) {
@@ -112,13 +106,13 @@ uint16_t mem_read_16(MEM *mem, uint16_t address) {
 }
 
 void mem_push_stack_8(CPU *cpu, uint8_t value) {
-    mem_write_8(cpu->mem, STACK_OFFSET + cpu->sp, value);
+    mem_write_8(&cpu->emulator->mem, STACK_OFFSET + cpu->sp, value);
     cpu->sp -= 1;
 }
 
 uint8_t mem_pop_stack_8(CPU *cpu) {
     cpu->sp += 1;
-    uint16_t value = mem_read_8(cpu->mem, STACK_OFFSET + cpu->sp);
+    uint16_t value = mem_read_8(&cpu->emulator->mem, STACK_OFFSET + cpu->sp);
     return value;
 }
 

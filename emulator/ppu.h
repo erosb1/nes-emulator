@@ -77,8 +77,7 @@ typedef union {
 } PPU_STATUS_REGISTER;
 
 // Forward Declarations
-typedef struct Emulator Emulator;
-typedef struct Mapper Mapper;
+struct Emulator;
 
 typedef struct PPU {
     // PPU Registers (for communication with CPU)
@@ -102,7 +101,7 @@ typedef struct PPU {
     size_t cur_frame;
 
     // PPU memory
-    Mapper *mapper;
+    Emulator *emulator;
     uint8_t vram[0x1000];
 } PPU;
 

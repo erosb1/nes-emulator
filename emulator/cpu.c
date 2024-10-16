@@ -17,8 +17,7 @@
 
 void cpu_init(Emulator *emulator) {
     CPU *cpu = &emulator->cpu;
-    cpu->mem = &emulator->mem;
-    cpu->ppu = &emulator->ppu;
+    cpu->emulator = emulator;
 
     cpu->ac = cpu->x = cpu->y = 0x00;
     cpu->cur_cycle = 0;
@@ -67,7 +66,7 @@ static void branch_if(CPU *cpu, int predicate) {
 // mode It also updates cpu->cur_cycle if an indirect addressing mode crosses a
 // page boundary
 static void set_address(CPU *cpu, Instruction instruction) {
-    MEM *mem = cpu->mem;
+    MEM *mem = &cpu->emulator->mem;
 
     switch (instruction.address_mode) {
     case ACC: { // Accumulator
@@ -83,7 +82,6 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->address = base_address + cpu->x;
         cpu->pc += 2;
 
-        // clang-format off
         // If we cross page boundaries, we increment cur_cycle by 1.
         // However, this is not the case for some opcodes
         if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
@@ -96,14 +94,12 @@ static void set_address(CPU *cpu, Instruction instruction) {
             }
         }
         break;
-        // clang-format on
     }
     case ABY: { // Absolute, Y-indexed
         uint16_t base_address = mem_read_16(mem, cpu->pc);
         cpu->address = base_address + cpu->y;
         cpu->pc += 2;
 
-        // clang-format off
         // If we cross page boundaries, we increment cur_cycle by 1.
         // However, this is not the case for some opcodes
         if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
@@ -115,7 +111,6 @@ static void set_address(CPU *cpu, Instruction instruction) {
             }
         }
         break;
-        // clang-format on
     }
     case IMM: { // Immediate
         cpu->address = cpu->pc;
@@ -127,29 +122,25 @@ static void set_address(CPU *cpu, Instruction instruction) {
     }
     case IND: { // Indirect
         uint16_t temp = mem_read_16(mem, cpu->pc);
-        uint16_t indirect_address =
-            mem_read_8(mem, temp) |
-            (mem_read_8(mem, (temp & 0xFF00) | ((temp + 1) & 0xFF)) << 8);
+        uint16_t indirect_address = mem_read_8(mem, temp) |
+                                    (mem_read_8(mem, (temp & 0xFF00) | ((temp + 1) & 0xFF)) << 8);
         cpu->address = indirect_address;
         cpu->pc += 2;
         break;
     }
     case XIN: { // X-indexed, Indirect (Pre-Indexed Indirect)
         const uint8_t zp_address = (mem_read_8(mem, cpu->pc) + cpu->x) & 0xFF;
-        uint16_t base_address = mem_read_8(mem, zp_address) |
-                                (mem_read_8(mem, (zp_address + 1) & 0xFF) << 8);
+        uint16_t base_address = mem_read_8(mem, zp_address) | (mem_read_8(mem, (zp_address + 1) & 0xFF) << 8);
         cpu->address = base_address;
         cpu->pc++;
         break;
     }
     case YIN: { // Indirect, Y-indexed (Post-Indexed Indirect)
         const uint8_t zp_address = mem_read_8(mem, cpu->pc);
-        uint16_t base_address = mem_read_8(mem, zp_address) |
-                                (mem_read_8(mem, (zp_address + 1) & 0xFF) << 8);
+        uint16_t base_address = mem_read_8(mem, zp_address) | (mem_read_8(mem, (zp_address + 1) & 0xFF) << 8);
         cpu->address = base_address + cpu->y;
         cpu->pc++;
 
-        // clang-format off
         // If we cross page boundaries, we increment cur_cycle by 1.
         // However, this is not the case for some opcodes
         if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
@@ -161,7 +152,6 @@ static void set_address(CPU *cpu, Instruction instruction) {
             }
         }
         break;
-        // clang-format on
     }
     case REL: { // Relative
         int8_t offset = (int8_t)mem_read_8(mem, cpu->pc);
@@ -186,8 +176,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
     }
     case UNK:
     default: // Unkown/Illegal
-        printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc,
-               instruction.address_mode);
+        printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc, instruction.address_mode);
         exit(EXIT_FAILURE);
     }
 }
@@ -196,7 +185,7 @@ void cpu_run_instruction(CPU *cpu) {
     if (cpu->is_logging)
         debug_log_instruction(cpu);
 
-    MEM *mem = cpu->mem;
+    MEM *mem = &cpu->emulator->mem;
     uint8_t byte = mem_read_8(mem, cpu->pc++);
     Instruction instruction = instruction_lookup[byte];
     set_address(cpu, instruction);
@@ -426,8 +415,7 @@ void cpu_run_instruction(CPU *cpu) {
         // Except for BREAK and UNUSED as these should not be modified by the
         // pop operation src:
         // https://www.masswerk.at/6502/6502_instruction_set.html#PLP
-        cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) |
-                  (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
+        cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) | (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
         break;
     }
     case ROL: {
@@ -455,8 +443,7 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     case RTI: {
-        cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) |
-                  (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
+        cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) | (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
         cpu->pc = pop_stack_16(cpu);
         break;
     }

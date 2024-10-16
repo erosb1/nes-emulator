@@ -5,7 +5,7 @@
 
 void ppu_init(Emulator *emulator) {
     PPU *ppu = &emulator->ppu;
-    ppu->mapper = &emulator->mapper;
+    ppu->emulator = emulator;
 
     ppu->cur_scanline = 0;
     ppu->cur_dot = 0;
@@ -83,6 +83,8 @@ void ppu_write_vram_data(PPU *ppu, uint8_t value) {
 }
 
 uint8_t ppu_read_vram_data(PPU *ppu) {
+    Mapper *mapper = &ppu->emulator->mapper;
+
     // We mirror the entire PPU memory space
     // If 0x4000 <= ppu->v then we wrap around and start from 0x0000
     uint16_t address = ppu->v & 0x3FFF;
@@ -92,7 +94,7 @@ uint8_t ppu_read_vram_data(PPU *ppu) {
 
     // Reading from CHR ROM (palette memory)
     if (address < 0x2000) {
-        ppu->data_read_buffer = ppu->mapper->read_chr(ppu->mapper, address);
+        ppu->data_read_buffer = mapper->read_chr(mapper, address);
     }
 
     // Reading from VRAM

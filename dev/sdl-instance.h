@@ -76,7 +76,6 @@ typedef struct WindowRegion {
  * This is because the actual resolution of the NES is very tiny by today's
  * standards
  */
-void sdl_put_pixel_region(WindowRegion *window_region, int relative_x,
-                          int relative_y, uint32_t color);
+void sdl_put_pixel_region(WindowRegion *window_region, int relative_x, int relative_y, uint32_t color);
 
 #endif

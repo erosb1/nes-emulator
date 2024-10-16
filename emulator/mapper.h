@@ -12,7 +12,7 @@ enum {
 };
 
 // Forward declarations
-typedef struct Emulator Emulator;
+struct Emulator;
 
 typedef struct Mapper {
     uint8_t *prg_rom;
@@ -32,7 +32,7 @@ typedef struct Mapper {
     // void (*write_chr)(struct Mapper *mapper, uint16_t address, uint8_t
     // value);
 
-    uint8_t mirroring; // 0: vertical mirroring, 1: horizontal mirroring
+    uint8_t mirroring;              // 0: vertical mirroring, 1: horizontal mirroring
     uint8_t has_battery_backed_ram; // 1: Battery-backed PRG RAM present
     uint8_t has_trainer;            // 1: Trainer present in ROM
     uint8_t four_screen;

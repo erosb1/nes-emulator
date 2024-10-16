@@ -25,8 +25,7 @@ size_t read_rom_from_file(uint8_t **buffer, const char *path) {
     fclose(fp);
 
     if (actual_size != expected_size) {
-        printf("Fatal Error: Expected size (%zu) != actual size (%zu) %s\n",
-               expected_size, actual_size, path);
+        printf("Fatal Error: Expected size (%zu) != actual size (%zu) %s\n", expected_size, actual_size, path);
         exit(EXIT_FAILURE);
     }
     return actual_size;
