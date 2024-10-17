@@ -81,14 +81,14 @@ void sdl_draw_frame() {
 }
 
 enum {
-    NES_A_BUTTON        = 1 << 0,
-    NES_B_BUTTON        = 1 << 1,
-    NES_SELECT_BUTTON   = 1 << 2,
-    NES_START_BUTTON    = 1 << 3,
-    NES_DPAD_UP         = 1 << 4,
-    NES_DPAD_DOWN       = 1 << 5,
-    NES_DPAD_LEFT       = 1 << 6,
-    NES_DPAD_RIGHT      = 1 << 7,
+    NES_A_BUTTON = 1 << 0,
+    NES_B_BUTTON = 1 << 1,
+    NES_SELECT_BUTTON = 1 << 2,
+    NES_START_BUTTON = 1 << 3,
+    NES_DPAD_UP = 1 << 4,
+    NES_DPAD_DOWN = 1 << 5,
+    NES_DPAD_LEFT = 1 << 6,
+    NES_DPAD_RIGHT = 1 << 7,
 };
 
 uint8_t sdl_poll_events() {

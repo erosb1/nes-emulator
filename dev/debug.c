@@ -132,17 +132,16 @@ static void log_address_mode_info(CPU *cpu, Instruction instruction) {
     // Some instructions in the log show the value at the address it operates on.
     // This switch statement finds those instructions and prints the value.
     switch (instruction.address_mode) {
-    case IMM: case ACC: case IND: case IMP:
-        break;
+    case IMM:case ACC:case IND:case IMP: break;
     default:
         switch (instruction.opcode) {
-        case STA: case STX: case STY: case BIT: case LDA: case LDX: case LDY: case CPY:
-        case AND: case ORA: case EOR: case ADC: case SBC: case CMP: case CPX: case LSR:
-        case ASL: case ROR: case ROL: case INC: case DEC: case NOP: case LAX: case SAX:
-        case DCP: case ISB: case SLO: case RLA: case SRE: case RRA:
+        case STA:case STX:case STY:case BIT:case LDA:case LDX:case LDY:case CPY:
+        case AND:case ORA:case EOR:case ADC:case SBC:case CMP:case CPX:case LSR:
+        case ASL:case ROR:case ROL:case INC:case DEC:case NOP:case LAX:case SAX:
+        case DCP:case ISB:case SLO:case RLA:case SRE:case RRA:
             printf("= %02X", mem_read_8(mem, address));
-                cur_column_width += 4;
-                break;
+            cur_column_width += 4;
+            break;
         default: break;
         }
     }
@@ -166,10 +165,10 @@ void debug_log_instruction(CPU *cpu) {
 
     // Print the bytes of the current instruction, for example: 4C F5 C5
     switch (instruction.address_mode) {
-    case IMM: case ZP0: case ZPX: case ZPY: case XIN: case YIN: case REL: // Instruction is 2 bytes long
+    case IMM: case ZP0: case ZPX: case ZPY:case XIN:case YIN: case REL: // Instruction is 2 bytes long
         printf("%02X %02X    ", byte0, byte1);
         break;
-    case ABS:case ABX: case ABY: case IND: // Instruction is 3 bytes long
+    case ABS: case ABX:case ABY:case IND: // Instruction is 3 bytes long
         printf("%02X %02X %02X ", byte0, byte1, byte2);
         break;
     default: // Instruction is 1 byte long
@@ -193,14 +192,10 @@ void debug_log_instruction(CPU *cpu) {
 
 static uint32_t get_color(uint8_t color_index) {
     switch (color_index) {
-    case 1:
-        return 0x555555;
-    case 2:
-        return 0xAAAAAA;
-    case 3:
-        return 0xFFFFFF;
-    default:
-        return 0x000000;
+    case 1: return 0x555555;
+    case 2: return 0xAAAAAA;
+    case 3: return 0xFFFFFF;
+    default: return 0x000000;
     }
 }
 

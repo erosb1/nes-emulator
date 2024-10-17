@@ -66,7 +66,7 @@ else()
     set(ALL_SOURCES ${DTEKV_DRIVERS_SOURCES} ${EMULATOR_SOURCES} ${DTEKV_BUILD_SOURCES})
 
     # Specify any necessary compile flags
-    set(CMAKE_C_FLAGS "-Wall -nostdlib -O3 -mabi=ilp32 -march=rv32imzicsr")
+    set(CMAKE_C_FLAGS "-Wall -Wno-array-bounds -nostdlib -O3 -mabi=ilp32 -march=rv32imzicsr")
 
     # Specify output ELF target
     add_executable(${TARGET_ELF} ${ALL_SOURCES})
@@ -88,7 +88,6 @@ else()
             POST_BUILD
             COMMAND ${TOOLCHAIN}objcopy --output-target=binary ${TARGET_ELF} ${TARGET_BIN}
             COMMAND ${TOOLCHAIN}objdump -D ${TARGET_ELF} > ${TARGET_ELF}.txt
-            COMMAND jtagd --user-start
             COMMENT "Generating binary file ${TARGET_BIN}"
     )
 endif()
