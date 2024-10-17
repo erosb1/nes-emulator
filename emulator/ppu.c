@@ -58,6 +58,10 @@ void ppu_set_vram_addr(PPU *ppu, uint8_t half_address) {
 }
 
 void ppu_write_vram_data(PPU *ppu, uint8_t value) {
+    Mapper *mapper = &ppu->emulator->mapper;
+
+    // We mirror the entire PPU memory space
+    // If 0x4000 <= ppu->v then we wrap around and start from 0x0000
     uint16_t address = ppu->v & 0x3FFF;
 
     // Writing to CHR ROM (Palette memory) is only allowed with certain mappers
@@ -67,15 +71,18 @@ void ppu_write_vram_data(PPU *ppu, uint8_t value) {
 
     // Writing to VRAM
     else if (address < 0x3F00) { // Writing to nametable
-        address = (address & 0xefff) - 0x2000;
-        ppu->vram[address] = value;
-        // Todo: implement nametable mirroring depending on mapper
+        uint16_t mirrored_address = mapper_mirror_nametable_address(mapper, ppu->v);
+        ppu->vram[mirrored_address] = value;
     }
 
     // Writing to Palette
     else if (address < 0x4000) {
         address = address & 0x1F;
-        // Todo: handle palette writing
+        ppu->palette[address] = value;
+
+        if (address % 4 == 0) {
+            ppu->palette[address ^ 0x10] = value;
+        }
     }
 
     ppu->v += ppu->control.increment ? 32 : 1;
@@ -88,28 +95,26 @@ uint8_t ppu_read_vram_data(PPU *ppu) {
     // If 0x4000 <= ppu->v then we wrap around and start from 0x0000
     uint16_t address = ppu->v & 0x3FFF;
 
-    // We return the previous value we read (not if reading from palette=
-    uint8_t prev_data = ppu->data_read_buffer;
+    // We return the previous value we read (not if reading from palette)
+    uint8_t return_value = ppu->data_read_buffer;
 
-    // Reading from CHR ROM (palette memory)
+    // Reading from CHR ROM (Pattern Tables)
     if (address < 0x2000) {
         ppu->data_read_buffer = mapper->read_chr(mapper, address);
     }
 
-    // Reading from VRAM
-    else if (address < 0x3F00) { // Writing to nametable
-        address = (address & 0xefff) - 0x2000;
+    // Reading from VRAM (Nametables)
+    else if (address < 0x3F00) {
+        address = mapper_mirror_nametable_address(mapper, ppu->v);
         ppu->data_read_buffer = ppu->vram[address];
-        // Todo: implement nametable mirroring depending on mapper
     }
 
     // Reading from Palette
     else if (address < 0x4000) {
         address = address & 0x1F;
-        // Todo: handle palette writing (reading from here is not buffered)
+        return_value = ppu->palette[address];
     }
 
     ppu->v += ppu->control.increment ? 32 : 1;
-
-    return prev_data;
+    return return_value;
 }

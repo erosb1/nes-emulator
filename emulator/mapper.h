@@ -11,6 +11,14 @@ enum {
     MMC3 = 004,
 };
 
+typedef enum Mirroring {
+    VERTICAL,
+    HORIZONTAL,
+    SINGLE_SCREEN_LOWER,
+    SINGLE_SCREEN_UPPER,
+    FOUR_SCREEN,
+} Mirroring;
+
 // Forward declarations
 typedef struct Emulator Emulator;
 
@@ -32,10 +40,9 @@ typedef struct Mapper {
     // void (*write_chr)(struct Mapper *mapper, uint16_t address, uint8_t
     // value);
 
-    uint8_t mirroring;              // 0: vertical mirroring, 1: horizontal mirroring
+    Mirroring mirroring;
     uint8_t has_battery_backed_ram; // 1: Battery-backed PRG RAM present
     uint8_t has_trainer;            // 1: Trainer present in ROM
-    uint8_t four_screen;
 
     Emulator *emulator;
 } Mapper;
@@ -47,5 +54,9 @@ typedef struct Mapper {
  * depending on mapper ID specified in the iNES header.
  */
 void mapper_init(Emulator *emulator);
+
+
+
+uint16_t mapper_mirror_nametable_address(Mapper *mapper, uint16_t address);
 
 #endif

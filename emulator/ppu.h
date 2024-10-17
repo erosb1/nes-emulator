@@ -103,6 +103,7 @@ typedef struct PPU {
     // PPU memory
     Emulator *emulator;
     uint8_t vram[0x1000];
+    uint8_t palette[0x20];
 } PPU;
 
 void ppu_init(Emulator *emulator);

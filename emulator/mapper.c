@@ -51,10 +51,16 @@ void mapper_init(Emulator *emulator) {
     mapper->prg_ram_size = rom_header.prg_ram_size;
     mapper->chr_rom_size = rom_header.chr_rom_size;
 
-    mapper->mirroring = (rom_header.flags_6 & 0x08) ? 1 : 0;
     mapper->has_battery_backed_ram = (rom_header.flags_6 & 0x04) ? 1 : 0;
     mapper->has_trainer = (rom_header.flags_6 & 0x02) ? 1 : 0;
-    mapper->four_screen = (rom_header.flags_6 & 0x01) ? 1 : 0;
+
+    if (rom_header.flags_6 & 0x01) {
+        mapper->mirroring = FOUR_SCREEN;
+    } else if (rom_header.flags_6 & 0x80) {
+        mapper->mirroring = VERTICAL;
+    } else {
+        mapper->mirroring = HORIZONTAL;
+    }
 
     size_t trainer_offset = (rom_header.flags_6 & 0x04) ? 512 : 0;
     mapper->prg_rom = rom + 16 + trainer_offset;
@@ -73,4 +79,29 @@ void mapper_init(Emulator *emulator) {
     case MMC3: printf("Error: Unsupported mapper: MMC3"); exit(EXIT_FAILURE);
     default: printf("Error: Unsupported mapper: %i", mapper_num); exit(EXIT_FAILURE);
     }
+}
+
+uint16_t mapper_mirror_nametable_address(Mapper *mapper, uint16_t address) {
+    address = address & 0x0FFF;
+
+    switch (mapper->mirroring) {
+    case VERTICAL:
+        if (0x0400 <= address && address < 0x0800 || 0x0C00 <= address)
+            address -= 0x0400;
+        break;
+    case HORIZONTAL:
+        if (0x0800 <= address)
+            address -= 0x0800;
+        break;
+    case SINGLE_SCREEN_LOWER:
+        address = address % 0x0400;
+        break;
+    case SINGLE_SCREEN_UPPER:
+        address = (address % 0x0400) + 0x0400;
+        break;
+    case FOUR_SCREEN:
+        break;
+    }
+
+    return address;
 }
