@@ -35,6 +35,7 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
             ppu->oam_data = value;
             break;
         case 0x2005: // PPU_SCROLL
+            ppu_set_scroll(ppu, value);
             break;
         case 0x2006: // PPU_ADDR (vram address)
             ppu_set_vram_addr(ppu, value);

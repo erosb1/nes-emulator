@@ -76,29 +76,42 @@ typedef union {
     uint8_t reg;
 } PPU_STATUS_REGISTER;
 
+typedef union {
+    struct {
+        uint16_t coarse_x : 5;
+        uint16_t coarse_y : 5;
+        uint16_t nametable_x : 1;
+        uint16_t nametable_y : 1;
+        uint16_t fine_y : 3;
+        uint16_t unused : 1;
+    } __attribute__((packed));
+    struct {
+        uint8_t low;
+        uint8_t high;
+    } __attribute__((packed));
+    uint16_t reg;
+} VRAM_ADDR_REGISTER;
+
 // Forward Declarations
 typedef struct Emulator Emulator;
 
 typedef struct PPU {
-    // PPU Registers (for communication with CPU)
-    // On hardware these are located on memory addresses $2000 to $2007
+    // PPU Registers
     PPU_CTRL_REGISTER control;
     PPU_MASK_REGISTER mask;
     PPU_STATUS_REGISTER status;
     uint8_t oam_addr;
     uint8_t oam_data;
-
-    // Internal registers
-    uint16_t v;
-    uint16_t t;
+    VRAM_ADDR_REGISTER vram_addr;
+    VRAM_ADDR_REGISTER temp_addr;
     uint8_t x;
-    uint8_t w;
+    uint8_t write_latch;
     uint8_t data_read_buffer;
+    uint8_t fine_x;
 
-    // Internal state
+    // Rendering State
     size_t cur_scanline;
     size_t cur_dot;
-    size_t cur_frame;
 
     // PPU memory
     Emulator *emulator;
@@ -107,9 +120,11 @@ typedef struct PPU {
 } PPU;
 
 void ppu_init(Emulator *emulator);
+void ppu_reset(PPU *ppu);
 void ppu_run_cycle(PPU *ppu);
 
 uint8_t ppu_read_status(PPU *ppu);
+void ppu_set_scroll(PPU *ppu, uint8_t value);
 void ppu_set_vram_addr(PPU *ppu, uint8_t half_address);
 void ppu_write_vram_data(PPU *ppu, uint8_t value);
 uint8_t ppu_read_vram_data(PPU *ppu);

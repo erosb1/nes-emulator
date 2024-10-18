@@ -2,12 +2,29 @@
 #include "ppu.h"
 #include "emulator.h"
 
+// --------------- STATIC FORWARD DECLARATIONS ---------------- //
+static void increment_scroll_x(PPU *ppu);
+static void increment_scroll_y(PPU *ppu);
+static void reload_scroll_x(PPU *ppu);
+static void reload_scroll_y(PPU *ppu);
+
+
+
+// --------------- PUBLIC FUNCTIONS ---------- ---------------- //
 void ppu_init(Emulator *emulator) {
     PPU *ppu = &emulator->ppu;
     ppu->emulator = emulator;
+    ppu_reset(ppu);
+}
 
-    ppu->cur_scanline = 0;
-    ppu->cur_dot = 0;
+void ppu_reset(PPU *ppu) {
+    ppu->control.reg = ppu->mask.reg = ppu->status.reg = 0x00;
+    ppu->oam_addr = ppu->oam_data = 0x00;
+    ppu->vram_addr.reg = ppu->temp_addr.reg = 0x0000;
+    ppu->x = ppu->write_latch = ppu->data_read_buffer = ppu->fine_x = 0x00;
+    ppu->cur_scanline = ppu->cur_dot = 0;
+    memset(ppu->vram, 0, sizeof(ppu->vram));
+    memset(ppu->palette, 0, sizeof(ppu->palette));
 }
 
 void ppu_run_cycle(PPU *ppu) {
@@ -30,7 +47,7 @@ void ppu_run_cycle(PPU *ppu) {
             ppu->status.vblank = FALSE;
             ppu->status.sprite_zero_hit = FALSE;
         }
-        if (ppu->cur_dot == 339 && ppu->cur_frame % 2 == 1) {
+        if (ppu->cur_dot == 339 && ppu->emulator->cur_frame % 2 == 1) {
             // Skip a cycle on odd frames (NTSC only)
             ppu->cur_dot++;
         }
@@ -39,21 +56,35 @@ void ppu_run_cycle(PPU *ppu) {
 
 uint8_t ppu_read_status(PPU *ppu) {
     uint8_t status = ppu->status.reg;
-    ppu->w = 0x00;
+    ppu->write_latch = 0x00;
     ppu->status.vblank = FALSE; // reset v_blank
     return status;
 }
 
+void ppu_set_scroll(PPU *ppu, uint8_t value) {
+    if (ppu->write_latch == 0) {
+        // First write: Set X scroll value
+        ppu->fine_x = value & 0x07;
+        ppu->temp_addr.coarse_x = value >> 3;
+        ppu->write_latch = 1;
+    } else {
+        // Second write: Set Y scroll value
+        ppu->temp_addr.fine_y = value & 0x07;
+        ppu->temp_addr.coarse_y = value >> 3;
+        ppu->write_latch = 0;
+    }
+}
+
 void ppu_set_vram_addr(PPU *ppu, uint8_t half_address) {
-    if (ppu->w == 0) {
+    if (ppu->write_latch == 0) {
         // First write: Set the high byte (bits 8-14)
-        ppu->t = (ppu->t & 0x00FF) | ((half_address & 0x3F) << 8);
-        ppu->w = 1;
+        ppu->temp_addr.high = (half_address & 0x3F);
+        ppu->write_latch = 1;
     } else {
         // Second write: Set the low byte (bits 0-7)
-        ppu->t = (ppu->t & 0x7F00) | half_address;
-        ppu->v = ppu->t;
-        ppu->w = 0;
+        ppu->temp_addr.low = half_address;
+        ppu->vram_addr = ppu->temp_addr;
+        ppu->write_latch = 0;
     }
 }
 
@@ -62,7 +93,7 @@ void ppu_write_vram_data(PPU *ppu, uint8_t value) {
 
     // We mirror the entire PPU memory space
     // If 0x4000 <= ppu->v then we wrap around and start from 0x0000
-    uint16_t address = ppu->v & 0x3FFF;
+    uint16_t address = ppu->vram_addr.reg & 0x3FFF;
 
     // Writing to CHR ROM (Palette memory) is only allowed with certain mappers
     if (address < 0x2000) {
@@ -85,7 +116,7 @@ void ppu_write_vram_data(PPU *ppu, uint8_t value) {
         }
     }
 
-    ppu->v += ppu->control.increment ? 32 : 1;
+    ppu->vram_addr.reg += ppu->control.increment ? 32 : 1;
 }
 
 uint8_t ppu_read_vram_data(PPU *ppu) {
@@ -93,7 +124,7 @@ uint8_t ppu_read_vram_data(PPU *ppu) {
 
     // We mirror the entire PPU memory space
     // If 0x4000 <= ppu->v then we wrap around and start from 0x0000
-    uint16_t address = ppu->v & 0x3FFF;
+    uint16_t address = ppu->vram_addr.reg & 0x3FFF;
 
     // We return the previous value we read (not if reading from palette)
     uint8_t return_value = ppu->data_read_buffer;
@@ -105,7 +136,7 @@ uint8_t ppu_read_vram_data(PPU *ppu) {
 
     // Reading from VRAM (Nametables)
     else if (address < 0x3F00) {
-        address = mapper_mirror_nametable_address(mapper, ppu->v);
+        address = mapper_mirror_nametable_address(mapper, address);
         ppu->data_read_buffer = ppu->vram[address];
     }
 
@@ -115,6 +146,59 @@ uint8_t ppu_read_vram_data(PPU *ppu) {
         return_value = ppu->palette[address];
     }
 
-    ppu->v += ppu->control.increment ? 32 : 1;
+    ppu->vram_addr.reg += ppu->control.increment ? 32 : 1;
     return return_value;
+}
+
+
+
+// --------------- STATIC FUNCTIONS --------------------------- //
+static void increment_scroll_x(PPU *ppu) {
+    if (!ppu->mask.render_background && !ppu->mask.render_sprites) return;
+
+    if (ppu->vram_addr.coarse_x == 31) {
+        ppu->vram_addr.coarse_x = 0;
+        ppu->vram_addr.nametable_x = ~ppu->vram_addr.nametable_x;
+    } else {
+        ppu->vram_addr.coarse_x++;
+    }
+}
+
+
+static void increment_scroll_y(PPU *ppu) {
+    if (!ppu->mask.render_background && !ppu->mask.render_sprites) return;
+
+    if (ppu->vram_addr.fine_y < 7) {
+        ppu->vram_addr.fine_y++;
+        return;
+    }
+
+    ppu->vram_addr.fine_y = 0;
+
+    if (ppu->vram_addr.coarse_y == 29) {
+        ppu->vram_addr.coarse_y = 0;
+        ppu->vram_addr.nametable_y = ~ppu->vram_addr.nametable_y;
+    }
+
+    else if (ppu->vram_addr.coarse_y == 31) {
+        ppu->vram_addr.coarse_y = 0;
+    }
+
+    else {
+        ppu->vram_addr.coarse_y++;
+    }
+}
+
+static void reload_scroll_x(PPU *ppu) {
+    if (!ppu->mask.render_background && !ppu->mask.render_sprites) return;
+    ppu->vram_addr.nametable_x = ppu->temp_addr.nametable_x;
+    ppu->vram_addr.coarse_x = ppu->temp_addr.coarse_x;
+
+}
+
+static void reload_scroll_y(PPU *ppu) {
+    if (!ppu->mask.render_background && !ppu->mask.render_sprites) return;
+    ppu->vram_addr.fine_y = ppu->temp_addr.fine_y;
+    ppu->vram_addr.nametable_y = ppu->temp_addr.nametable_y;
+    ppu->vram_addr.coarse_y = ppu->temp_addr.coarse_y;
 }
