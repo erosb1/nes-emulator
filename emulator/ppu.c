@@ -10,7 +10,7 @@ static void reload_scroll_y(PPU *ppu);
 
 
 
-// --------------- PUBLIC FUNCTIONS ---------- ---------------- //
+// --------------- PUBLIC FUNCTIONS --------------------------- //
 void ppu_init(Emulator *emulator) {
     PPU *ppu = &emulator->ppu;
     ppu->emulator = emulator;
@@ -28,6 +28,8 @@ void ppu_reset(PPU *ppu) {
 }
 
 void ppu_run_cycle(PPU *ppu) {
+    CPU *cpu = &ppu->emulator->cpu;
+
     if (ppu->cur_scanline < VISIBLE_SCANLINES) {
         // 0 <= cur_scanline < 240
         // Render background and sprites for scanlines 0-239
@@ -39,6 +41,9 @@ void ppu_run_cycle(PPU *ppu) {
         if (ppu->cur_scanline == VISIBLE_SCANLINES + 1 && ppu->cur_dot == 1) {
             // Set v-blank flag and possibly trigger NMI
             ppu->status.vblank = TRUE;
+            if (ppu->control.enable_nmi) {
+                cpu_set_interrupt(cpu, NMI);
+            }
         }
     } else {
         // Pre-render scanline (scanline 261 in NTSC)
@@ -50,6 +55,15 @@ void ppu_run_cycle(PPU *ppu) {
         if (ppu->cur_dot == 339 && ppu->emulator->cur_frame % 2 == 1) {
             // Skip a cycle on odd frames (NTSC only)
             ppu->cur_dot++;
+        }
+    }
+
+    ppu->cur_dot++;
+    if (ppu->cur_dot >= 341) {
+        ppu->cur_dot = 0;
+        ppu->cur_scanline++;
+        if (ppu->cur_scanline >= 261) {
+            ppu->cur_scanline = 0;
         }
     }
 }
@@ -156,9 +170,6 @@ uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address) {
     // We mirror the entire PPU memory space
     // If 0x4000 <= ppu->v then we wrap around and start from 0x0000
     address &= 0x3FFF;
-
-    // We return the previous value we read (not if reading from palette)
-    uint8_t return_value = ppu->data_read_buffer;
 
     // Reading from CHR ROM (Pattern Tables)
     if (address < 0x2000) {

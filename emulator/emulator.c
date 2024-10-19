@@ -45,6 +45,8 @@ void emulator_run(Emulator *emulator) {
         // Instruction accurate emulation
         while (cpu->cur_cycle < NTSC_CPU_CYCLES_PER_FRAME) {
             size_t cycle_before = cpu->cur_cycle;
+
+            //if (cpu->cur_cycle > 400) exit(EXIT_SUCCESS);
             cpu_run_instruction(cpu);
             size_t cpu_instruction_cycle_count = cpu->cur_cycle - cycle_before;
 
@@ -69,6 +71,7 @@ void emulator_nestest(Emulator *emulator) {
     CPU *cpu = &emulator->cpu;
     cpu->cur_cycle = NESTEST_START_CYCLE;
     MEM *mem = &emulator->mem;
+    cpu->pc = 0xC000;
 
     // These APU registers needs to be set to 0xFF at the start in order for
     // nestest to complete

@@ -13,6 +13,17 @@
 #define NMI_VECTOR_OFFSET 0xFFFA
 #define IRQ_VECTOR_OFFSET 0xFFFE
 
+
+// --------------- STATIC FORWARD DECLARATIONS ---------------- //
+static int get_flag(CPU *cpu, CPUFlag flag);
+static void set_flag(CPU *cpu, CPUFlag flag, int value);
+static void set_ZN_flags(CPU *cpu, uint8_t value);
+static void branch_if(CPU *cpu, int predicate);
+static void set_address(CPU *cpu, Instruction instruction);
+static void handle_interrupt(CPU *cpu);
+
+
+// --------------- PUBLIC FUNCTIONS --------------------------- //
 void cpu_init(Emulator *emulator) {
     CPU *cpu = &emulator->cpu;
     cpu->emulator = emulator;
@@ -21,190 +32,21 @@ void cpu_init(Emulator *emulator) {
     cpu->cur_cycle = 0;
     cpu->sr = SR_INIT_VALUE;
     cpu->sp = SP_INIT_VALUE;
+    cpu->pending_interrupt = NONE;
     cpu->pc = mem_read_16(&emulator->mem, RESET_VECTOR_OFFSET);
 
     cpu->is_logging = 0;
 }
 
-static int get_flag(CPU *cpu, CPUFlag flag) { return (cpu->sr & flag) ? 1 : 0; }
-
-static void set_flag(CPU *cpu, CPUFlag flag, int value) {
-    if (value) {
-        cpu->sr |= flag;
-    } else {
-        cpu->sr &= ~flag;
-    }
-}
-
-// This is a helper function that sets the Z and N flags depending on the
-// `value` integer. If value == 0 then Z is set If bit 7 in value is set then N
-// is set (indicating a negative number)
-static void set_ZN_flags(CPU *cpu, uint8_t value) {
-    set_flag(cpu, ZERO_MASK, value == 0);
-    set_flag(cpu, NEGATIVE_MASK, value & 0x80);
-}
-
-// This function branches if predicate is 1, and doesn't branch if it's 0
-// It also correctly updates the cur_cycle counter depending on if we crossed
-// page borders or not
-static void branch_if(CPU *cpu, int predicate) {
-    if (predicate) {
-        cpu->cur_cycle++;
-
-        // Add an extra cycle if the branch crosses a page boundary
-        if ((cpu->address & 0xFF00) != (cpu->pc & 0xFF00)) {
-            cpu->cur_cycle++;
-        }
-
-        cpu->pc = cpu->address;
-    }
-}
-
-// This function sets up the cpu->address variable depending on the addressing
-// mode It also updates cpu->cur_cycle if an indirect addressing mode crosses a
-// page boundary
-static void set_address(CPU *cpu, Instruction instruction) {
-    MEM *mem = &cpu->emulator->mem;
-
-    switch (instruction.address_mode) {
-    case ACC: { // Accumulator
-        break;
-    }
-    case ABS: { // Absolute
-        cpu->address = mem_read_16(mem, cpu->pc);
-        cpu->pc += 2;
-        break;
-    }
-    case ABX: { // Absolute, X-indexed
-        uint16_t base_address = mem_read_16(mem, cpu->pc);
-        cpu->address = base_address + cpu->x;
-        cpu->pc += 2;
-
-        // If we cross page boundaries, we increment cur_cycle by 1.
-        // However, this is not the case for some opcodes
-        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
-            switch (instruction.opcode) {
-            case STA:
-            case ASL:
-            case DEC:
-            case INC:
-            case LSR:
-            case ROL:
-            case ROR:
-            case SLO:
-            case RLA:
-            case SRE:
-            case RRA:
-            case DCP:
-            case ISB:
-            case SHY: break;
-            default: cpu->cur_cycle++;
-            }
-        }
-        break;
-    }
-    case ABY: { // Absolute, Y-indexed
-        uint16_t base_address = mem_read_16(mem, cpu->pc);
-        cpu->address = base_address + cpu->y;
-        cpu->pc += 2;
-
-        // If we cross page boundaries, we increment cur_cycle by 1.
-        // However, this is not the case for some opcodes
-        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
-            switch (instruction.opcode) {
-            case STA:
-            case SLO:
-            case RLA:
-            case SRE:
-            case RRA:
-            case DCP:
-            case ISB:
-            case NOP: break;
-            default: cpu->cur_cycle++;
-            }
-        }
-        break;
-    }
-    case IMM: { // Immediate
-        cpu->address = cpu->pc;
-        cpu->pc++;
-        break;
-    }
-    case IMP: { // Implied
-        break;
-    }
-    case IND: { // Indirect
-        uint16_t temp = mem_read_16(mem, cpu->pc);
-        uint16_t indirect_address = mem_read_8(mem, temp) |
-                                    (mem_read_8(mem, (temp & 0xFF00) | ((temp + 1) & 0xFF)) << 8);
-        cpu->address = indirect_address;
-        cpu->pc += 2;
-        break;
-    }
-    case XIN: { // X-indexed, Indirect (Pre-Indexed Indirect)
-        const uint8_t zp_address = (mem_read_8(mem, cpu->pc) + cpu->x) & 0xFF;
-        uint16_t base_address = mem_read_8(mem, zp_address) | (mem_read_8(mem, (zp_address + 1) & 0xFF) << 8);
-        cpu->address = base_address;
-        cpu->pc++;
-        break;
-    }
-    case YIN: { // Indirect, Y-indexed (Post-Indexed Indirect)
-        const uint8_t zp_address = mem_read_8(mem, cpu->pc);
-        uint16_t base_address = mem_read_8(mem, zp_address) | (mem_read_8(mem, (zp_address + 1) & 0xFF) << 8);
-        cpu->address = base_address + cpu->y;
-        cpu->pc++;
-
-        // If we cross page boundaries, we increment cur_cycle by 1.
-        // However, this is not the case for some opcodes
-        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
-            switch (instruction.opcode) {
-            case STA:
-            case SLO:
-            case RLA:
-            case SRE:
-            case RRA:
-            case DCP:
-            case ISB:
-            case NOP: break;
-            default: cpu->cur_cycle++;
-            }
-        }
-        break;
-    }
-    case REL: { // Relative
-        int8_t offset = (int8_t)mem_read_8(mem, cpu->pc);
-        cpu->pc++;
-        cpu->address = cpu->pc + offset;
-        break;
-    }
-    case ZP0: { // Zeropage
-        cpu->address = (uint16_t)mem_read_8(mem, cpu->pc);
-        cpu->pc++;
-        break;
-    }
-    case ZPX: { // Zeropage, X-indexed
-        cpu->address = ((uint16_t)(mem_read_8(mem, cpu->pc) + cpu->x)) & 0xFF;
-        cpu->pc++;
-        break;
-    }
-    case ZPY: { // Zeropage, Y-indexed
-        cpu->address = ((uint16_t)(mem_read_8(mem, cpu->pc) + cpu->y)) & 0xFF;
-        cpu->pc++;
-        break;
-    }
-    case UNK:
-    default: // Unkown/Illegal
-        // printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc, instruction.address_mode);
-        // exit(EXIT_FAILURE);
-        break;
-    }
-}
 
 void cpu_run_instruction(CPU *cpu) {
 #ifndef RISC_V
-    if (cpu->is_logging)
-        debug_log_instruction(cpu);
+    if (cpu->is_logging) debug_log_instruction(cpu);
 #endif // RISC_V
+
+    if (cpu->pending_interrupt != NONE) {
+        handle_interrupt(cpu);
+    }
 
     MEM *mem = &cpu->emulator->mem;
     uint8_t byte = mem_read_8(mem, cpu->pc++);
@@ -695,4 +537,219 @@ void cpu_run_instruction(CPU *cpu) {
         break;
     }
     }
+}
+
+void cpu_set_interrupt(CPU *cpu, Interrupt interrupt) {
+    cpu->pending_interrupt = interrupt;
+}
+
+
+
+// --------------- STATIC FUNCTIONS --------------------------- //
+static int get_flag(CPU *cpu, CPUFlag flag) { return (cpu->sr & flag) ? 1 : 0; }
+
+static void set_flag(CPU *cpu, CPUFlag flag, int value) {
+    if (value) {
+        cpu->sr |= flag;
+    } else {
+        cpu->sr &= ~flag;
+    }
+}
+
+// This is a helper function that sets the Z and N flags depending on the
+// `value` integer. If value == 0 then Z is set If bit 7 in value is set then N
+// is set (indicating a negative number)
+static void set_ZN_flags(CPU *cpu, uint8_t value) {
+    set_flag(cpu, ZERO_MASK, value == 0);
+    set_flag(cpu, NEGATIVE_MASK, value & 0x80);
+}
+
+// This function branches if predicate is 1, and doesn't branch if it's 0
+// It also correctly updates the cur_cycle counter depending on if we crossed
+// page borders or not
+static void branch_if(CPU *cpu, int predicate) {
+    if (predicate) {
+        cpu->cur_cycle++;
+
+        // Add an extra cycle if the branch crosses a page boundary
+        if ((cpu->address & 0xFF00) != (cpu->pc & 0xFF00)) {
+            cpu->cur_cycle++;
+        }
+
+        cpu->pc = cpu->address;
+    }
+}
+
+// This function sets up the cpu->address variable depending on the addressing
+// mode It also updates cpu->cur_cycle if an indirect addressing mode crosses a
+// page boundary
+static void set_address(CPU *cpu, Instruction instruction) {
+    MEM *mem = &cpu->emulator->mem;
+
+    switch (instruction.address_mode) {
+    case ACC: { // Accumulator
+        break;
+    }
+    case ABS: { // Absolute
+        cpu->address = mem_read_16(mem, cpu->pc);
+        cpu->pc += 2;
+        break;
+    }
+    case ABX: { // Absolute, X-indexed
+        uint16_t base_address = mem_read_16(mem, cpu->pc);
+        cpu->address = base_address + cpu->x;
+        cpu->pc += 2;
+
+        // If we cross page boundaries, we increment cur_cycle by 1.
+        // However, this is not the case for some opcodes
+        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+            switch (instruction.opcode) {
+            case STA:
+            case ASL:
+            case DEC:
+            case INC:
+            case LSR:
+            case ROL:
+            case ROR:
+            case SLO:
+            case RLA:
+            case SRE:
+            case RRA:
+            case DCP:
+            case ISB:
+            case SHY: break;
+            default: cpu->cur_cycle++;
+            }
+        }
+        break;
+    }
+    case ABY: { // Absolute, Y-indexed
+        uint16_t base_address = mem_read_16(mem, cpu->pc);
+        cpu->address = base_address + cpu->y;
+        cpu->pc += 2;
+
+        // If we cross page boundaries, we increment cur_cycle by 1.
+        // However, this is not the case for some opcodes
+        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+            switch (instruction.opcode) {
+            case STA:
+            case SLO:
+            case RLA:
+            case SRE:
+            case RRA:
+            case DCP:
+            case ISB:
+            case NOP: break;
+            default: cpu->cur_cycle++;
+            }
+        }
+        break;
+    }
+    case IMM: { // Immediate
+        cpu->address = cpu->pc;
+        cpu->pc++;
+        break;
+    }
+    case IMP: { // Implied
+        break;
+    }
+    case IND: { // Indirect
+        uint16_t temp = mem_read_16(mem, cpu->pc);
+        uint16_t indirect_address = mem_read_8(mem, temp) |
+                                    (mem_read_8(mem, (temp & 0xFF00) | ((temp + 1) & 0xFF)) << 8);
+        cpu->address = indirect_address;
+        cpu->pc += 2;
+        break;
+    }
+    case XIN: { // X-indexed, Indirect (Pre-Indexed Indirect)
+        const uint8_t zp_address = (mem_read_8(mem, cpu->pc) + cpu->x) & 0xFF;
+        uint16_t base_address = mem_read_8(mem, zp_address) | (mem_read_8(mem, (zp_address + 1) & 0xFF) << 8);
+        cpu->address = base_address;
+        cpu->pc++;
+        break;
+    }
+    case YIN: { // Indirect, Y-indexed (Post-Indexed Indirect)
+        const uint8_t zp_address = mem_read_8(mem, cpu->pc);
+        uint16_t base_address = mem_read_8(mem, zp_address) | (mem_read_8(mem, (zp_address + 1) & 0xFF) << 8);
+        cpu->address = base_address + cpu->y;
+        cpu->pc++;
+
+        // If we cross page boundaries, we increment cur_cycle by 1.
+        // However, this is not the case for some opcodes
+        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
+            switch (instruction.opcode) {
+            case STA:
+            case SLO:
+            case RLA:
+            case SRE:
+            case RRA:
+            case DCP:
+            case ISB:
+            case NOP: break;
+            default: cpu->cur_cycle++;
+            }
+        }
+        break;
+    }
+    case REL: { // Relative
+        int8_t offset = (int8_t)mem_read_8(mem, cpu->pc);
+        cpu->pc++;
+        cpu->address = cpu->pc + offset;
+        break;
+    }
+    case ZP0: { // Zeropage
+        cpu->address = (uint16_t)mem_read_8(mem, cpu->pc);
+        cpu->pc++;
+        break;
+    }
+    case ZPX: { // Zeropage, X-indexed
+        cpu->address = ((uint16_t)(mem_read_8(mem, cpu->pc) + cpu->x)) & 0xFF;
+        cpu->pc++;
+        break;
+    }
+    case ZPY: { // Zeropage, Y-indexed
+        cpu->address = ((uint16_t)(mem_read_8(mem, cpu->pc) + cpu->y)) & 0xFF;
+        cpu->pc++;
+        break;
+    }
+    case UNK:
+    default: // Unkown/Illegal
+        // printf("Unknown Addressing Mode at PC: 0x%04X, Mode: %d\n", cpu->pc, instruction.address_mode);
+        // exit(EXIT_FAILURE);
+        break;
+    }
+}
+
+
+void handle_interrupt(CPU *cpu){
+    if (cpu->pending_interrupt == NONE) return;
+
+    if (get_flag(cpu, INTERRUPT_MASK) && cpu->pending_interrupt != NMI) {
+        cpu->pending_interrupt = NONE;
+        return;
+    }
+
+    uint16_t address;
+
+    switch (cpu->pending_interrupt) {
+    case NMI:
+        address = NMI_VECTOR_OFFSET;
+        break;
+    case IRQ:
+        address = IRQ_VECTOR_OFFSET;
+        break;
+    case RSI:
+        // TODO reset emulator
+        return;
+    default:
+        printf("Error: invalid interrupt");
+        exit(EXIT_FAILURE);
+    }
+
+    mem_push_stack_16(cpu, cpu->pc);
+    mem_push_stack_8(cpu, cpu->sr);
+    set_flag(cpu, INTERRUPT_MASK, TRUE);
+    cpu->pc = address;
+    cpu->cur_cycle += 7;
+    cpu->pending_interrupt = NONE;
 }
