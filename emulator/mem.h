@@ -52,4 +52,6 @@ uint8_t mem_pop_stack_8(CPU *cpu);
 void mem_push_stack_16(CPU *cpu, uint16_t value);
 uint16_t pop_stack_16(CPU *cpu);
 
+uint8_t mem_const_read_8(const MEM *mem, uint16_t address);
+
 #endif // CPU_MEM_H

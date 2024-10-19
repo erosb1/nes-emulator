@@ -26,47 +26,55 @@ void ppu_reset(PPU *ppu) {
     memset(ppu->vram, 0, sizeof(ppu->vram));
     memset(ppu->palette, 0, sizeof(ppu->palette));
 }
-
 void ppu_run_cycle(PPU *ppu) {
     CPU *cpu = &ppu->emulator->cpu;
 
-    if (ppu->cur_scanline < VISIBLE_SCANLINES) {
-        // 0 <= cur_scanline < 240
-        // Render background and sprites for scanlines 0-239
-    } else if (ppu->cur_scanline == VISIBLE_SCANLINES) {
-        // cur_scanline == 240
-        // Post-render scanline, typically idle
-    } else if (ppu->cur_scanline < NTSC_SCANLINES_PER_FRAME) {
-        // V-Blank period (scanlines 241-260 in NTSC)
-        if (ppu->cur_scanline == VISIBLE_SCANLINES + 1 && ppu->cur_dot == 1) {
-            // Set v-blank flag and possibly trigger NMI
+    if (ppu->cur_scanline < 240) {
+        // Visible scanlines (0-239)
+        if (1 <= ppu->cur_dot && ppu->cur_dot <= 256) {
+            // TODO: Render background and sprites for scanlines 0-239
+        } else if (ppu->cur_dot <= 320) {
+            // TODO: Sprite evaluation for next scanline
+        } else if (ppu->cur_dot <= 336) {
+            // TODO: Background tile fetching for next scanline
+        }
+        // Dots 337-340 are idle, but PPU performs internal operations
+    } else if (ppu->cur_scanline == 240) {
+        // Post-render scanline (scanline 240)
+        // Idle period, no rendering
+    } else if (ppu->cur_scanline < 261) {
+        // VBlank period (scanlines 241-260)
+        if (ppu->cur_scanline == 241 && ppu->cur_dot == 1) {
+            // Set VBlank flag and trigger NMI if enabled
             ppu->status.vblank = TRUE;
             if (ppu->control.enable_nmi) {
                 cpu_set_interrupt(cpu, NMI);
             }
         }
     } else {
-        // Pre-render scanline (scanline 261 in NTSC)
+        // Pre-render scanline (scanline 261)
         if (ppu->cur_dot == 1) {
-            // Reset v-blank and sprite zero hit flags
+            // Clear VBlank and sprite zero hit flags
             ppu->status.vblank = FALSE;
             ppu->status.sprite_zero_hit = FALSE;
         }
+        // Skip a cycle on odd frames (NTSC only)
         if (ppu->cur_dot == 339 && ppu->emulator->cur_frame % 2 == 1) {
-            // Skip a cycle on odd frames (NTSC only)
             ppu->cur_dot++;
         }
     }
 
+    // Advance dot and scanline counters
     ppu->cur_dot++;
     if (ppu->cur_dot >= 341) {
         ppu->cur_dot = 0;
         ppu->cur_scanline++;
-        if (ppu->cur_scanline >= 261) {
+        if (ppu->cur_scanline >= 262) {
             ppu->cur_scanline = 0;
         }
     }
 }
+
 
 uint8_t ppu_read_status(PPU *ppu) {
     uint8_t status = ppu->status.reg;

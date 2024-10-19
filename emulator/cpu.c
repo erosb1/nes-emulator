@@ -40,13 +40,13 @@ void cpu_init(Emulator *emulator) {
 
 
 void cpu_run_instruction(CPU *cpu) {
-#ifndef RISC_V
-    if (cpu->is_logging) debug_log_instruction(cpu);
-#endif // RISC_V
-
     if (cpu->pending_interrupt != NONE) {
         handle_interrupt(cpu);
     }
+
+#ifndef RISC_V
+    if (cpu->is_logging) debug_log_instruction(cpu);
+#endif // RISC_V
 
     MEM *mem = &cpu->emulator->mem;
     uint8_t byte = mem_read_8(mem, cpu->pc++);
@@ -54,6 +54,12 @@ void cpu_run_instruction(CPU *cpu) {
     set_address(cpu, instruction);
 
     cpu->cur_cycle += cycle_lookup[byte];
+
+    if (cpu->pc < 0x8000) {
+        printf("Error: cannot execute code at %04X", cpu->pc);
+        debug_log_instruction(cpu);
+        exit(EXIT_FAILURE);
+    }
 
     switch (instruction.opcode) {
     case ADC: {
@@ -729,6 +735,7 @@ void handle_interrupt(CPU *cpu){
         return;
     }
 
+    MEM *mem = &cpu->emulator->mem;
     uint16_t address;
 
     switch (cpu->pending_interrupt) {
@@ -740,7 +747,8 @@ void handle_interrupt(CPU *cpu){
         break;
     case RSI:
         // TODO reset emulator
-        return;
+        printf("RESET INTERRUPT");
+        exit(EXIT_FAILURE);
     default:
         printf("Error: invalid interrupt");
         exit(EXIT_FAILURE);
@@ -749,7 +757,7 @@ void handle_interrupt(CPU *cpu){
     mem_push_stack_16(cpu, cpu->pc);
     mem_push_stack_8(cpu, cpu->sr);
     set_flag(cpu, INTERRUPT_MASK, TRUE);
-    cpu->pc = address;
+    cpu->pc = mem_read_16(mem, address);
     cpu->cur_cycle += 7;
     cpu->pending_interrupt = NONE;
 }

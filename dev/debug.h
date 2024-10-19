@@ -14,7 +14,7 @@ typedef struct CPU CPU;
  *  It follows the same notation as used for nestest.txt:
  *  https://github.com/christopherpow/nes-test-roms/blob/master/other/nestest.log
  */
-void debug_log_instruction(CPU *cpu);
+void debug_log_instruction(const CPU *cpu);
 
 void debug_draw_screen(const Emulator *emulator);
 

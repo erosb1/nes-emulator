@@ -27,10 +27,10 @@ static int is_illegal(uint8_t byte) {
  *  This function mimics the behavior of set_address in cpu.c,
  *  without actually updating the internal values of the cpu
  */
-static void log_address_mode_info(CPU *cpu, Instruction instruction) {
+static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
     MEM *mem = &cpu->emulator->mem;
-    uint8_t byte1 = mem_read_8(mem, cpu->pc + 1);
-    uint8_t byte2 = mem_read_8(mem, cpu->pc + 2);
+    uint8_t byte1 = mem_const_read_8(mem, cpu->pc + 1);
+    uint8_t byte2 = mem_const_read_8(mem, cpu->pc + 2);
     size_t cur_column_width = 0;
     uint16_t address = 0x0000;
 
@@ -77,16 +77,16 @@ static void log_address_mode_info(CPU *cpu, Instruction instruction) {
     }
     case IND: {
         uint16_t address_pre = (byte2 << 8) | byte1;
-        address = mem_read_8(mem, address_pre) |
-                  (mem_read_8(mem, (address_pre & 0xFF00) | ((address_pre + 1) & 0xFF)) << 8);
+        address = mem_const_read_8(mem, address_pre) |
+                  (mem_const_read_8(mem, (address_pre & 0xFF00) | ((address_pre + 1) & 0xFF)) << 8);
         printf("($%04X) = %04X ", address_pre, address);
         cur_column_width += 15;
         break;
     }
     case XIN: {
         uint16_t zp_address = (byte1 + cpu->x) & 0xFF;
-        uint16_t hi_byte = mem_read_8(mem, (zp_address + 1) & 0xFF);
-        uint16_t low_byte = mem_read_8(mem, zp_address & 0xFF);
+        uint16_t hi_byte = mem_const_read_8(mem, (zp_address + 1) & 0xFF);
+        uint16_t low_byte = mem_const_read_8(mem, zp_address & 0xFF);
         address = (hi_byte << 8) | low_byte;
         printf("($%02X,X) @ %02X = %04X ", byte1, zp_address, address);
         cur_column_width += 20;
@@ -94,8 +94,8 @@ static void log_address_mode_info(CPU *cpu, Instruction instruction) {
     }
     case YIN: {
         uint16_t zp_address = byte1;
-        uint16_t hi_byte = mem_read_8(mem, (zp_address + 1) & 0xFF);
-        uint16_t low_byte = mem_read_8(mem, zp_address & 0xFF);
+        uint16_t hi_byte = mem_const_read_8(mem, (zp_address + 1) & 0xFF);
+        uint16_t low_byte = mem_const_read_8(mem, zp_address & 0xFF);
         uint16_t real_address = (hi_byte << 8) | low_byte;
         address = (real_address + cpu->y) & 0xFFFF;
         printf("($%02X),Y = %04X @ %04X ", byte1, real_address, address);
@@ -139,7 +139,7 @@ static void log_address_mode_info(CPU *cpu, Instruction instruction) {
         case AND:case ORA:case EOR:case ADC:case SBC:case CMP:case CPX:case LSR:
         case ASL:case ROR:case ROL:case INC:case DEC:case NOP:case LAX:case SAX:
         case DCP:case ISB:case SLO:case RLA:case SRE:case RRA:
-            printf("= %02X", mem_read_8(mem, address));
+            printf("= %02X", mem_const_read_8(mem, address));
             cur_column_width += 4;
             break;
         default: break;
@@ -153,11 +153,11 @@ static void log_address_mode_info(CPU *cpu, Instruction instruction) {
     }
 }
 
-void debug_log_instruction(CPU *cpu) {
-    MEM *mem = &cpu->emulator->mem;
-    uint8_t byte0 = mem_read_8(mem, cpu->pc);
-    uint8_t byte1 = mem_read_8(mem, cpu->pc + 1);
-    uint8_t byte2 = mem_read_8(mem, cpu->pc + 2);
+void debug_log_instruction(const CPU *cpu) {
+    const MEM *mem = &cpu->emulator->mem;
+    uint8_t byte0 = mem_const_read_8(mem, cpu->pc);
+    uint8_t byte1 = mem_const_read_8(mem, cpu->pc + 1);
+    uint8_t byte2 = mem_const_read_8(mem, cpu->pc + 2);
     Instruction instruction = instruction_lookup[byte0];
 
     // Print the current PC
@@ -187,7 +187,10 @@ void debug_log_instruction(CPU *cpu) {
     log_address_mode_info(cpu, instruction);
 
     // Print the state of the CPU before the instruction is executed
-    printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu\n", cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp, cpu->cur_cycle);
+    printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu", cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp, cpu->cur_cycle);
+
+
+    printf(" Frame: %u\n", cpu->emulator->cur_frame);
 }
 
 static uint32_t get_color(uint8_t color_index) {

@@ -46,7 +46,6 @@ void emulator_run(Emulator *emulator) {
         while (cpu->cur_cycle < NTSC_CPU_CYCLES_PER_FRAME) {
             size_t cycle_before = cpu->cur_cycle;
 
-            //if (cpu->cur_cycle > 400) exit(EXIT_SUCCESS);
             cpu_run_instruction(cpu);
             size_t cpu_instruction_cycle_count = cpu->cur_cycle - cycle_before;
 
@@ -54,6 +53,10 @@ void emulator_run(Emulator *emulator) {
                 ppu_run_cycle(ppu);
             }
         }
+
+        cpu->cur_cycle = 0;
+
+        printf("cur frame: %i", emulator->cur_frame);
 
 #ifndef RISC_V
         handle_sdl(emulator);

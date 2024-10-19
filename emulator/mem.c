@@ -143,3 +143,38 @@ uint16_t pop_stack_16(CPU *cpu) {
     uint8_t high = mem_pop_stack_8(cpu);
     return (high << 8) | low;
 }
+
+uint8_t mem_const_read_8(const MEM *mem, uint16_t address) {
+    if (address < RAM_MIRROR_END) {
+        return mem->ram[address % RAM_SIZE];
+    }
+
+    if (address < PPU_MIRROR_END) {
+        address = RAM_MIRROR_END + (address - RAM_MIRROR_END) % PPU_REGISTER_SIZE; // Handle PPU register mirroring
+        const PPU *ppu = &mem->emulator->ppu;
+
+        switch (address) {
+        case 0x2002: // PPU_STATUS
+            return ppu->status.reg;
+        case 0x2004: // OAM_DATA
+            return ppu->oam_data;
+        case 0x2007: // PPU_DATA
+            return ppu_const_read_vram_data(ppu, address);
+        default:
+            return 0x00; // This is returned when reading rom a WRITE_ONLY PPU
+            // register
+        }
+    }
+
+    if (address < APU_IO_REGISTER_END) {
+        return mem->apu_io_reg[address - PPU_MIRROR_END];
+    }
+
+    if (address < PRG_RAM_END) {
+        return mem->cartridge_ram[address - APU_IO_REGISTER_END];
+    }
+
+    // else
+    Mapper *mapper = &mem->emulator->mapper;
+    return mapper->read_prg(mapper, address);
+}
