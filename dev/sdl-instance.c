@@ -7,24 +7,23 @@
 SDLInstance SDL_INSTANCE;
 
 // Setup window regions
-#define WINDOW_REGION_PADDING 50
 #define NES_SCREEN_SCALE_FACTOR 3
 
-#define DEBUG_SCREEN_SCALE_FACTOR 2
-#define DEBUG_SCREEN_WIDTH 128
-#define DEBUG_SCREEN_HEIGHT 336
+#define DEBUG_SCREEN_SCALE_FACTOR 1
+#define DEBUG_SCREEN_WIDTH 256
+#define DEBUG_SCREEN_HEIGHT SDL_WINDOW_HEIGHT
 
 WindowRegion NES_SCREEN = {
-    .top_coord = 50,
-    .left_coord = 50,
+    .top_coord = 0,
+    .left_coord = 0,
     .width = NES_SCREEN_WIDTH * NES_SCREEN_SCALE_FACTOR,
     .height = NES_SCREEN_HEIGHT * NES_SCREEN_SCALE_FACTOR,
     .scale_factor = NES_SCREEN_SCALE_FACTOR,
 };
 
 WindowRegion DEBUG_SCREEN = {
-    .top_coord = 50,
-    .left_coord = 868,
+    .top_coord = 0,
+    .left_coord = 768,
     .width = DEBUG_SCREEN_WIDTH * DEBUG_SCREEN_SCALE_FACTOR,
     .height = DEBUG_SCREEN_HEIGHT * DEBUG_SCREEN_SCALE_FACTOR,
     .scale_factor = DEBUG_SCREEN_SCALE_FACTOR,

@@ -6,8 +6,8 @@
 #include <stdio.h>
 
 // SDL window properties
-#define SDL_WINDOW_WIDTH 1174
-#define SDL_WINDOW_HEIGHT 772
+#define SDL_WINDOW_WIDTH 1024
+#define SDL_WINDOW_HEIGHT 672
 #define SDL_WINDOW_TITLE "NES Emulator"
 
 typedef struct SDLInstance {

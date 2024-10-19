@@ -102,7 +102,7 @@ void ppu_write_vram_data(PPU *ppu, uint8_t value) {
 
     // Writing to VRAM
     else if (address < 0x3F00) { // Writing to nametable
-        uint16_t mirrored_address = mapper_mirror_nametable_address(mapper, ppu->v);
+        uint16_t mirrored_address = mapper_mirror_nametable_address(mapper, address);
         ppu->vram[mirrored_address] = value;
     }
 
@@ -150,7 +150,35 @@ uint8_t ppu_read_vram_data(PPU *ppu) {
     return return_value;
 }
 
+uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address) {
+    Mapper *mapper = &ppu->emulator->mapper;
 
+    // We mirror the entire PPU memory space
+    // If 0x4000 <= ppu->v then we wrap around and start from 0x0000
+    address &= 0x3FFF;
+
+    // We return the previous value we read (not if reading from palette)
+    uint8_t return_value = ppu->data_read_buffer;
+
+    // Reading from CHR ROM (Pattern Tables)
+    if (address < 0x2000) {
+        return mapper->read_chr(mapper, address);
+    }
+
+    // Reading from VRAM (Nametables)
+    if (address < 0x3F00) {
+        address = mapper_mirror_nametable_address(mapper, address);
+        return ppu->vram[address];
+    }
+
+    // Reading from Palette
+    if (address < 0x4000) {
+        address = address & 0x1F;
+        return ppu->palette[address];
+    }
+
+    return 0;
+}
 
 // --------------- STATIC FUNCTIONS --------------------------- //
 static void increment_scroll_x(PPU *ppu) {

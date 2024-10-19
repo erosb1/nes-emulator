@@ -86,7 +86,7 @@ uint16_t mapper_mirror_nametable_address(Mapper *mapper, uint16_t address) {
 
     switch (mapper->mirroring) {
     case VERTICAL:
-        if (0x0400 <= address && address < 0x0800 || 0x0C00 <= address)
+        if ((0x0400 <= address && address < 0x0800) || 0x0C00 <= address)
             address -= 0x0400;
         break;
     case HORIZONTAL:

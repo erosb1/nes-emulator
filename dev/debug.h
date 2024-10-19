@@ -16,6 +16,6 @@ typedef struct CPU CPU;
  */
 void debug_log_instruction(CPU *cpu);
 
-void debug_draw_screen(Emulator *emulator);
+void debug_draw_screen(const Emulator *emulator);
 
 #endif

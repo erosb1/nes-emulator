@@ -127,6 +127,8 @@ uint8_t ppu_read_status(PPU *ppu);
 void ppu_set_scroll(PPU *ppu, uint8_t value);
 void ppu_set_vram_addr(PPU *ppu, uint8_t half_address);
 void ppu_write_vram_data(PPU *ppu, uint8_t value);
-uint8_t ppu_read_vram_data(PPU *ppu);
+
+uint8_t ppu_read_vram_data(PPU *ppu);   // NON-CONST - modifies internal PPU state (used by emulator)
+uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address); // CONST - doesn't modify internal PPU state (used by debug screen)
 
 #endif

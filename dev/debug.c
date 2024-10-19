@@ -2,10 +2,10 @@
 #include "common.h"
 #include "cpu.h"
 #include "emulator.h"
-#include "mapper.h"
 #include "mem.h"
 #include "opcodes.h"
 #include "util.h"
+#include <assert.h>
 
 extern SDLInstance SDL_INSTANCE;
 extern WindowRegion NES_SCREEN;
@@ -199,43 +199,79 @@ static uint32_t get_color(uint8_t color_index) {
     }
 }
 
-static void render_pattern_table(Emulator *emulator, int left_coord, int top_coord, int pattern_table_index) {
-    Mapper *mapper = &emulator->mapper;
-    const int TILE_SIZE = 16;
-    const int TILE_PIXEL_WIDTH = 8;
+static void draw_tile(const Emulator *emulator, uint16_t base_address, int tile_index, int left_coord, int top_coord) {
+    assert (base_address == 0x0000 || base_address == 0x1000);
 
-    uint16_t start_address = pattern_table_index ? 0x1000 : 0x0000;
-    uint16_t end_address = pattern_table_index ? 0x2000 : 0x1000;
+    const PPU *ppu = &emulator->ppu;
 
-    for (uint16_t address = start_address; address < end_address; address += TILE_SIZE) {
-        int tile_x = (address / TILE_SIZE) % 16;
-        int tile_y = (address / TILE_SIZE) / 16;
+    // Calculate the address of the tile in VRAM
+    uint16_t tile_address = base_address + (tile_index * TILE_BYTE_SIZE);
 
-        for (uint8_t y = 0; y < TILE_PIXEL_WIDTH; y++) {
-            uint8_t low_byte = mapper->read_chr(mapper, address + y);
-            uint8_t high_byte = mapper->read_chr(mapper, address + y + 8);
-
-            for (uint8_t x = 0; x < TILE_PIXEL_WIDTH; x++) {
-                uint8_t low_bit = (low_byte >> (7 - x)) & 1;
-                uint8_t high_bit = (high_byte >> (7 - x)) & 1;
-                uint8_t color_index = (high_bit << 1) | low_bit;
-
-                uint32_t color = get_color(color_index);
-
-                int pixel_x = left_coord + (tile_x * TILE_PIXEL_WIDTH + x);
-                int pixel_y = top_coord + (tile_y * TILE_PIXEL_WIDTH + y);
-
-                sdl_put_pixel_region(&DEBUG_SCREEN, pixel_x, pixel_y, color);
-            }
+    for (int y = 0; y < TILE_HEIGHT; y++) {
+        uint8_t low_byte = ppu_const_read_vram_data(ppu, tile_address + y);
+        uint8_t high_byte = ppu_const_read_vram_data(ppu, tile_address + y + 8);
+        for (int x = 0; x < TILE_HEIGHT; x++) {
+            uint8_t low_bit = (low_byte >> (7 - x)) & 0x1;
+            uint8_t high_bit = (high_byte >> (7 - x)) & 0x1;
+            uint8_t color_index = (high_bit << 1) | low_bit;
+            uint32_t rgb_color = get_color(color_index);
+            sdl_put_pixel_region(&DEBUG_SCREEN, left_coord + x, top_coord + y, rgb_color);
         }
     }
 }
 
-void debug_draw_screen(Emulator *emulator) {
+static void draw_pattern_table(const Emulator *emulator, uint16_t base_address, int left_coord, int top_coord) {
+    const int TILE_COUNT = PATTERN_TABLE_WIDTH * PATTERN_TABLE_HEIGHT;
+    for (int tile_index = 0; tile_index < TILE_COUNT; tile_index++) {
+        int tile_x = tile_index % PATTERN_TABLE_WIDTH;
+        int tile_y = tile_index / PATTERN_TABLE_WIDTH;
+        int tile_left_coord = left_coord + tile_x * TILE_WIDTH;
+        int tile_top_coord = top_coord + tile_y * TILE_HEIGHT;
+        draw_tile(emulator, base_address, tile_index, tile_left_coord, tile_top_coord);
+    }
+}
+
+static void draw_nametable(const Emulator *emulator, uint16_t base_address, int left_coord, int top_coord) {
+    assert(base_address == 0x2000 || base_address == 0x2400 || base_address == 0x2800 || base_address == 0x2C00);
+
+    const PPU *ppu = &emulator->ppu;
+    const uint16_t PATTERN_TABLE_BG_BASE_ADDRESS = ppu->control.pattern_background ? 0x1000 : 0x0000;
+
+    // calculate end_address, exclude the attribute table
+    uint16_t end_address = base_address + NAMETABLE_BYTE_SIZE - ATTRIBUTE_TABLE_BYTE_SIZE;
+
+    for (uint16_t address = base_address; address < end_address; address++) {
+        int nametable_index = address - base_address;
+        int tile_x = nametable_index % NAMETABLE_WIDTH;
+        int tile_y = nametable_index / NAMETABLE_WIDTH;
+        int tile_left_coord = left_coord + tile_x * TILE_WIDTH;
+        int tile_top_coord = top_coord + tile_y * TILE_HEIGHT;
+
+        // read VRAM to get what tile to draw
+        uint8_t tile_index = ppu_const_read_vram_data(ppu, address);
+
+        // draw that tile
+        draw_tile(emulator, PATTERN_TABLE_BG_BASE_ADDRESS, tile_index, tile_left_coord, tile_top_coord);
+    }
+}
+
+
+void debug_draw_screen(const Emulator *emulator) {
+    const Mapper *mapper = &emulator->mapper;
+
     for (int i = 0; i < NES_SCREEN_WIDTH; i++)
         for (int j = 0; j < NES_SCREEN_HEIGHT; j++)
             sdl_put_pixel_region(&NES_SCREEN, i, j, 0xFFFFFF);
 
-    render_pattern_table(emulator, 0, 0, 0);
-    render_pattern_table(emulator, 0, 80, 1);
+    draw_pattern_table(emulator, 0x0000, 0, 0);
+    draw_pattern_table(emulator, 0x1000, 128, 0);
+    draw_nametable(emulator, 0x2000, 0, 128);
+
+    uint16_t nametable_base_address_1 = 0x2000;
+    uint16_t nametable_base_address_2 = 0x2400;
+    if (mapper->mirroring == HORIZONTAL)
+        nametable_base_address_2 = 0x2800;
+
+    draw_nametable(emulator, nametable_base_address_1, 0, 128);
+    draw_nametable(emulator, nametable_base_address_2, 0, 368);
 }

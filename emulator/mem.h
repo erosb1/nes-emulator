@@ -28,7 +28,6 @@
 
 // Forward declarations
 typedef struct Emulator Emulator;
-typedef struct CPU CPU;
 
 typedef struct MEM {
     uint8_t ram[RAM_SIZE];
