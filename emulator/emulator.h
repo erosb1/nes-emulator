@@ -27,6 +27,9 @@ typedef struct Emulator {
     uint32_t event;
     uint32_t cur_frame;
     uint32_t time_point_start;
+
+    // Calculate framerate based on the last 60 frames
+    uint32_t frame_times[60];
 } Emulator;
 
 /*

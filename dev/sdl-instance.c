@@ -124,6 +124,9 @@ uint8_t sdl_poll_events() {
 
     return event;
 }
+void sdl_set_window_title(const char *title) {
+    SDL_SetWindowTitle(SDL_INSTANCE.window, title);
+}
 
 int sdl_window_quit() {
     SDL_Event sdl_event;

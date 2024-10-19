@@ -8,6 +8,8 @@
 #ifndef RISC_V
 static void handle_sdl(Emulator *emulator);
 static void synchronize_frames(Emulator *emulator);
+static uint32_t calculate_unsynced_fps(Emulator *emulator);
+static uint32_t calculate_synced_fps(Emulator *emulator);
 #endif
 
 
@@ -21,6 +23,7 @@ void emulator_init(Emulator *emulator, uint8_t *rom) {
     emulator->is_running = FALSE;
     emulator->cur_frame = 0;
     emulator->time_point_start = 0;
+    memset(emulator->frame_times, 0, sizeof(emulator->frame_times));
 
     // Initialize components.
     ppu_init(emulator);
@@ -53,10 +56,6 @@ void emulator_run(Emulator *emulator) {
 #ifndef RISC_V
         handle_sdl(emulator);
 #endif
-
-        emulator->cur_frame++;
-        if (emulator->cur_frame == NTSC_FRAME_RATE)
-            emulator->cur_frame = 0;
 
         synchronize_frames(emulator);
     }
@@ -98,12 +97,26 @@ static void handle_sdl(Emulator *emulator) {
         sdl_clear_screen();
         debug_draw_screen(emulator);
     }
+
+    if (emulator->cur_frame == 0) {
+        uint32_t fps_synced = calculate_synced_fps(emulator);
+        uint32_t fps_unsynced = calculate_unsynced_fps(emulator);
+        char title[256];
+        snprintf(title, sizeof(title), "NES Emulator - FPS: %u - UNSYNCED FPS: %u", fps_synced, fps_unsynced);
+        sdl_set_window_title(title);
+    }
 }
 #endif
 
 void synchronize_frames(Emulator *emulator) {
     uint32_t time_point_end = get_time_point();
     uint32_t elapsed_us = get_elapsed_us(emulator->time_point_start, time_point_end);
+    emulator->frame_times[emulator->cur_frame] = elapsed_us;
+
+    emulator->cur_frame++;
+    if (emulator->cur_frame == NTSC_FRAME_RATE) {
+        emulator->cur_frame = 0;
+    }
 
     // Sleep if the frame finished early
     if (elapsed_us < NTSC_FRAME_DURATION) {
@@ -111,4 +124,27 @@ void synchronize_frames(Emulator *emulator) {
     } else {
         // TODO: Handle lag - consider skipping next frame
     }
+}
+
+uint32_t calculate_unsynced_fps(Emulator *emulator) {
+    double sum = 0;
+    for (int i = 0; i < NTSC_FRAME_RATE; i++) {
+        sum += (double) emulator->frame_times[i];
+    }
+    double average_frame_duration = sum / NTSC_FRAME_RATE / 1e6;
+
+    if (average_frame_duration == 0) return 0;
+    return (uint32_t) (1 / average_frame_duration);
+}
+
+uint32_t calculate_synced_fps(Emulator *emulator) {
+    double sum = 0;
+    for (int i = 0; i < NTSC_FRAME_RATE; i++) {
+        uint32_t frame_time = emulator->frame_times[i];
+        sum += frame_time < NTSC_FRAME_DURATION ? NTSC_FRAME_DURATION : frame_time;
+    }
+    double average_frame_duration = sum / NTSC_FRAME_RATE / 1e6;
+
+    if (average_frame_duration == 0) return 0;
+    return (uint32_t) (1 / average_frame_duration);
 }

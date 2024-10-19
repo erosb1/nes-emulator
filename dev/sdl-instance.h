@@ -35,6 +35,7 @@ void sdl_clear_screen();
 void sdl_put_pixel(uint32_t x, uint32_t y, uint32_t color);
 void sdl_draw_frame();
 uint8_t sdl_poll_events();
+void sdl_set_window_title(const char* title);
 int sdl_window_quit();
 void sdl_instance_destroy();
 
