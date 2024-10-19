@@ -9,7 +9,7 @@ typedef struct CPU CPU;
 
 /**
  *  This function prints a bunch of info about the instruction that is about to
- * be executed I.E the instruction that starts at cpu->pc
+ *  be executed I.E the instruction that starts at cpu->pc
  *
  *  It follows the same notation as used for nestest.txt:
  *  https://github.com/christopherpow/nes-test-roms/blob/master/other/nestest.log

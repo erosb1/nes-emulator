@@ -25,6 +25,7 @@
 
 // NTSC rendering
 #define NTSC_FRAME_RATE 60
+#define NTSC_FRAME_DURATION 16639 // microseconds
 
 // PAL rendering
 #define PAL_FRAM_RATE 50
@@ -51,7 +52,4 @@ void exit(int code);
 #include "sdl-instance.h"
 
 #endif // RISC_V
-// --------------- LIBRARY FUNCTIONS ---------------------------//
-void sleep_us(size_t microseconds);
-
 #endif // COMMON_H

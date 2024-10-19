@@ -26,6 +26,7 @@ typedef struct Emulator {
     int is_running;
     uint32_t event;
     uint32_t cur_frame;
+    uint32_t time_point_start;
 } Emulator;
 
 /*

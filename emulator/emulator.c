@@ -1,8 +1,17 @@
 #include "emulator.h"
+#include "timer.h"
 
 #define NTSC_FRAME_RATE 60
 #define NTSC_CPU_CYCLES_PER_FRAME 29780
 
+// --------------- STATIC FORWARD DECLARATIONS ---------------- //
+#ifndef RISC_V
+static void handle_sdl(Emulator *emulator);
+static void synchronize_frames(Emulator *emulator);
+#endif
+
+
+// --------------- PUBLIC FUNCTIONS ---------- ---------------- //
 void emulator_init(Emulator *emulator, uint8_t *rom) {
     // Set the rom
     emulator->rom = rom;
@@ -11,6 +20,7 @@ void emulator_init(Emulator *emulator, uint8_t *rom) {
     emulator->event = 0;
     emulator->is_running = FALSE;
     emulator->cur_frame = 0;
+    emulator->time_point_start = 0;
 
     // Initialize components.
     ppu_init(emulator);
@@ -27,6 +37,8 @@ void emulator_run(Emulator *emulator) {
     // Frame loop
     while (emulator->is_running) {
 
+        emulator->time_point_start = get_time_point();
+
         // Instruction accurate emulation
         while (cpu->cur_cycle < NTSC_CPU_CYCLES_PER_FRAME) {
             size_t cycle_before = cpu->cur_cycle;
@@ -39,16 +51,14 @@ void emulator_run(Emulator *emulator) {
         }
 
 #ifndef RISC_V
-        sdl_clear_screen();
-        debug_draw_screen(emulator);
-        sdl_draw_frame();
-        if (sdl_window_quit())
-            emulator->is_running = FALSE;
+        handle_sdl(emulator);
 #endif
 
         emulator->cur_frame++;
         if (emulator->cur_frame == NTSC_FRAME_RATE)
             emulator->cur_frame = 0;
+
+        synchronize_frames(emulator);
     }
 }
 
@@ -71,5 +81,34 @@ void emulator_nestest(Emulator *emulator) {
 
     while (cpu->cur_cycle <= NESTEST_MAX_CYCLES) {
         cpu_run_instruction(cpu);
+    }
+}
+
+
+// --------------- STATIC FUNCTIONS --------------------------- //
+#ifndef RISC_V
+static void handle_sdl(Emulator *emulator) {
+    sdl_draw_frame();
+    if (sdl_window_quit())
+        emulator->is_running = FALSE;
+
+    // Clear screen and draw debug info only every 10th frame.
+    // Otherwise the rendering gets to intensive
+    if (emulator->cur_frame % 10 == 0) {
+        sdl_clear_screen();
+        debug_draw_screen(emulator);
+    }
+}
+#endif
+
+void synchronize_frames(Emulator *emulator) {
+    uint32_t time_point_end = get_time_point();
+    uint32_t elapsed_us = get_elapsed_us(emulator->time_point_start, time_point_end);
+
+    // Sleep if the frame finished early
+    if (elapsed_us < NTSC_FRAME_DURATION) {
+        sleep_us(NTSC_FRAME_DURATION - elapsed_us);
+    } else {
+        // TODO: Handle lag - consider skipping next frame
     }
 }
