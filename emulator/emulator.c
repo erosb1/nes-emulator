@@ -60,6 +60,7 @@ void emulator_nestest(Emulator *emulator) {
     CPU *cpu = &emulator->cpu;
     cpu->cur_cycle = NESTEST_START_CYCLE;
     MEM *mem = &emulator->mem;
+    emulator->cpu.pc = 0xC000;
 
     // These APU registers needs to be set to 0xFF at the start in order for
     // nestest to complete
