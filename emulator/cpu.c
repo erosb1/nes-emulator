@@ -122,7 +122,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         uint16_t R = A + M + get_flag(cpu, CARRY_MASK);
         cpu->ac = R & 0xFF;
         set_flag(cpu, CARRY_MASK, R > 0xFF);
-        set_flag(cpu, OVERFLOW_MASK, ~(A ^ M) & (A ^ R) & 0x80);
+        set_flag(cpu, OVERFLOW_MASK, ((~(A ^ M) & (A ^ R) & 0x80) != 0));
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
@@ -186,6 +186,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         mem_push_stack_8(cpu, cpu->sr | BREAK_MASK | UNUSED_MASK);
         cpu->pc = mem_read_16(mem, IRQ_VECTOR_OFFSET);
         set_flag(cpu, INTERRUPT_MASK, TRUE);
+        break;
     }
     case BVC: {
         // Branch if Overflow Clear (V flag = 0)
@@ -769,7 +770,8 @@ void handle_interrupt(CPU *cpu){
     mem_push_stack_16(cpu, cpu->pc);
     mem_push_stack_8(cpu, cpu->sr);
     set_flag(cpu, INTERRUPT_MASK, TRUE);
-    cpu->pc = mem_read_16(mem, address);
+    cpu->pc = 0xC85F;
+    //cpu->pc = mem_read_16(mem, address);
     cpu->cycles += 7;
     cpu->pending_interrupt = NONE;
 }

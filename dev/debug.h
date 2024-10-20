@@ -18,4 +18,6 @@ void debug_log_instruction(const CPU *cpu);
 
 void debug_draw_screen(const Emulator *emulator);
 
+void debug_pause_screen(Emulator *emulator);
+
 #endif

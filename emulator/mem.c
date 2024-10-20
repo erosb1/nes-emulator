@@ -13,12 +13,12 @@ void init_cpu_mem(Emulator *emulator) {
 
 void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
     if (address < RAM_MIRROR_END) {
-        mem->ram[address % RAM_SIZE] = value; // Handle RAM mirroring
+        mem->ram[address & 0x07FF] = value; // Handle RAM mirroring
         return;
     }
 
     if (address < PPU_MIRROR_END) {
-        address = RAM_MIRROR_END + (address - RAM_MIRROR_END) % PPU_REGISTER_SIZE; // Handle PPU register mirroring
+        address = (address & 0x0007) + 0x2000;
         PPU *ppu = &mem->emulator->ppu;
 
         switch (address) {
@@ -71,11 +71,11 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
 
 uint8_t mem_read_8(MEM *mem, uint16_t address) {
     if (address < RAM_MIRROR_END) {
-        return mem->ram[address % RAM_SIZE];
+        return mem->ram[address & 0x07FF];
     }
 
     if (address < PPU_MIRROR_END) {
-        address = RAM_MIRROR_END + (address - RAM_MIRROR_END) % PPU_REGISTER_SIZE; // Handle PPU register mirroring
+        address = (address & 0x0007) + 0x2000;
         PPU *ppu = &mem->emulator->ppu;
 
         switch (address) {
@@ -146,11 +146,11 @@ uint16_t pop_stack_16(CPU *cpu) {
 
 uint8_t mem_const_read_8(const MEM *mem, uint16_t address) {
     if (address < RAM_MIRROR_END) {
-        return mem->ram[address % RAM_SIZE];
+        return mem->ram[address & 0x07FF];
     }
 
     if (address < PPU_MIRROR_END) {
-        address = RAM_MIRROR_END + (address - RAM_MIRROR_END) % PPU_REGISTER_SIZE; // Handle PPU register mirroring
+        address = (address & 0x0007) + 0x2000;
         const PPU *ppu = &mem->emulator->ppu;
 
         switch (address) {

@@ -7,6 +7,7 @@ static void increment_scroll_x(PPU *ppu);
 static void increment_scroll_y(PPU *ppu);
 static void reload_scroll_x(PPU *ppu);
 static void reload_scroll_y(PPU *ppu);
+uint16_t calculate_vram_index(Mapper *mapper, uint16_t address);
 
 
 
@@ -127,11 +128,19 @@ void ppu_write_vram_data(PPU *ppu, uint8_t value) {
 
     // Writing to VRAM
     else if (address < 0x3F00) { // Writing to nametable
-        uint16_t mirrored_address = mapper_mirror_nametable_address(mapper, address);
-        ppu->vram[mirrored_address] = value;
+        uint16_t vram_index = calculate_vram_index(mapper, address);
+        // Todo: handle 0x3000 to 0x3F00 region
+
+        Emulator *emulator = ppu->emulator;
+        if (emulator->cur_frame) {
+            //printf("Writing value %02X to address %04X, (nametable index: %04X).  CPU CYC: %lu, FRAME: %u\n",
+             //   value, address, vram_index, emulator->cpu.total_cycles, emulator->cur_frame);
+        }
+
+        ppu->vram[vram_index] = value;
     }
 
-    // Writing to Palette
+    // Writing to namet
     else if (address < 0x4000) {
         address = address & 0x1F;
         ppu->palette[address] = value;
@@ -161,8 +170,8 @@ uint8_t ppu_read_vram_data(PPU *ppu) {
 
     // Reading from VRAM (Nametables)
     else if (address < 0x3F00) {
-        address = mapper_mirror_nametable_address(mapper, address);
-        ppu->data_read_buffer = ppu->vram[address];
+        uint16_t vram_index = calculate_vram_index(mapper, address);
+        ppu->data_read_buffer = ppu->vram[vram_index];
     }
 
     // Reading from Palette
@@ -189,8 +198,8 @@ uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address) {
 
     // Reading from VRAM (Nametables)
     if (address < 0x3F00) {
-        address = mapper_mirror_nametable_address(mapper, address);
-        return ppu->vram[address];
+        uint16_t vram_index = calculate_vram_index(mapper, address);
+        return ppu->vram[vram_index];
     }
 
     // Reading from Palette
@@ -251,4 +260,16 @@ static void reload_scroll_y(PPU *ppu) {
     ppu->vram_addr.fine_y = ppu->temp_addr.fine_y;
     ppu->vram_addr.nametable_y = ppu->temp_addr.nametable_y;
     ppu->vram_addr.coarse_y = ppu->temp_addr.coarse_y;
+}
+
+
+uint16_t calculate_vram_index(Mapper *mapper, uint16_t address) {
+    if (address < 0x2000 || address > 0x2FFF) return 0;
+
+    int nametable_index = (address - 0x2000) / 0x0400;
+    uint16_t base_address = mapper->nametable_map[nametable_index];
+    uint16_t offset = (address - 0x2000) % 0x03FF;
+    uint16_t vram_index = base_address + offset;
+
+    return vram_index;
 }

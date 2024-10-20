@@ -45,6 +45,11 @@ void emulator_init(Emulator *emulator, uint8_t *rom);
  */
 void emulator_run(Emulator *emulator);
 
+#ifndef RISC_V
+void emulator_handle_sdl(Emulator *emulator);
+#endif
+
+
 /*
  * This function tests the CPU using the `tests/nestest.nes` rom.
  *

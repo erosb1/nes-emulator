@@ -276,9 +276,17 @@ void debug_draw_screen(const Emulator *emulator) {
 
     uint16_t nametable_base_address_1 = 0x2000;
     uint16_t nametable_base_address_2 = 0x2400;
-    if (mapper->mirroring == HORIZONTAL)
+    if (mapper->mirroring == VERTICAL)
         nametable_base_address_2 = 0x2800;
 
     draw_nametable(emulator, nametable_base_address_1, 0, 128);
     draw_nametable(emulator, nametable_base_address_2, 0, 368);
+}
+
+void debug_pause_screen(Emulator *emulator) {
+    while (1) {
+        sdl_draw_frame();
+        debug_draw_screen(emulator);
+        SDL_Delay(100);
+    }
 }
