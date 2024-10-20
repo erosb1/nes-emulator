@@ -23,7 +23,7 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
 
         switch (address) {
         case 0x2000: // PPU_CONTROL
-            ppu->control.reg = value;
+            ppu_set_ctrl(ppu, value);
             break;
         case 0x2001: // PPU_MASK
             ppu->mask.reg = value;
@@ -65,7 +65,7 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
         return;
     }
 
-    printf("Tried to write to illegal memory address: %ui", address);
+    printf("Tried to write to illegal memory address: %04X", address);
     exit(EXIT_FAILURE);
 }
 

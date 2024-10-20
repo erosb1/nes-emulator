@@ -770,8 +770,7 @@ void handle_interrupt(CPU *cpu){
     mem_push_stack_16(cpu, cpu->pc);
     mem_push_stack_8(cpu, cpu->sr);
     set_flag(cpu, INTERRUPT_MASK, TRUE);
-    cpu->pc = 0xC85F;
-    //cpu->pc = mem_read_16(mem, address);
+    cpu->pc = mem_read_16(mem, address);
     cpu->cycles += 7;
     cpu->pending_interrupt = NONE;
 }

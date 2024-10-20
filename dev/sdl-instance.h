@@ -77,5 +77,6 @@ typedef struct WindowRegion {
  * standards
  */
 void sdl_put_pixel_region(WindowRegion *window_region, int relative_x, int relative_y, uint32_t color);
+void sdl_put_pixel_nes_screen(int x, int y, uint32_t color);
 
 #endif

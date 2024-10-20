@@ -93,7 +93,6 @@ static iNES_Header read_iNES_header(const uint8_t *buffer) {
 static uint8_t nrom_read_prg(Mapper *mapper, uint16_t address) {
     if (mapper->prg_rom_size == 1) {
         // NROM-128: 16 KB PRG ROM mirrored at 0x8000-0xFFFF
-        uint16_t add = address % 0x4000;
         return mapper->prg_rom[address % 0x4000];
     }
     return mapper->prg_rom[address - 0x8000];

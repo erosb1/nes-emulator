@@ -168,3 +168,7 @@ void sdl_put_pixel_region(WindowRegion *window_region, int relative_x, int relat
         }
     }
 }
+
+void sdl_put_pixel_nes_screen(int x, int y, uint32_t color) {
+    sdl_put_pixel_region(&NES_SCREEN, x, y, color);
+}

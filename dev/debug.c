@@ -192,7 +192,7 @@ void debug_log_instruction(const CPU *cpu) {
         cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp, ppu->cur_scanline, ppu->cur_dot, cpu->total_cycles);
 
 
-    //printf(" Frame: %u", cpu->emulator->cur_frame);
+    printf(" Frame: %u", cpu->emulator->cur_frame);
 
     printf("\n");
 }
@@ -266,9 +266,9 @@ static void draw_nametable(const Emulator *emulator, uint16_t base_address, int 
 void debug_draw_screen(const Emulator *emulator) {
     const Mapper *mapper = &emulator->mapper;
 
-    for (int i = 0; i < NES_SCREEN_WIDTH; i++)
-        for (int j = 0; j < NES_SCREEN_HEIGHT; j++)
-            sdl_put_pixel_region(&NES_SCREEN, i, j, 0xFFFFFF);
+    //for (int i = 0; i < NES_SCREEN_WIDTH; i++)
+    //    for (int j = 0; j < NES_SCREEN_HEIGHT; j++)
+    //        sdl_put_pixel_region(&NES_SCREEN, i, j, 0xFFFFFF);
 
     draw_pattern_table(emulator, 0x0000, 0, 0);
     draw_pattern_table(emulator, 0x1000, 128, 0);
@@ -276,7 +276,7 @@ void debug_draw_screen(const Emulator *emulator) {
 
     uint16_t nametable_base_address_1 = 0x2000;
     uint16_t nametable_base_address_2 = 0x2400;
-    if (mapper->mirroring == VERTICAL)
+    if (mapper->mirroring == HORIZONTAL)
         nametable_base_address_2 = 0x2800;
 
     draw_nametable(emulator, nametable_base_address_1, 0, 128);

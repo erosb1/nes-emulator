@@ -104,7 +104,6 @@ typedef struct PPU {
     uint8_t oam_data;
     VRAM_ADDR_REGISTER vram_addr;
     VRAM_ADDR_REGISTER temp_addr;
-    uint8_t x;
     uint8_t write_latch;
     uint8_t data_read_buffer;
     uint8_t fine_x;
@@ -113,6 +112,17 @@ typedef struct PPU {
     size_t cur_scanline;
     size_t cur_dot;
     uint8_t frame_complete;
+
+    // Background rendering shifters
+    uint8_t next_tile_id;
+    uint8_t next_tile_attr;
+    uint8_t next_tile_lsb;
+    uint8_t next_tile_msb;
+    uint16_t shifter_pattern_lo;
+    uint16_t shifter_pattern_hi;
+    uint16_t shifter_attr_lo;
+    uint16_t shifter_attr_hi;
+
 
     // PPU memory
     Emulator *emulator;
@@ -124,6 +134,7 @@ void ppu_init(Emulator *emulator);
 void ppu_reset(PPU *ppu);
 void ppu_run_cycle(PPU *ppu);
 
+void ppu_set_ctrl(PPU *ppu, uint8_t value);
 uint8_t ppu_read_status(PPU *ppu);
 void ppu_set_scroll(PPU *ppu, uint8_t value);
 void ppu_set_vram_addr(PPU *ppu, uint8_t half_address);

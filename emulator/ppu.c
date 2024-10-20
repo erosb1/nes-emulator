@@ -7,7 +7,10 @@ static void increment_scroll_x(PPU *ppu);
 static void increment_scroll_y(PPU *ppu);
 static void reload_scroll_x(PPU *ppu);
 static void reload_scroll_y(PPU *ppu);
+static void load_shifters(PPU *ppu);
+static void update_shifters(PPU *ppu);
 uint16_t calculate_vram_index(Mapper *mapper, uint16_t address);
+static uint32_t get_color_from_palette(PPU *ppu, uint8_t palette, uint8_t pixel);
 
 
 
@@ -22,9 +25,13 @@ void ppu_reset(PPU *ppu) {
     ppu->control.reg = ppu->mask.reg = ppu->status.reg = 0x00;
     ppu->oam_addr = ppu->oam_data = 0x00;
     ppu->vram_addr.reg = ppu->temp_addr.reg = 0x0000;
-    ppu->x = ppu->write_latch = ppu->data_read_buffer = ppu->fine_x = 0x00;
+    ppu->write_latch = ppu->data_read_buffer = ppu->fine_x = 0x00;
     ppu->cur_scanline = ppu->cur_dot = 0;
     ppu->frame_complete = 0;
+    ppu->next_tile_id = ppu->next_tile_attr = 0x00;
+    ppu->next_tile_lsb = ppu->next_tile_msb = 0x00;
+    ppu->shifter_pattern_lo = ppu->shifter_attr_hi = 0x0000;
+    ppu->shifter_attr_lo = ppu->shifter_attr_hi = 0x0000;
     memset(ppu->vram, 0, sizeof(ppu->vram));
     memset(ppu->palette, 0, sizeof(ppu->palette));
 }
@@ -34,12 +41,47 @@ void ppu_run_cycle(PPU *ppu) {
 
     if (ppu->cur_scanline < 240) {
         // Visible scanlines (0-239)
-        if (1 <= ppu->cur_dot && ppu->cur_dot <= 256) {
-            // TODO: Render background and sprites for scanlines 0-239
-        } else if (ppu->cur_dot <= 320) {
-            // TODO: Sprite evaluation for next scanline
-        } else if (ppu->cur_dot <= 336) {
-            // TODO: Background tile fetching for next scanline
+        if (ppu->cur_dot == 0) {
+            // IDle
+        } else if (ppu->cur_dot <= 256 || (321 <= ppu->cur_dot && ppu->cur_dot <= 336)) {
+            update_shifters(ppu);
+
+            switch (ppu->cur_dot % 8) {
+            case 0:
+                load_shifters(ppu);
+                ppu->next_tile_id = ppu_const_read_vram_data(ppu, 0x2000 | (ppu->vram_addr.reg & 0xFFFF));
+                break;
+            case 2:
+                ppu->next_tile_attr = ppu_const_read_vram_data(ppu, 0x23C0 | (ppu->vram_addr.nametable_y << 11))
+                    | ppu->vram_addr.nametable_x << 10
+                    | ((ppu->vram_addr.coarse_y >> 2) << 3)
+                    | (ppu->vram_addr.coarse_x >> 2);
+                if (ppu->vram_addr.coarse_y & 0x02) ppu->next_tile_attr >>= 4;
+                if (ppu->vram_addr.coarse_x & 0x02) ppu->next_tile_attr >>= 2;
+                ppu->next_tile_attr &= 0x03;
+                break;
+            case 4:
+                ppu->next_tile_lsb = ppu_const_read_vram_data(ppu, (ppu->control.pattern_background << 12)
+                    + ((uint16_t) ppu->next_tile_id << 4)
+                    + (ppu->vram_addr.fine_y) + 0);
+                break;
+            case 6:
+                ppu->next_tile_msb = ppu_const_read_vram_data(ppu, (ppu->control.pattern_background << 12)
+                    + ((uint16_t) ppu->next_tile_id << 4)
+                    + (ppu->vram_addr.fine_y) + 8);
+                break;
+            case 7:
+                increment_scroll_x(ppu);
+                break;
+            }
+        }
+
+        if (ppu->cur_dot == 256) {
+            increment_scroll_y(ppu);
+        }
+
+        if (ppu->cur_dot == 257) {
+            reload_scroll_x(ppu);
         }
         // Dots 337-340 are idle, but PPU performs internal operations
     } else if (ppu->cur_scanline == 240) {
@@ -61,11 +103,32 @@ void ppu_run_cycle(PPU *ppu) {
             ppu->status.vblank = FALSE;
             ppu->status.sprite_zero_hit = FALSE;
         }
+        if (280 <= ppu->cur_dot && ppu->cur_dot < 305) {
+            reload_scroll_y(ppu);
+        }
         // Skip a cycle on odd frames (NTSC only)
         if (ppu->cur_dot == 339 && ppu->emulator->cur_frame % 2 == 1) {
             ppu->cur_dot++;
         }
     }
+
+    uint8_t bg_pixel = 0x00;
+    uint8_t bg_palette = 0x00;
+
+    if (ppu->mask.render_background) {
+        uint16_t bit_mux = 0x8000 >> ppu->fine_x;
+
+        uint8_t p0_pixel = (ppu->shifter_pattern_lo & bit_mux) > 0;
+        uint8_t p1_pixel = (ppu->shifter_pattern_hi & bit_mux) > 0;
+        bg_pixel = (p1_pixel << 1) | p0_pixel;
+
+        uint8_t pal0 = (ppu->shifter_attr_lo & bit_mux) > 0;
+        uint8_t pal1 = (ppu->shifter_attr_hi & bit_mux) > 0;
+        bg_palette = (pal1 << 1) | pal0;
+    }
+
+    uint32_t color = get_color_from_palette(ppu, bg_palette, bg_pixel);
+    sdl_put_pixel_nes_screen(ppu->cur_dot, ppu->cur_scanline, color);
 
     // Advance dot and scanline counters
     ppu->cur_dot++;
@@ -79,6 +142,11 @@ void ppu_run_cycle(PPU *ppu) {
     }
 }
 
+void ppu_set_ctrl(PPU *ppu, uint8_t value) {
+    ppu->control.reg = value;
+    ppu->temp_addr.nametable_x = ppu->control.nametable_x;
+    ppu->temp_addr.nametable_y = ppu->control.nametable_y;
+}
 
 uint8_t ppu_read_status(PPU *ppu) {
     uint8_t status = ppu->status.reg;
@@ -130,13 +198,6 @@ void ppu_write_vram_data(PPU *ppu, uint8_t value) {
     else if (address < 0x3F00) { // Writing to nametable
         uint16_t vram_index = calculate_vram_index(mapper, address);
         // Todo: handle 0x3000 to 0x3F00 region
-
-        Emulator *emulator = ppu->emulator;
-        if (emulator->cur_frame) {
-            //printf("Writing value %02X to address %04X, (nametable index: %04X).  CPU CYC: %lu, FRAME: %u\n",
-             //   value, address, vram_index, emulator->cpu.total_cycles, emulator->cur_frame);
-        }
-
         ppu->vram[vram_index] = value;
     }
 
@@ -262,6 +323,21 @@ static void reload_scroll_y(PPU *ppu) {
     ppu->vram_addr.coarse_y = ppu->temp_addr.coarse_y;
 }
 
+static void load_shifters(PPU *ppu) {
+    ppu->shifter_pattern_lo = (ppu->shifter_pattern_lo & 0xFF00) | ppu->next_tile_lsb;
+    ppu->shifter_pattern_hi = (ppu->shifter_pattern_hi & 0xFF00) | ppu->next_tile_msb;
+    ppu->shifter_attr_lo = (ppu->shifter_attr_lo & 0xFF00) | ((ppu->next_tile_attr & 0b01) ? 0xFF : 0x00);
+    ppu->shifter_attr_hi = (ppu->shifter_attr_hi & 0xFF00) | ((ppu->next_tile_attr & 0b10) ? 0xFF : 0x00);
+}
+
+static void update_shifters(PPU *ppu) {
+    if (ppu->mask.render_background) {
+        ppu->shifter_pattern_lo <<= 1;
+        ppu->shifter_pattern_hi <<= 1;
+        ppu->shifter_attr_lo <<= 1;
+        ppu->shifter_attr_hi <<= 1;
+    }
+}
 
 uint16_t calculate_vram_index(Mapper *mapper, uint16_t address) {
     if (address < 0x2000 || address > 0x2FFF) return 0;
@@ -272,4 +348,9 @@ uint16_t calculate_vram_index(Mapper *mapper, uint16_t address) {
     uint16_t vram_index = base_address + offset;
 
     return vram_index;
+}
+
+uint32_t get_color_from_palette(PPU *ppu, uint8_t palette, uint8_t pixel) {
+    uint32_t index = ppu_const_read_vram_data(ppu, (0x3F00 + (palette << 2) + pixel) & 0x3F);
+    return nes_palette_rgb[index];
 }
