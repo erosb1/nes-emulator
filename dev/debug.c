@@ -189,7 +189,7 @@ void debug_log_instruction(const CPU *cpu) {
 
     // Print the state of the CPU before the instruction is executed
     printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3li,%3li CYC:%lu",
-        cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp, ppu->cur_scanline, ppu->cur_dot, cpu->cur_cycle);
+        cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp, ppu->cur_scanline, ppu->cur_dot, cpu->total_cycles);
 
 
     //printf(" Frame: %u", cpu->emulator->cur_frame);

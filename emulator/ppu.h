@@ -112,6 +112,7 @@ typedef struct PPU {
     // Rendering State
     size_t cur_scanline;
     size_t cur_dot;
+    uint8_t frame_complete;
 
     // PPU memory
     Emulator *emulator;

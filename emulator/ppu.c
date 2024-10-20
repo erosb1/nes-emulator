@@ -23,9 +23,11 @@ void ppu_reset(PPU *ppu) {
     ppu->vram_addr.reg = ppu->temp_addr.reg = 0x0000;
     ppu->x = ppu->write_latch = ppu->data_read_buffer = ppu->fine_x = 0x00;
     ppu->cur_scanline = ppu->cur_dot = 0;
+    ppu->frame_complete = 0;
     memset(ppu->vram, 0, sizeof(ppu->vram));
     memset(ppu->palette, 0, sizeof(ppu->palette));
 }
+
 void ppu_run_cycle(PPU *ppu) {
     CPU *cpu = &ppu->emulator->cpu;
 
@@ -71,6 +73,7 @@ void ppu_run_cycle(PPU *ppu) {
         ppu->cur_scanline++;
         if (ppu->cur_scanline >= 262) {
             ppu->cur_scanline = 0;
+            ppu->frame_complete = 1;
         }
     }
 }

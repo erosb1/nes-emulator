@@ -35,7 +35,8 @@ typedef struct CPU {
     uint8_t y;        // y register
     uint8_t sr;       // status register [NV-BDIZC]
     uint8_t sp;       // stack pointer (wraps)
-    size_t cur_cycle;
+    size_t total_cycles;
+    size_t cycles;
     Interrupt pending_interrupt;
 
     // References to other devices
@@ -45,7 +46,7 @@ typedef struct CPU {
 } CPU;
 
 void cpu_init(Emulator *emulator);
-void cpu_run_instruction(CPU *cpu);
+void cpu_run_cycle(CPU *cpu);
 void cpu_set_interrupt(CPU *cpu, Interrupt interrupt);
 
 #undef CPU_MEM_SIZE

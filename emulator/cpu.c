@@ -18,7 +18,9 @@
 static int get_flag(CPU *cpu, CPUFlag flag);
 static void set_flag(CPU *cpu, CPUFlag flag, int value);
 static void set_ZN_flags(CPU *cpu, uint8_t value);
+static int crosses_page_borders(uint16_t address_1, uint16_t address_2);
 static void branch_if(CPU *cpu, int predicate);
+static void execute_instruction(CPU *cpu, Instruction instruction);
 static void set_address(CPU *cpu, Instruction instruction);
 static void handle_interrupt(CPU *cpu);
 
@@ -29,7 +31,8 @@ void cpu_init(Emulator *emulator) {
     cpu->emulator = emulator;
 
     cpu->ac = cpu->x = cpu->y = 0x00;
-    cpu->cur_cycle = 0;
+    cpu->total_cycles = 0;
+    cpu->cycles = 0;
     cpu->sr = SR_INIT_VALUE;
     cpu->sp = SP_INIT_VALUE;
     cpu->pending_interrupt = NONE;
@@ -39,21 +42,78 @@ void cpu_init(Emulator *emulator) {
 }
 
 
-void cpu_run_instruction(CPU *cpu) {
-    if (cpu->pending_interrupt != NONE) {
-        handle_interrupt(cpu);
-    }
+void cpu_run_cycle(CPU *cpu) {
+    MEM *mem = &cpu->emulator->mem;
 
+    if (cpu->cycles == 0) {
 #ifndef RISC_V
-    if (cpu->is_logging) debug_log_instruction(cpu);
+        if (cpu->is_logging) debug_log_instruction(cpu);
 #endif // RISC_V
 
-    MEM *mem = &cpu->emulator->mem;
-    uint8_t byte = mem_read_8(mem, cpu->pc++);
-    Instruction instruction = instruction_lookup[byte];
-    set_address(cpu, instruction);
+        uint8_t byte = mem_read_8(mem, cpu->pc++);
+        cpu->cycles += cycle_lookup[byte];
+        set_flag(cpu, UNUSED_MASK, TRUE);
+        Instruction instruction = instruction_lookup[byte];
+        set_address(cpu, instruction); // might add 1 cycle
+        execute_instruction(cpu, instruction); // might add 1 cycle
 
-    cpu->cur_cycle += cycle_lookup[byte];
+        if (cpu->pending_interrupt != NONE) {
+            handle_interrupt(cpu); // might add 7 cycles
+        }
+
+        cpu->total_cycles += cpu->cycles;
+    }
+
+    cpu->cycles--;
+}
+
+void cpu_set_interrupt(CPU *cpu, Interrupt interrupt) {
+    cpu->pending_interrupt = interrupt;
+}
+
+
+
+// --------------- STATIC FUNCTIONS --------------------------- //
+static int get_flag(CPU *cpu, CPUFlag flag) { return (cpu->sr & flag) ? 1 : 0; }
+
+static void set_flag(CPU *cpu, CPUFlag flag, int value) {
+    if (value) {
+        cpu->sr |= flag;
+    } else {
+        cpu->sr &= ~flag;
+    }
+}
+
+// This is a helper function that sets the Z and N flags depending on the
+// `value` integer. If value == 0 then Z is set If bit 7 in value is set then N
+// is set (indicating a negative number)
+static void set_ZN_flags(CPU *cpu, uint8_t value) {
+    set_flag(cpu, ZERO_MASK, value == 0);
+    set_flag(cpu, NEGATIVE_MASK, value & 0x80);
+}
+
+int crosses_page_borders(uint16_t address_1, uint16_t address_2){
+    return (address_1 & 0xFF00) != (address_2 & 0xFF00);
+}
+
+// This function branches if predicate is 1, and doesn't branch if it's 0
+// It also correctly updates the cur_cycle counter depending on if we crossed
+// page borders or not
+static void branch_if(CPU *cpu, int predicate) {
+    if (predicate) {
+        cpu->cycles++;
+
+        // Add an extra cycle if the branch crosses a page boundary
+        if (crosses_page_borders(cpu->pc, cpu->address)) {
+            cpu->cycles++;
+        }
+
+        cpu->pc = cpu->address;
+    }
+}
+
+void execute_instruction(CPU *cpu, Instruction instruction) {
+    MEM *mem = &cpu->emulator->mem;
 
     switch (instruction.opcode) {
     case ADC: {
@@ -535,49 +595,7 @@ void cpu_run_instruction(CPU *cpu) {
         // todo: implement JAM
         exit(EXIT_FAILURE);
         break;
-    }
-    }
-}
-
-void cpu_set_interrupt(CPU *cpu, Interrupt interrupt) {
-    cpu->pending_interrupt = interrupt;
-}
-
-
-
-// --------------- STATIC FUNCTIONS --------------------------- //
-static int get_flag(CPU *cpu, CPUFlag flag) { return (cpu->sr & flag) ? 1 : 0; }
-
-static void set_flag(CPU *cpu, CPUFlag flag, int value) {
-    if (value) {
-        cpu->sr |= flag;
-    } else {
-        cpu->sr &= ~flag;
-    }
-}
-
-// This is a helper function that sets the Z and N flags depending on the
-// `value` integer. If value == 0 then Z is set If bit 7 in value is set then N
-// is set (indicating a negative number)
-static void set_ZN_flags(CPU *cpu, uint8_t value) {
-    set_flag(cpu, ZERO_MASK, value == 0);
-    set_flag(cpu, NEGATIVE_MASK, value & 0x80);
-}
-
-// This function branches if predicate is 1, and doesn't branch if it's 0
-// It also correctly updates the cur_cycle counter depending on if we crossed
-// page borders or not
-static void branch_if(CPU *cpu, int predicate) {
-    if (predicate) {
-        cpu->cur_cycle++;
-
-        // Add an extra cycle if the branch crosses a page boundary
-        if ((cpu->address & 0xFF00) != (cpu->pc & 0xFF00)) {
-            cpu->cur_cycle++;
-        }
-
-        cpu->pc = cpu->address;
-    }
+    }}
 }
 
 // This function sets up the cpu->address variable depending on the addressing
@@ -618,7 +636,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
             case DCP:
             case ISB:
             case SHY: break;
-            default: cpu->cur_cycle++;
+            default: cpu->cycles++;
             }
         }
         break;
@@ -640,7 +658,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
             case DCP:
             case ISB:
             case NOP: break;
-            default: cpu->cur_cycle++;
+            default: cpu->cycles++;
             }
         }
         break;
@@ -686,7 +704,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
             case DCP:
             case ISB:
             case NOP: break;
-            default: cpu->cur_cycle++;
+            default: cpu->cycles++;
             }
         }
         break;
@@ -752,6 +770,6 @@ void handle_interrupt(CPU *cpu){
     mem_push_stack_8(cpu, cpu->sr);
     set_flag(cpu, INTERRUPT_MASK, TRUE);
     cpu->pc = mem_read_16(mem, address);
-    cpu->cur_cycle += 7;
+    cpu->cycles += 7;
     cpu->pending_interrupt = NONE;
 }
