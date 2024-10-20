@@ -55,12 +55,6 @@ void cpu_run_instruction(CPU *cpu) {
 
     cpu->cur_cycle += cycle_lookup[byte];
 
-    if (cpu->pc < 0x8000) {
-        printf("Error: cannot execute code at %04X", cpu->pc);
-        debug_log_instruction(cpu);
-        exit(EXIT_FAILURE);
-    }
-
     switch (instruction.opcode) {
     case ADC: {
         uint16_t A = cpu->ac;

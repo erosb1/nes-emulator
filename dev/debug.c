@@ -28,7 +28,7 @@ static int is_illegal(uint8_t byte) {
  *  without actually updating the internal values of the cpu
  */
 static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
-    MEM *mem = &cpu->emulator->mem;
+    const MEM *mem = &cpu->emulator->mem;
     uint8_t byte1 = mem_const_read_8(mem, cpu->pc + 1);
     uint8_t byte2 = mem_const_read_8(mem, cpu->pc + 2);
     size_t cur_column_width = 0;
@@ -155,6 +155,7 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
 
 void debug_log_instruction(const CPU *cpu) {
     const MEM *mem = &cpu->emulator->mem;
+    const PPU *ppu = &cpu->emulator->ppu;
     uint8_t byte0 = mem_const_read_8(mem, cpu->pc);
     uint8_t byte1 = mem_const_read_8(mem, cpu->pc + 1);
     uint8_t byte2 = mem_const_read_8(mem, cpu->pc + 2);
@@ -187,10 +188,13 @@ void debug_log_instruction(const CPU *cpu) {
     log_address_mode_info(cpu, instruction);
 
     // Print the state of the CPU before the instruction is executed
-    printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu", cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp, cpu->cur_cycle);
+    printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3li,%3li CYC:%lu",
+        cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp, ppu->cur_scanline, ppu->cur_dot, cpu->cur_cycle);
 
 
-    printf(" Frame: %u\n", cpu->emulator->cur_frame);
+    //printf(" Frame: %u", cpu->emulator->cur_frame);
+
+    printf("\n");
 }
 
 static uint32_t get_color(uint8_t color_index) {

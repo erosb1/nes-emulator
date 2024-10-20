@@ -72,9 +72,11 @@ void emulator_run(Emulator *emulator) {
 void emulator_nestest(Emulator *emulator) {
     emulator->cpu.is_logging = 1;
     CPU *cpu = &emulator->cpu;
+    PPU *ppu = &emulator->ppu;
     cpu->cur_cycle = NESTEST_START_CYCLE;
     MEM *mem = &emulator->mem;
     cpu->pc = 0xC000;
+    ppu->cur_dot = 21;
 
     // These APU registers needs to be set to 0xFF at the start in order for
     // nestest to complete
@@ -85,7 +87,14 @@ void emulator_nestest(Emulator *emulator) {
     mem_write_8(mem, 0x4015, 0xFF);
 
     while (cpu->cur_cycle <= NESTEST_MAX_CYCLES) {
+        size_t cycle_before = cpu->cur_cycle;
+
         cpu_run_instruction(cpu);
+        size_t cpu_instruction_cycle_count = cpu->cur_cycle - cycle_before;
+
+        for (int i = 0; i < cpu_instruction_cycle_count * 3; i++) {
+            ppu_run_cycle(ppu);
+        }
     }
 }
 
