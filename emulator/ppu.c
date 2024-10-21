@@ -39,23 +39,30 @@ void ppu_reset(PPU *ppu) {
 void ppu_run_cycle(PPU *ppu) {
     CPU *cpu = &ppu->emulator->cpu;
 
+    if (ppu->emulator->cur_frame == 6 && ppu->cur_scanline == 33 && ppu->cur_dot == 1) {
+        int x = 0;
+    }
+
     if (ppu->cur_scanline < 240) {
         // Visible scanlines (0-239)
         if (ppu->cur_dot == 0) {
             // IDle
-        } else if (ppu->cur_dot <= 256 || (321 <= ppu->cur_dot && ppu->cur_dot <= 336)) {
+        } else if ((2 <= ppu->cur_dot && ppu->cur_dot < 258) || (321 <= ppu->cur_dot && ppu->cur_dot < 338)) {
             update_shifters(ppu);
 
-            switch (ppu->cur_dot % 8) {
+            switch ((ppu->cur_dot - 1) % 8) {
             case 0:
                 load_shifters(ppu);
-                ppu->next_tile_id = ppu_const_read_vram_data(ppu, 0x2000 | (ppu->vram_addr.reg & 0xFFFF));
+                ppu->next_tile_id = ppu_const_read_vram_data(ppu, 0x2000 | (ppu->vram_addr.reg & 0x0FFF));
+                if (ppu->next_tile_id != 32) {
+                    int x = 0;
+                }
                 break;
             case 2:
-                ppu->next_tile_attr = ppu_const_read_vram_data(ppu, 0x23C0 | (ppu->vram_addr.nametable_y << 11))
+                ppu->next_tile_attr = ppu_const_read_vram_data(ppu, 0x23C0 | (ppu->vram_addr.nametable_y << 11)
                     | ppu->vram_addr.nametable_x << 10
                     | ((ppu->vram_addr.coarse_y >> 2) << 3)
-                    | (ppu->vram_addr.coarse_x >> 2);
+                    | (ppu->vram_addr.coarse_x >> 2));
                 if (ppu->vram_addr.coarse_y & 0x02) ppu->next_tile_attr >>= 4;
                 if (ppu->vram_addr.coarse_x & 0x02) ppu->next_tile_attr >>= 2;
                 ppu->next_tile_attr &= 0x03;
@@ -81,8 +88,12 @@ void ppu_run_cycle(PPU *ppu) {
         }
 
         if (ppu->cur_dot == 257) {
+            load_shifters(ppu);
             reload_scroll_x(ppu);
         }
+
+
+
         // Dots 337-340 are idle, but PPU performs internal operations
     } else if (ppu->cur_scanline == 240) {
         // Post-render scanline (scanline 240)
@@ -351,6 +362,6 @@ uint16_t calculate_vram_index(Mapper *mapper, uint16_t address) {
 }
 
 uint32_t get_color_from_palette(PPU *ppu, uint8_t palette, uint8_t pixel) {
-    uint32_t index = ppu_const_read_vram_data(ppu, (0x3F00 + (palette << 2) + pixel) & 0x3F);
+    uint32_t index = ppu_const_read_vram_data(ppu, (0x3F00 + (palette << 2) + pixel)) & 0x3F;
     return nes_palette_rgb[index];
 }
