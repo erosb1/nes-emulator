@@ -80,46 +80,46 @@ void sdl_draw_frame() {
 }
 
 enum {
-    NES_A_BUTTON = 1 << 0,
-    NES_B_BUTTON = 1 << 1,
-    NES_SELECT_BUTTON = 1 << 2,
-    NES_START_BUTTON = 1 << 3,
-    NES_DPAD_UP = 1 << 4,
-    NES_DPAD_DOWN = 1 << 5,
-    NES_DPAD_LEFT = 1 << 6,
-    NES_DPAD_RIGHT = 1 << 7,
+    NES_DPAD_RIGHT = 1 << 0,
+    NES_DPAD_LEFT = 1 << 1,
+    NES_DPAD_DOWN = 1 << 2,
+    NES_DPAD_UP = 1 << 3,
+    NES_START_BUTTON = 1 << 4,
+    NES_SELECT_BUTTON = 1 << 5,
+    NES_B_BUTTON = 1 << 6,
+    NES_A_BUTTON = 1 << 7,
 };
 
 uint8_t sdl_poll_events() {
     SDL_Event sdl_event;
-    uint32_t event = 0;
+    uint8_t event = 0;
 
-    while (SDL_PollEvent(&sdl_event)) {
-        const Uint8 *state = SDL_GetKeyboardState(NULL);
-        if (state[SDL_SCANCODE_X]) {
-            event |= NES_A_BUTTON;
-        }
-        if (state[SDL_SCANCODE_Z]) {
-            event |= NES_B_BUTTON;
-        }
-        if (state[SDL_SCANCODE_RSHIFT]) {
-            event |= NES_SELECT_BUTTON;
-        }
-        if (state[SDL_SCANCODE_RETURN]) {
-            event |= NES_START_BUTTON;
-        }
-        if (state[SDL_SCANCODE_UP]) {
-            event |= NES_DPAD_UP;
-        }
-        if (state[SDL_SCANCODE_DOWN]) {
-            event |= NES_DPAD_DOWN;
-        }
-        if (state[SDL_SCANCODE_LEFT]) {
-            event |= NES_DPAD_LEFT;
-        }
-        if (state[SDL_SCANCODE_RIGHT]) {
-            event |= NES_DPAD_RIGHT;
-        }
+    while (SDL_PollEvent(&sdl_event)) {}
+
+    const uint8_t *state = SDL_GetKeyboardState(NULL);
+    if (state[SDL_SCANCODE_X]) {
+        event |= NES_A_BUTTON;
+    }
+    if (state[SDL_SCANCODE_Z]) {
+        event |= NES_B_BUTTON;
+    }
+    if (state[SDL_SCANCODE_RSHIFT]) {
+        event |= NES_SELECT_BUTTON;
+    }
+    if (state[SDL_SCANCODE_RETURN]) {
+        event |= NES_START_BUTTON;
+    }
+    if (state[SDL_SCANCODE_UP]) {
+        event |= NES_DPAD_UP;
+    }
+    if (state[SDL_SCANCODE_DOWN]) {
+        event |= NES_DPAD_DOWN;
+    }
+    if (state[SDL_SCANCODE_LEFT]) {
+        event |= NES_DPAD_LEFT;
+    }
+    if (state[SDL_SCANCODE_RIGHT]) {
+        event |= NES_DPAD_RIGHT;
     }
 
     return event;

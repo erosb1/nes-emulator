@@ -35,6 +35,9 @@ typedef struct MEM {
     uint8_t apu_io_reg[APU_IO_REGISTER_SIZE];
     uint8_t cartridge_ram[PRG_RAM_SIZE];
     // PRG_ROM is accessed through the mapper
+
+    uint8_t controller_shift_register;
+
     Emulator *emulator;
 } MEM;
 

@@ -8,7 +8,10 @@ void init_cpu_mem(Emulator *emulator) {
     MEM *mem = &emulator->mem;
     mem->emulator = emulator;
 
+    mem->controller_shift_register = 0;
+
     memset(mem->ram, 0, sizeof(mem->ram));
+    memset(mem->cartridge_ram, 0, sizeof(mem->cartridge_ram));
 }
 
 void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
@@ -53,6 +56,8 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
 #ifdef RISC_V
             // set latch pin
             set_pin(LATCH_PIN_MASK, value & 1);
+#else
+            mem->controller_shift_register = sdl_poll_events();
 #endif
             break;
         }
@@ -98,6 +103,10 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
             // pulse clock pin
             input_clock_pulse();
             return get_pin(DATA_PIN_MASK);
+#else
+            uint8_t data = (mem->controller_shift_register & 0x80) > 0;
+            mem->controller_shift_register <<= 1;
+            return data;
 #endif
             break;
         }

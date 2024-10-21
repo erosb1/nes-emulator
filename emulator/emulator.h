@@ -21,6 +21,7 @@ typedef struct Emulator {
     PPU ppu;
     MEM mem;
     Mapper mapper;
+    uint8_t controller_input; // Shift register
 
     // State
     int is_running;

@@ -58,6 +58,8 @@ void emulator_run(Emulator *emulator) {
 
 #ifndef RISC_V
 void emulator_handle_sdl(Emulator *emulator) {
+    //emulator->controller_input = sdl_poll_events();
+
     sdl_draw_frame();
     if (sdl_window_quit())
         emulator->is_running = FALSE;
