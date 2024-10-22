@@ -166,10 +166,19 @@ void debug_log_instruction(const CPU *cpu) {
 
     // Print the bytes of the current instruction, for example: 4C F5 C5
     switch (instruction.address_mode) {
-    case IMM: case ZP0: case ZPX: case ZPY:case XIN:case YIN: case REL: // Instruction is 2 bytes long
+    case IMM:
+    case ZP0:
+    case ZPX:
+    case ZPY:
+    case XIN:
+    case YIN:
+    case REL: // Instruction is 2 bytes long
         printf("%02X %02X    ", byte0, byte1);
         break;
-    case ABS: case ABX:case ABY:case IND: // Instruction is 3 bytes long
+    case ABS:
+    case ABX:
+    case ABY:
+    case IND: // Instruction is 3 bytes long
         printf("%02X %02X %02X ", byte0, byte1, byte2);
         break;
     default: // Instruction is 1 byte long
@@ -188,12 +197,48 @@ void debug_log_instruction(const CPU *cpu) {
     log_address_mode_info(cpu, instruction);
 
     // Print the state of the CPU before the instruction is executed
-    printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3li,%3li CYC:%lu",
-        cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp, ppu->cur_scanline, ppu->cur_dot, cpu->total_cycles);
-
+    printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3li,%3li CYC:%lu", cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp,
+           ppu->cur_scanline, ppu->cur_dot, cpu->total_cycles);
 
     printf(" Frame: %u", cpu->emulator->cur_frame);
 
+    printf("\n");
+}
+
+void debug_memory_dump(const MEM *mem, uint16_t start, uint16_t len) {
+    for (int i = 0; i < len; i++) {
+        if (i % 8 == 0) {
+            printf("$%04X: ", start + i);
+        }
+
+        uint8_t data = mem_const_read_8(mem, start + i);
+        printf("%02X ", data);
+
+        if (i % 8 == 7)
+            printf("\n");
+    }
+    printf("\n");
+}
+
+void debug_memory_dump_ascii(const MEM *mem, uint16_t start, uint16_t len) {
+    for (int i = 0; i < len; i++) {
+        if (i % 8 == 0) {
+            printf("$%04X: ", start + i);
+        }
+
+        uint8_t data = mem_const_read_8(mem, start + i);
+
+        if (data == '\n') {
+            printf(" ");
+        } else if (data < 128) {
+            printf("%c", data);
+        } else {
+            printf(" ");
+        }
+
+        if (i % 8 == 7)
+            printf("\n");
+    }
     printf("\n");
 }
 

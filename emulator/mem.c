@@ -67,6 +67,9 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
 
     if (address < PRG_RAM_END) {
         mem->cartridge_ram[address - APU_IO_REGISTER_END] = value;
+        if (address >= 0x6000) {
+            //printf("Writing %c to addr: %04X\n", value, address);
+        }
         return;
     }
 
@@ -108,7 +111,6 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
             mem->controller_shift_register <<= 1;
             return data;
 #endif
-            break;
         }
         return mem->apu_io_reg[address - PPU_MIRROR_END];
     }

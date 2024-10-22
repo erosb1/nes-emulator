@@ -20,6 +20,10 @@ static void set_flag(CPU *cpu, CPUFlag flag, int value);
 static void set_ZN_flags(CPU *cpu, uint8_t value);
 static int crosses_page_borders(uint16_t address_1, uint16_t address_2);
 static void branch_if(CPU *cpu, int predicate);
+static uint8_t shift_left(CPU *cpu, uint8_t val);
+static uint8_t shift_right(CPU *cpu, uint8_t val);
+static uint8_t rotate_left(CPU *cpu, uint8_t val);
+static uint8_t rotate_right(CPU *cpu, uint8_t val);
 static void execute_instruction(CPU *cpu, Instruction instruction);
 static void set_address(CPU *cpu, Instruction instruction);
 static void handle_interrupt(CPU *cpu);
@@ -96,6 +100,36 @@ int crosses_page_borders(uint16_t address_1, uint16_t address_2){
     return (address_1 & 0xFF00) != (address_2 & 0xFF00);
 }
 
+uint8_t shift_left(CPU *cpu, uint8_t val){
+    set_flag(cpu, CARRY_MASK, val & 0x80);
+    val <<= 1;
+    set_ZN_flags(cpu, val);
+    return val;
+}
+
+uint8_t shift_right(CPU *cpu, uint8_t val){
+    set_flag(cpu, CARRY_MASK, val & 0x01);
+    val >>= 1;
+    set_ZN_flags(cpu, val);
+    return val;
+}
+
+uint8_t rotate_left(CPU *cpu, uint8_t val) {
+    uint8_t rotated = val << 1;
+    rotated |= cpu->sr & CARRY_MASK;
+    set_flag(cpu, CARRY_MASK, val & 0x80);
+    set_ZN_flags(cpu, rotated);
+    return rotated;
+}
+
+uint8_t rotate_right(CPU *cpu, uint8_t val) {
+    uint8_t rotated = val >> 1;
+    rotated |= (cpu->sr & CARRY_MASK) << 7;
+    set_flag(cpu, CARRY_MASK, val & 0x01);
+    set_ZN_flags(cpu, rotated);
+    return rotated;
+}
+
 // This function branches if predicate is 1, and doesn't branch if it's 0
 // It also correctly updates the cur_cycle counter depending on if we crossed
 // page borders or not
@@ -132,15 +166,13 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         break;
     }
     case ASL: {
-        uint8_t m = mem_read_8(mem, cpu->address);
-        set_flag(cpu, CARRY_MASK, m & 0x80);
-        uint8_t shifted = m << 1;
-        set_ZN_flags(cpu, shifted);
-
-        if (instruction.address_mode == ACC)
-            cpu->ac = shifted;
-        else
-            mem_write_8(mem, cpu->address, shifted);
+        if (instruction.address_mode == ACC) {
+            cpu->ac = shift_left(cpu, cpu->ac);
+        } else {
+            uint8_t m = mem_read_8(mem, cpu->address);
+            mem_write_8(mem, cpu->address, m); // Dummy
+            mem_write_8(mem, cpu->address, shift_left(cpu, m));
+        }
         break;
     }
     case BCC: {
@@ -299,15 +331,12 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         break;
     }
     case LSR: {
-        uint8_t m = mem_read_8(mem, cpu->address);
-        set_flag(cpu, CARRY_MASK, m & 0x1);
-        uint8_t shifted = m >> 1;
-        set_ZN_flags(cpu, shifted);
-
-        if (instruction.address_mode == ACC) //
-            cpu->ac = shifted;
-        else
-            mem_write_8(mem, cpu->address, shifted);
+        if (instruction.address_mode == ACC)
+            cpu->ac = shift_right(cpu, cpu->ac);
+        else {
+            uint8_t m = mem_read_8(mem, cpu->address);
+            mem_write_8(mem, cpu->address, shift_right(cpu, m));
+        }
         break;
     }
     case NOP: {
@@ -343,27 +372,21 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         break;
     }
     case ROL: {
-        uint8_t m = mem_read_8(mem, cpu->address);
-        uint8_t rotated = (m << 1) | get_flag(cpu, CARRY_MASK);
-        set_flag(cpu, CARRY_MASK, m & 0x80);
-        set_ZN_flags(cpu, rotated);
-
         if (instruction.address_mode == ACC)
-            cpu->ac = rotated;
-        else
-            mem_write_8(mem, cpu->address, rotated);
+            cpu->ac = rotate_left(cpu, cpu->ac);
+        else {
+            uint8_t m = mem_read_8(mem, cpu->address);
+            mem_write_8(mem, cpu->address, rotate_left(cpu, m));
+        }
         break;
     }
     case ROR: {
-        uint8_t m = mem_read_8(mem, cpu->address);
-        uint8_t rotated = (get_flag(cpu, CARRY_MASK) << 7) | (m >> 1);
-        set_flag(cpu, CARRY_MASK, m & 0x1);
-        set_ZN_flags(cpu, rotated);
-
         if (instruction.address_mode == ACC)
-            cpu->ac = rotated;
-        else
-            mem_write_8(mem, cpu->address, rotated);
+            cpu->ac = rotate_right(cpu, cpu->ac);
+        else {
+            uint8_t m = mem_read_8(mem, cpu->address);
+            mem_write_8(mem, cpu->address, rotate_right(cpu, m));
+        }
         break;
     }
     case RTI: {
@@ -444,28 +467,37 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
 
         // Illegal opcodes
     case ALR: { // Illegal
-        // todo: implement ALR
-        exit(EXIT_FAILURE);
+        // Perform AND
+        cpu->ac &= mem_read_8(mem, cpu->address);
+        cpu->ac = shift_right(cpu, cpu->ac);
         break;
     }
     case ANC: { // Illegal
-        // todo: implement ANC
-        exit(EXIT_FAILURE);
+        // Perform AND
+        uint8_t m = mem_read_8(mem, cpu->address);
+        cpu->ac &= m;
+        set_ZN_flags(cpu, cpu->ac);
+        set_flag(cpu, CARRY_MASK, cpu->ac & 0x80);
         break;
     }
     case AN2: { // Illegal
         // todo: implement AN2
+        printf("AN2");
         exit(EXIT_FAILURE);
         break;
     }
     case ANE: { // Illegal
         // todo: implement ANE
+        printf("ANE");
         exit(EXIT_FAILURE);
         break;
     }
     case ARR: { // Illegal
-        // todo: implement ARR
-        exit(EXIT_FAILURE);
+        uint8_t x = cpu->ac & mem_read_8(mem, cpu->address);
+        uint8_t rotated = rotate_right(cpu, x);
+        set_flag(cpu, CARRY_MASK, rotated & 0x40);
+        set_flag(cpu, OVERFLOW_MASK, ((rotated & 0x40) >> 1) ^ (rotated & 0x20));
+        cpu->ac = rotated;
         break;
     }
     case DCP: { // Illegal
@@ -496,6 +528,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
 
     case LAS: { // Illegal
         // todo: implement LAS
+        printf("LAS");
         exit(EXIT_FAILURE);
         break;
     }
@@ -507,6 +540,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
     }
     case LXA: { // Illegal
         // todo: implement LXA
+        printf("LXA");
         exit(EXIT_FAILURE);
         break;
     }
@@ -541,23 +575,31 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         break;
     }
     case SBX: { // Illegal
-        // todo: implement SBX
-        exit(EXIT_FAILURE);
+        uint8_t operand = mem_read_8(mem, cpu->address);
+        uint16_t result = (cpu->ac & cpu->x) - operand;
+        cpu->x = result;
+        set_ZN_flags(cpu, cpu->x);
+        set_flag(cpu, CARRY_MASK, !(result & 0xFF00));
         break;
     }
     case SHA: { // Illegal
         // todo: implement SHA
+        printf("SHA");
         exit(EXIT_FAILURE);
         break;
     }
     case SHX: { // Illegal
-        // todo: implement SHX
-        exit(EXIT_FAILURE);
+        uint8_t hi = cpu->address >> 8;
+        uint8_t lo = cpu->address & 0xff;
+        uint8_t temp = cpu->x & (hi + 1);
+        mem_write_8(mem, (temp << 8 | lo), temp);
         break;
     }
     case SHY: { // Illegal
-        // todo: implement SHY
-        exit(EXIT_FAILURE);
+        uint8_t hi = cpu->address >> 8;
+        uint8_t lo = cpu->address & 0xff;
+        uint8_t temp = cpu->y & (hi + 1);
+        mem_write_8(mem, (temp << 8 | lo), temp);
         break;
     }
     case SLO: { // Illegal
@@ -584,16 +626,19 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
     }
     case TAS: { // Illegal
         // todo: implement TAS
+        printf("TAS");
         exit(EXIT_FAILURE);
         break;
     }
     case UBC: { // Illegal
         // todo: implement UBC
+        printf("UBC");
         exit(EXIT_FAILURE);
         break;
     }
     case JAM: { // Illegal
         // todo: implement JAM
+        printf("JAM");
         exit(EXIT_FAILURE);
         break;
     }}

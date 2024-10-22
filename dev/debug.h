@@ -6,6 +6,7 @@
 // forward declarations
 typedef struct Emulator Emulator;
 typedef struct CPU CPU;
+typedef struct MEM MEM;
 
 /**
  *  This function prints a bunch of info about the instruction that is about to
@@ -15,6 +16,10 @@ typedef struct CPU CPU;
  *  https://github.com/christopherpow/nes-test-roms/blob/master/other/nestest.log
  */
 void debug_log_instruction(const CPU *cpu);
+
+void debug_memory_dump(const MEM *mem, uint16_t start, uint16_t len);
+
+void debug_memory_dump_ascii(const MEM *mem, uint16_t start, uint16_t len);
 
 void debug_draw_screen(const Emulator *emulator);
 
