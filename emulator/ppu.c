@@ -34,6 +34,7 @@ void ppu_reset(PPU *ppu) {
     ppu->next_tile_lsb = ppu->next_tile_msb = 0x00;
     ppu->shifter_pattern_lo = ppu->shifter_attr_hi = 0x0000;
     ppu->shifter_attr_lo = ppu->shifter_attr_hi = 0x0000;
+    ppu->cycle_counter = 0;
     memset(ppu->vram, 0, sizeof(ppu->vram));
     memset(ppu->palette, 0, sizeof(ppu->palette));
 }
@@ -120,10 +121,12 @@ void ppu_run_cycle(PPU *ppu) {
         }
 
         // Skip a cycle on odd frames (NTSC only)
-        if (ppu->cur_dot == 339 && ppu->emulator->cur_frame % 2 == 1) {
+        if (ppu->cur_dot == 339 && ppu->emulator->cur_frame % 2 == 1 && ppu->mask.render_background) {
             ppu->cur_dot++;
         }
     }
+
+    ppu->cycle_counter++;
 
 
     // Advance dot and scanline counters
@@ -134,6 +137,8 @@ void ppu_run_cycle(PPU *ppu) {
         if (ppu->cur_scanline >= 262) {
             ppu->cur_scanline = 0;
             ppu->frame_complete = 1;
+            //printf("frame %u, PPU cycle count: %lu\n", ppu->emulator->cur_frame, ppu->cycle_counter);
+            ppu->cycle_counter = 0;
         }
     }
 }
@@ -193,7 +198,6 @@ void ppu_write_vram_data(PPU *ppu, uint8_t value) {
     // Writing to VRAM
     else if (address < 0x3F00) { // Writing to nametable
         uint16_t vram_index = calculate_vram_index(mapper, address);
-        // Todo: handle 0x3000 to 0x3F00 region
         ppu->vram[vram_index] = value;
     }
 
@@ -217,8 +221,7 @@ uint8_t ppu_read_vram_data(PPU *ppu) {
     // If 0x4000 <= ppu->v then we wrap around and start from 0x0000
     uint16_t address = ppu->vram_addr.reg & 0x3FFF;
 
-    // We return the previous value we read (not if reading from palette)
-    uint8_t return_value = ppu->data_read_buffer;
+    uint8_t prev_buffer = ppu->data_read_buffer;
 
     // Reading from CHR ROM (Pattern Tables)
     if (address < 0x2000) {
@@ -226,19 +229,19 @@ uint8_t ppu_read_vram_data(PPU *ppu) {
     }
 
     // Reading from VRAM (Nametables)
-    else if (address < 0x3F00) {
+    else if (address < 0x4000) {
         uint16_t vram_index = calculate_vram_index(mapper, address);
         ppu->data_read_buffer = ppu->vram[vram_index];
     }
 
     // Reading from Palette
-    else if (address < 0x4000) {
+    if (0x3F00 <= address && address < 0x4000) {
         address = address & 0x1F;
-        return_value = ppu->palette[address];
+        return ppu->palette[address];
     }
 
     ppu->vram_addr.reg += ppu->control.increment ? 32 : 1;
-    return return_value;
+    return prev_buffer;
 }
 
 uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address) {
@@ -336,7 +339,9 @@ static void update_shifters(PPU *ppu) {
 }
 
 uint16_t calculate_vram_index(Mapper *mapper, uint16_t address) {
-    if (address < 0x2000 || address > 0x2FFF) return 0;
+    if (address < 0x2000 || address > 0x3FFF) return 0;
+
+    if (address > 0x3000) address -= 0x1000;
 
     int nametable_index = (address - 0x2000) / 0x0400;
     uint16_t base_address = mapper->nametable_map[nametable_index];

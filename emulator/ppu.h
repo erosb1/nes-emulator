@@ -123,10 +123,13 @@ typedef struct PPU {
     uint16_t shifter_attr_lo;
     uint16_t shifter_attr_hi;
 
+    // debug
+    size_t cycle_counter;
+
 
     // PPU memory
     Emulator *emulator;
-    uint8_t vram[0x1000];
+    uint8_t vram[0x2000];
     uint8_t palette[0x20];
 } PPU;
 

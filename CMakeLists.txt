@@ -8,7 +8,11 @@ set(CMAKE_C_STANDARD 11)
 if(NOT RISC_V)
     message(STATUS "Building CMake for host system (development)")
 
-    add_compile_options("-Wall")
+
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -flto -march=native -mtune=native -ffast-math -fomit-frame-pointer -DNDEBUG")
+
+    # Set compiler flags for Debug builds
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0")
 
     # Include directories
     include_directories(${CMAKE_SOURCE_DIR}/dev)
@@ -43,7 +47,6 @@ else()
     add_compile_definitions(RISC_V)
 
     # Set object directory
-    set(TOOLCHAIN "riscv32-unknown-elf-")
     set(OBJ_DIR "${CMAKE_SOURCE_DIR}/build")
 
     # Set toolchain and flags
@@ -80,9 +83,7 @@ else()
     # Ignore rwx warnings from the linker
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-warn-rwx-segments")
 
-
     # Generate .bin and disassemble RISC-V
-    # Also runs jtagd --user-start, cause why not?
     add_custom_command(
             TARGET ${TARGET_ELF}
             POST_BUILD
