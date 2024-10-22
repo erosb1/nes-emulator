@@ -37,13 +37,14 @@ typedef struct Mapper {
     // void (*write_prg)(struct Mapper *mapper, uint16_t address, uint8_t
     // value);
     uint8_t (*read_chr)(struct Mapper *mapper, uint16_t address);
-    // void (*write_chr)(struct Mapper *mapper, uint16_t address, uint8_t
-    // value);
+    void (*write_chr)(struct Mapper *mapper, uint16_t address, uint8_t value);
 
     uint16_t nametable_map[4];
     Mirroring mirroring;
     uint8_t has_battery_backed_ram; // 1: Battery-backed PRG RAM present
     uint8_t has_trainer;            // 1: Trainer present in ROM
+
+    uint8_t chr_ram[0x2000]; // Only used if chr_rom_size == 0
 
     Emulator *emulator;
 } Mapper;

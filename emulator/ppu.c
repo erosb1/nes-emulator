@@ -187,7 +187,7 @@ void ppu_write_vram_data(PPU *ppu, uint8_t value) {
 
     // Writing to CHR ROM (Palette memory) is only allowed with certain mappers
     if (address < 0x2000) {
-        // ppu->mapper.write_chr(ppu->mapper, address, value);
+        mapper->write_chr(mapper, address, value);
     }
 
     // Writing to VRAM

@@ -21,6 +21,7 @@ typedef struct {
 static iNES_Header read_iNES_header(const uint8_t *buffer);
 static uint8_t nrom_read_prg(Mapper *mapper, uint16_t address);
 static uint8_t nrom_read_chr(Mapper *mapper, uint16_t address);
+static void nrom_write_chr_ram(Mapper *mapper, uint16_t address, uint8_t value);
 static void set_nametable_mapping(Mapper *mapper, uint16_t top_left, uint16_t top_right, uint16_t bottom_left, uint16_t bottom_right);
 static void set_mirroring(Mapper *mapper, Mirroring mirroring);
 
@@ -54,7 +55,12 @@ void mapper_init(Emulator *emulator) {
 
     size_t trainer_offset = (rom_header.flags_6 & 0x04) ? 512 : 0;
     mapper->prg_rom = rom + 16 + trainer_offset;
-    mapper->chr_rom = mapper->prg_rom + (rom_header.prg_rom_size * 16 * 1024);
+
+    if (mapper->chr_rom_size > 0) {
+        mapper->chr_rom = mapper->prg_rom + (rom_header.prg_rom_size * 16 * 1024);
+    } else {
+        mapper->chr_rom = mapper->chr_ram;
+    }
 
     int mapper_num = (rom_header.flags_7 & 0xF0) | (rom_header.flags_6 >> 4);
 
@@ -62,6 +68,7 @@ void mapper_init(Emulator *emulator) {
     case NROM:
         mapper->read_prg = nrom_read_prg;
         mapper->read_chr = nrom_read_chr;
+        mapper->write_chr = nrom_write_chr_ram;
         break;
     case MMC1: printf("Error: Unsupported mapper: MMC1"); exit(EXIT_FAILURE);
     case UXROM: printf("Error: Unsupported mapper: UXROM"); exit(EXIT_FAILURE);
@@ -101,6 +108,10 @@ static uint8_t nrom_read_prg(Mapper *mapper, uint16_t address) {
 static uint8_t nrom_read_chr(Mapper *mapper, uint16_t address) { return mapper->chr_rom[address]; }
 
 // static void nrom_write_prg(const Mapper *mapper, uint16_t address, uint8_t value) {}
+
+static void nrom_write_chr_ram(Mapper *mapper, uint16_t address, uint8_t value) {
+    mapper->chr_ram[address] = value;
+}
 
 
 void set_nametable_mapping(Mapper *mapper, uint16_t top_left, uint16_t top_right, uint16_t bottom_left, uint16_t bottom_right){

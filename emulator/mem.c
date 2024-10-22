@@ -101,16 +101,18 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
 
     if (address < APU_IO_REGISTER_END) {
         switch (address) {
-        case 0x4016:
+        case 0x4016: {
 #ifdef RISC_V
             // pulse clock pin
             input_clock_pulse();
             return get_pin(DATA_PIN_MASK);
 #else
+
             uint8_t data = (mem->controller_shift_register & 0x80) > 0;
             mem->controller_shift_register <<= 1;
             return data;
 #endif
+        }
         }
         return mem->apu_io_reg[address - PPU_MIRROR_END];
     }
