@@ -7,9 +7,9 @@
 #include "mem.h"
 #include "ppu.h"
 
-/*
- * This struct is the entire NES emulator
- * It is the owner of the CPU, PPU, MEM and Mapper devices.
+/**
+ *  This struct is the entire NES emulator
+ *  It is the owner of the CPU, PPU, MEM and Mapper devices.
  *
  */
 typedef struct Emulator {
@@ -33,28 +33,28 @@ typedef struct Emulator {
     uint32_t frame_times[60];
 } Emulator;
 
-/*
- * Initializes the emulator and all of its components.
+/**
+ *  Initializes the emulator and all of its components.
  *
  */
 void emulator_init(Emulator *emulator, uint8_t *rom);
 
-/*
- * Runs the emulator.
+/**
+ *  Runs the emulator.
  *
- * It contains the main frame loop that the program will spend
- * 99,9% of its time inside.
+ *  It contains the main frame loop that the program will spend
+ *  99,9% of its time inside.
  *
  */
 void emulator_run(Emulator *emulator);
 
-/*
- * Tests the CPU using the `tests/nestest.nes` rom.
+/**
+ *  Tests the CPU using the `tests/nestest.nes` rom.
  *
- * It runs the CPU for a maximum of 26554 cycles and outputs the
- * execution trace to the console.
+ *  It runs the CPU for a maximum of 26554 cycles and outputs the
+ *  execution trace to the console.
  *
- * It also runs the PPU to check that the cycle timing is correct.
+ *  It also runs the PPU to check that the cycle timing is correct.
  *
  */
 void emulator_nestest(Emulator *emulator);

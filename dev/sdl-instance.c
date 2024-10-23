@@ -1,7 +1,6 @@
 
 #include "sdl-instance.h"
 #include "common.h"
-#include "emulator.h"
 
 // Global SDLInstance variable
 SDLInstance SDL_INSTANCE;
@@ -94,7 +93,8 @@ uint8_t sdl_poll_events() {
     SDL_Event sdl_event;
     uint8_t event = 0;
 
-    while (SDL_PollEvent(&sdl_event)) {}
+    while (SDL_PollEvent(&sdl_event)) {
+    }
 
     const uint8_t *state = SDL_GetKeyboardState(NULL);
     if (state[SDL_SCANCODE_X]) {
@@ -124,9 +124,7 @@ uint8_t sdl_poll_events() {
 
     return event;
 }
-void sdl_set_window_title(const char *title) {
-    SDL_SetWindowTitle(SDL_INSTANCE.window, title);
-}
+void sdl_set_window_title(const char *title) { SDL_SetWindowTitle(SDL_INSTANCE.window, title); }
 
 int sdl_window_quit() {
     SDL_Event sdl_event;
@@ -169,6 +167,4 @@ void sdl_put_pixel_region(WindowRegion *window_region, int relative_x, int relat
     }
 }
 
-void sdl_put_pixel_nes_screen(int x, int y, uint32_t color) {
-    sdl_put_pixel_region(&NES_SCREEN, x, y, color);
-}
+void sdl_put_pixel_nes_screen(int x, int y, uint32_t color) { sdl_put_pixel_region(&NES_SCREEN, x, y, color); }

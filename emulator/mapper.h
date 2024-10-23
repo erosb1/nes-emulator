@@ -49,12 +49,11 @@ typedef struct Mapper {
     Emulator *emulator;
 } Mapper;
 
-/*
- * Initializes the mapper by reading emulator->rom.
+/**
+ *  Initializes the mapper by reading emulator->rom.
  *
- * Sets upp the function pointers depending on mapper ID specified in the iNES header.
+ *  Sets upp the function pointers depending on mapper ID specified in the iNES header.
  */
 void mapper_init(Emulator *emulator);
-
 
 #endif

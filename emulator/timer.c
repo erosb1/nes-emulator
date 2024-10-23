@@ -43,7 +43,7 @@ uint32_t get_elapsed_us(uint32_t time_point_start, uint32_t time_point_end) {
     double elapsed = time_point_end - time_point_start;
     double frequency = SDL_GetPerformanceFrequency();
     double elapsed_microseconds = (elapsed / frequency) * 1e6;
-    return (uint32_t) elapsed_microseconds;
+    return (uint32_t)elapsed_microseconds;
 }
 
 void sleep_us(uint32_t microseconds) {

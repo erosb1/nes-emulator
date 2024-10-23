@@ -23,10 +23,10 @@ static const uint32_t nes_palette_rgb[] = {
 };
 // clang-format on
 
-/*
- * This is a bitfield for easy access into the PPU CTRL register ($2000)
+/**
+ *  This is a bitfield for easy access into the PPU CTRL register ($2000)
  *
- * src: https://www.nesdev.org/wiki/PPU_registers#PPUCTRL
+ *  src: https://www.nesdev.org/wiki/PPU_registers#PPUCTRL
  */
 typedef union {
     struct {
@@ -42,10 +42,10 @@ typedef union {
     uint8_t reg;
 } PPU_CTRL_REGISTER;
 
-/*
- * This is a bitfield for easy access into the PPU MASK register ($2001)
+/**
+ *  This is a bitfield for easy access into the PPU MASK register ($2001)
  *
- * src: https://www.nesdev.org/wiki/PPU_registers#PPUMASK
+ *  src: https://www.nesdev.org/wiki/PPU_registers#PPUMASK
  */
 typedef union {
     struct {
@@ -61,10 +61,10 @@ typedef union {
     uint8_t reg;
 } PPU_MASK_REGISTER;
 
-/*
- * This is a bitfield for easy access into the PPU STATUS register ($2002)
+/**
+ *  This is a bitfield for easy access into the PPU STATUS register ($2002)
  *
- * src: https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS
+ *  src: https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS
  */
 typedef union {
     struct {
@@ -76,10 +76,10 @@ typedef union {
     uint8_t reg;
 } PPU_STATUS_REGISTER;
 
-/*
- * This is a bitfield for easy access into the PPU internal registers v, and t.
+/**
+ *  This is a bitfield for easy access into the PPU internal registers v, and t.
  *
- * It uses loopy arithmetic.
+ *  It uses loopy arithmetic.
  */
 typedef union {
     struct {
@@ -131,89 +131,87 @@ typedef struct PPU {
     // debug
     size_t cycle_counter;
 
-
     // PPU memory
     Emulator *emulator;
     uint8_t vram[0x2000];
     uint8_t palette[0x20];
 } PPU;
 
-/*
- * Initializes the PPU
+/**
+ *  Initializes the PPU
  *
- * Sets most values to 0.
+ *  Sets most values to 0.
  */
 void ppu_init(Emulator *emulator);
 void ppu_reset(PPU *ppu);
 
-/*
- * Runs one cycle of the PPU.
+/**
+ *  Runs one cycle of the PPU.
  *
- * Each cycle corresponds to one pixel one the screen.
- * This function is called 89342 times per frame.
- * It is called three times as often as `cpu_run_cycle`
+ *  Each cycle corresponds to one pixel one the screen.
+ *  This function is called 89342 times per frame.
+ *  It is called three times as often as `cpu_run_cycle`
  */
 void ppu_run_cycle(PPU *ppu);
 
-/*
- * Sets the PPUCTRL register.
+/**
+ *  Sets the PPUCTRL register.
  *
  */
 void ppu_set_ctrl(PPU *ppu, uint8_t value);
 
-/*
- * Reads the PPUSTATUS register.
+/**
+ *  Reads the PPUSTATUS register.
  *
- * It also sets the vBlank flag and write_latch register to 0.
+ *  It also sets the vBlank flag and write_latch register to 0.
  */
 uint8_t ppu_read_status(PPU *ppu);
 
-/*
- * Sets one byte of the PPUSCROLL register.
+/**
+ *  Sets one byte of the PPUSCROLL register.
  *
- * This function toggles between setting the high and low byte.
+ *  This function toggles between setting the high and low byte.
  */
 void ppu_set_scroll(PPU *ppu, uint8_t value);
 
-/*
- * Sets one byte of the PPUADDR register.
+/**
+ *  Sets one byte of the PPUADDR register.
  *
- * This function toggles between setting the high and low byte.
+ *  This function toggles between setting the high and low byte.
  */
 void ppu_set_vram_addr(PPU *ppu, uint8_t half_address);
 
-/*
- * Writes to VRAM. The address is specified by vram_addr
+/**
+ *  Writes to VRAM. The address is specified by vram_addr
  *
- * The behavior of this function depends greatly on what address is being written to,
- * and what mapper is being used.
+ *  The behavior of this function depends greatly on what address is being written to,
+ *  and what mapper is being used.
  *
- * It also increments vram_addr by either 32 or 1, depending on ppu->ctrl.increment
+ *  It also increments vram_addr by either 32 or 1, depending on ppu->ctrl.increment
  */
 void ppu_write_vram_data(PPU *ppu, uint8_t value);
 
-/*
- * Reads from VRAM. The address is specified by vram_addr
+/**
+ *  Reads from VRAM. The address is specified by vram_addr
  *
- * The behavior of this function depends greatly on what address is read from,
- * and what mapper is being used.
+ *  The behavior of this function depends greatly on what address is read from,
+ *  and what mapper is being used.
  *
- * If reading from Palette memory, the value is returned directly.
- * If reading from Pattern Tables or Nametables, the previously read value is returned,
- *    and the currently read value gets buffered in ppu->data_read_buffer
+ *  If reading from Palette memory, the value is returned directly.
+ *  If reading from Pattern Tables or Nametables, the previously read value is returned,
+ *     and the currently read value gets buffered in ppu->data_read_buffer
  *
- * It also increments vram_addr by either 32 or 1, depending on ppu->ctrl.increment
+ *  It also increments vram_addr by either 32 or 1, depending on ppu->ctrl.increment
  */
 uint8_t ppu_read_vram_data(PPU *ppu);
 
-
-/*
- * Reads from VRAM. Doesn't modify internal state.
+/**
+ *  Reads from VRAM. Doesn't modify internal state.
  *
- * The behavior of this function depends greatly on what address is read from,
- * and what mapper is being used.
+ *  The behavior of this function depends greatly on what address is read from,
+ *  and what mapper is being used.
  *
- * The value being read is returned directly, and is not buffered.
+ *  The value being read is returned directly, and is not buffered.
  */
 uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address);
 

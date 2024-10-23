@@ -45,34 +45,34 @@ typedef struct CPU {
     int is_logging;
 } CPU;
 
-/*
- * Initializes the CPU.
+/**
+ *  Initializes the CPU.
  *
- * Most values are set to 0.
+ *  Most values are set to 0.
  */
 void cpu_init(Emulator *emulator);
 
-/*
- * Executes a single CPU cycle.
+/**
+ *  Executes a single CPU cycle.
  *
- * In this emulator, full instruction execution occurs in the first cycle,
- * as it is not cycle-accurate. The remaining cycles for the instruction are idle.
+ *  In this emulator, full instruction execution occurs in the first cycle,
+ *  as it is not cycle-accurate. The remaining cycles for the instruction are idle.
  */
 void cpu_run_cycle(CPU *cpu);
 
-/*
- * Signals to the CPU to interrupt execution.
+/**
+ *  Signals to the CPU to interrupt execution.
  *
- * This function sets the pending_interrupt variable. The interrupts are handled at
- * the start of the next instruction.
+ *  This function sets the pending_interrupt variable. The interrupts are handled at
+ *  the start of the next instruction.
  *
- * There are three interrupts available:
+ *  There are three interrupts available:
  *
- * 1. NMI (non maskable interrupt) - sent by the PPU at the start of vBlank.
- *      Can not be ignored by the CPU.
- * 2. IRQ (interrupt request) - sent by external devices.
- *      Can be ignored by the CPU if the status register has the INTERRUPT flag set to 1.
- * 3. RSI (reset interrupt) - resets the system.
+ *  1. NMI (non maskable interrupt) - sent by the PPU at the start of vBlank.
+ *       Can not be ignored by the CPU.
+ *  2. IRQ (interrupt request) - sent by external devices.
+ *       Can be ignored by the CPU if the status register has the INTERRUPT flag set to 1.
+ *  3. RSI (reset interrupt) - resets the system.
  */
 void cpu_set_interrupt(CPU *cpu, Interrupt interrupt);
 

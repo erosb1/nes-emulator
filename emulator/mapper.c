@@ -13,19 +13,14 @@ typedef struct {
     uint8_t unused[5];
 } iNES_Header;
 
-
-
-
-
 // --------------- STATIC FORWARD DECLARATIONS ---------------- //
 static iNES_Header read_iNES_header(const uint8_t *buffer);
 static uint8_t nrom_read_prg(Mapper *mapper, uint16_t address);
 static uint8_t nrom_read_chr(Mapper *mapper, uint16_t address);
 static void nrom_write_chr_ram(Mapper *mapper, uint16_t address, uint8_t value);
-static void set_nametable_mapping(Mapper *mapper, uint16_t top_left, uint16_t top_right, uint16_t bottom_left, uint16_t bottom_right);
+static void set_nametable_mapping(Mapper *mapper, uint16_t top_left, uint16_t top_right, uint16_t bottom_left,
+                                  uint16_t bottom_right);
 static void set_mirroring(Mapper *mapper, Mirroring mirroring);
-
-
 
 // --------------- PUBLIC FUNCTIONS --------------------------- //
 void mapper_init(Emulator *emulator) {
@@ -76,10 +71,7 @@ void mapper_init(Emulator *emulator) {
     case MMC3: printf("Error: Unsupported mapper: MMC3"); exit(EXIT_FAILURE);
     default: printf("Error: Unsupported mapper: %i", mapper_num); exit(EXIT_FAILURE);
     }
-
-
 }
-
 
 // --------------- STATIC FUNCTIONS --------------------------- //
 static iNES_Header read_iNES_header(const uint8_t *buffer) {
@@ -109,31 +101,22 @@ static uint8_t nrom_read_chr(Mapper *mapper, uint16_t address) { return mapper->
 
 // static void nrom_write_prg(const Mapper *mapper, uint16_t address, uint8_t value) {}
 
-static void nrom_write_chr_ram(Mapper *mapper, uint16_t address, uint8_t value) {
-    mapper->chr_ram[address] = value;
-}
+static void nrom_write_chr_ram(Mapper *mapper, uint16_t address, uint8_t value) { mapper->chr_ram[address] = value; }
 
-
-void set_nametable_mapping(Mapper *mapper, uint16_t top_left, uint16_t top_right, uint16_t bottom_left, uint16_t bottom_right){
+void set_nametable_mapping(Mapper *mapper, uint16_t top_left, uint16_t top_right, uint16_t bottom_left,
+                           uint16_t bottom_right) {
     mapper->nametable_map[0] = top_left;
     mapper->nametable_map[1] = top_right;
     mapper->nametable_map[2] = bottom_left;
     mapper->nametable_map[3] = bottom_right;
 }
 
-void set_mirroring(Mapper *mapper, Mirroring mirroring){
+void set_mirroring(Mapper *mapper, Mirroring mirroring) {
     switch (mirroring) {
-    case HORIZONTAL:
-        set_nametable_mapping(mapper, 0x0000, 0x0000, 0x0800, 0x0800);
-        break;
-    case VERTICAL:
-        set_nametable_mapping(mapper, 0x0000, 0x0400, 0x0000, 0x0400);
-        break;
-    case FOUR_SCREEN:
-        set_nametable_mapping(mapper, 0x0000, 0x0400, 0x0800, 0x0C00);
-        break;
-    default:
-        set_nametable_mapping(mapper, 0, 0, 0, 0);
+    case HORIZONTAL: set_nametable_mapping(mapper, 0x0000, 0x0000, 0x0800, 0x0800); break;
+    case VERTICAL: set_nametable_mapping(mapper, 0x0000, 0x0400, 0x0000, 0x0400); break;
+    case FOUR_SCREEN: set_nametable_mapping(mapper, 0x0000, 0x0400, 0x0800, 0x0C00); break;
+    default: set_nametable_mapping(mapper, 0, 0, 0, 0);
     }
 
     mapper->mirroring = mirroring;

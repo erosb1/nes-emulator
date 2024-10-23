@@ -5,22 +5,22 @@
 #define FALSE 0
 
 // --------------- NES CONSTANTS -------------------------------//
-#define NES_SCREEN_WIDTH 256 // pixels
+#define NES_SCREEN_WIDTH 256  // pixels
 #define NES_SCREEN_HEIGHT 224 // pixels
 
 // Tile
-#define TILE_WIDTH 8 // pixels
-#define TILE_HEIGHT 8 // pixels
+#define TILE_WIDTH 8      // pixels
+#define TILE_HEIGHT 8     // pixels
 #define TILE_BYTE_SIZE 16 // bytes
 
 // Pattern tables
-#define PATTERN_TABLE_WIDTH 16 // tiles
+#define PATTERN_TABLE_WIDTH 16  // tiles
 #define PATTERN_TABLE_HEIGHT 16 // tiles
 
 // Nametables
-#define NAMETABLE_WIDTH 32 // tiles
-#define NAMETABLE_HEIGHT 30 // tiles
-#define NAMETABLE_BYTE_SIZE 1024 // bytes
+#define NAMETABLE_WIDTH 32           // tiles
+#define NAMETABLE_HEIGHT 30          // tiles
+#define NAMETABLE_BYTE_SIZE 1024     // bytes
 #define ATTRIBUTE_TABLE_BYTE_SIZE 64 // bytes
 
 // NTSC rendering
@@ -29,7 +29,6 @@
 
 // PAL rendering
 #define PAL_FRAM_RATE 50
-
 
 // --------------- INCLUDES ------------------------------------//
 #ifdef RISC_V

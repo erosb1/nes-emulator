@@ -128,6 +128,7 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
     }
     }
 
+    // clang-format off
     // This is a rather ugly nested switch statement
     // Some instructions in the log show the value at the address it operates on.
     // This switch statement finds those instructions and prints the value.
@@ -145,6 +146,7 @@ static void log_address_mode_info(const CPU *cpu, Instruction instruction) {
         default: break;
         }
     }
+    // clang-format on
 
     // Print blank spaces so that the entire column width is equal to
     // ADDRESS_MODE_COLUMN_WIDTH
@@ -164,26 +166,19 @@ void debug_log_instruction(const CPU *cpu) {
     // Print the current PC
     printf("%04X  ", cpu->pc);
 
+    // clang-format off
     // Print the bytes of the current instruction, for example: 4C F5 C5
     switch (instruction.address_mode) {
-    case IMM:
-    case ZP0:
-    case ZPX:
-    case ZPY:
-    case XIN:
-    case YIN:
-    case REL: // Instruction is 2 bytes long
+    case IMM: case ZP0: case ZPX: case ZPY: case XIN: case YIN: case REL: // Instruction is 2 bytes long
         printf("%02X %02X    ", byte0, byte1);
         break;
-    case ABS:
-    case ABX:
-    case ABY:
-    case IND: // Instruction is 3 bytes long
+    case ABS: case ABX: case ABY: case IND: // Instruction is 3 bytes long
         printf("%02X %02X %02X ", byte0, byte1, byte2);
         break;
     default: // Instruction is 1 byte long
         printf("%02X       ", byte0);
     }
+    // clang-format on
 
     // Illegal opcodes are prepended with a '*'
     if (is_illegal(byte0))
@@ -200,7 +195,7 @@ void debug_log_instruction(const CPU *cpu) {
     printf("A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3li,%3li CYC:%lu", cpu->ac, cpu->x, cpu->y, cpu->sr, cpu->sp,
            ppu->cur_scanline, ppu->cur_dot, cpu->total_cycles);
 
-    printf(" Frame: %u", cpu->emulator->cur_frame);
+    // printf(" Frame: %u", cpu->emulator->cur_frame);
 
     printf("\n");
 }
@@ -252,7 +247,7 @@ static uint32_t get_color(uint8_t color_index) {
 }
 
 static void draw_tile(const Emulator *emulator, uint16_t base_address, int tile_index, int left_coord, int top_coord) {
-    assert (base_address == 0x0000 || base_address == 0x1000);
+    assert(base_address == 0x0000 || base_address == 0x1000);
 
     const PPU *ppu = &emulator->ppu;
 
@@ -307,13 +302,12 @@ static void draw_nametable(const Emulator *emulator, uint16_t base_address, int 
     }
 }
 
-
 void debug_draw_screen(const Emulator *emulator) {
     const Mapper *mapper = &emulator->mapper;
 
-    //for (int i = 0; i < NES_SCREEN_WIDTH; i++)
-    //    for (int j = 0; j < NES_SCREEN_HEIGHT; j++)
-    //        sdl_put_pixel_region(&NES_SCREEN, i, j, 0xFFFFFF);
+    // for (int i = 0; i < NES_SCREEN_WIDTH; i++)
+    //     for (int j = 0; j < NES_SCREEN_HEIGHT; j++)
+    //         sdl_put_pixel_region(&NES_SCREEN, i, j, 0xFFFFFF);
 
     draw_pattern_table(emulator, 0x0000, 0, 0);
     draw_pattern_table(emulator, 0x1000, 128, 0);

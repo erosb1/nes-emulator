@@ -13,12 +13,13 @@
 #define NMI_VECTOR_OFFSET 0xFFFA
 #define IRQ_VECTOR_OFFSET 0xFFFE
 
-
 // --------------- STATIC FORWARD DECLARATIONS ---------------- //
 static int get_flag(CPU *cpu, CPUFlag flag);
 static void set_flag(CPU *cpu, CPUFlag flag, int value);
 static void set_ZN_flags(CPU *cpu, uint8_t value);
 static int crosses_page_borders(uint16_t address_1, uint16_t address_2);
+static int crosses_page_borders_(uint16_t address_1, uint16_t address_2,
+                                 Opcode opcode); // only returns true for specific addresses
 static void branch_if(CPU *cpu, int predicate);
 static uint8_t shift_left(CPU *cpu, uint8_t val);
 static uint8_t shift_right(CPU *cpu, uint8_t val);
@@ -27,7 +28,6 @@ static uint8_t rotate_right(CPU *cpu, uint8_t val);
 static void execute_instruction(CPU *cpu, Instruction instruction);
 static void set_address(CPU *cpu, Instruction instruction);
 static void handle_interrupt(CPU *cpu);
-
 
 // --------------- PUBLIC FUNCTIONS --------------------------- //
 void cpu_init(Emulator *emulator) {
@@ -45,7 +45,6 @@ void cpu_init(Emulator *emulator) {
     cpu->is_logging = 0;
 }
 
-
 void cpu_run_cycle(CPU *cpu) {
     MEM *mem = &cpu->emulator->mem;
 
@@ -55,14 +54,15 @@ void cpu_run_cycle(CPU *cpu) {
         }
 
 #ifndef RISC_V
-        if (cpu->is_logging) debug_log_instruction(cpu);
+        if (cpu->is_logging)
+            debug_log_instruction(cpu);
 #endif // RISC_V
 
         uint8_t byte = mem_read_8(mem, cpu->pc++);
         cpu->cycles += cycle_lookup[byte];
         set_flag(cpu, UNUSED, TRUE);
         Instruction instruction = instruction_lookup[byte];
-        set_address(cpu, instruction); // might add 1 cycle
+        set_address(cpu, instruction);         // might add 1 cycle
         execute_instruction(cpu, instruction); // might add 1 cycle
 
         cpu->total_cycles += cpu->cycles;
@@ -71,11 +71,7 @@ void cpu_run_cycle(CPU *cpu) {
     cpu->cycles--;
 }
 
-void cpu_set_interrupt(CPU *cpu, Interrupt interrupt) {
-    cpu->pending_interrupt = interrupt;
-}
-
-
+void cpu_set_interrupt(CPU *cpu, Interrupt interrupt) { cpu->pending_interrupt = interrupt; }
 
 // --------------- STATIC FUNCTIONS --------------------------- //
 static int get_flag(CPU *cpu, CPUFlag flag) { return (cpu->sr & flag) ? 1 : 0; }
@@ -96,18 +92,31 @@ static void set_ZN_flags(CPU *cpu, uint8_t value) {
     set_flag(cpu, NEGATIVE, value & 0x80);
 }
 
-int crosses_page_borders(uint16_t address_1, uint16_t address_2){
+int crosses_page_borders(uint16_t address_1, uint16_t address_2) {
     return (address_1 & 0xFF00) != (address_2 & 0xFF00);
 }
 
-uint8_t shift_left(CPU *cpu, uint8_t val){
+// NES quirk, some opcodes are excluded
+int crosses_page_borders_(uint16_t address_1, uint16_t address_2, Opcode opcode) {
+    // clang-format off
+    switch (opcode) {
+    case STA: case ASL: case DEC: case INC: case LSR: case ROL: case ROR:
+    case SLO: case RLA: case SRE: case RRA: case DCP: case ISB: case SHY:
+        return 0;
+    default: break;
+    }
+    // clang-format on
+    return (address_1 & 0xFF00) != (address_2 & 0xFF00);
+}
+
+uint8_t shift_left(CPU *cpu, uint8_t val) {
     set_flag(cpu, CARRY, val & 0x80);
     val <<= 1;
     set_ZN_flags(cpu, val);
     return val;
 }
 
-uint8_t shift_right(CPU *cpu, uint8_t val){
+uint8_t shift_right(CPU *cpu, uint8_t val) {
     set_flag(cpu, CARRY, val & 0x01);
     val >>= 1;
     set_ZN_flags(cpu, val);
@@ -641,7 +650,8 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         printf("JAM");
         exit(EXIT_FAILURE);
         break;
-    }}
+    }
+    }
 }
 
 // This function sets up the cpu->address variable depending on the addressing
@@ -665,26 +675,8 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->pc += 2;
 
         // If we cross page boundaries, we increment cur_cycle by 1.
-        // However, this is not the case for some opcodes
-        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
-            switch (instruction.opcode) {
-            case STA:
-            case ASL:
-            case DEC:
-            case INC:
-            case LSR:
-            case ROL:
-            case ROR:
-            case SLO:
-            case RLA:
-            case SRE:
-            case RRA:
-            case DCP:
-            case ISB:
-            case SHY: break;
-            default: cpu->cycles++;
-            }
-        }
+        if (crosses_page_borders_(base_address, cpu->address, instruction.opcode))
+            cpu->cycles++;
         break;
     }
     case ABY: { // Absolute, Y-indexed
@@ -693,20 +685,8 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->pc += 2;
 
         // If we cross page boundaries, we increment cur_cycle by 1.
-        // However, this is not the case for some opcodes
-        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
-            switch (instruction.opcode) {
-            case STA:
-            case SLO:
-            case RLA:
-            case SRE:
-            case RRA:
-            case DCP:
-            case ISB:
-            case NOP: break;
-            default: cpu->cycles++;
-            }
-        }
+        if (crosses_page_borders_(base_address, cpu->address, instruction.opcode))
+            cpu->cycles++;
         break;
     }
     case IMM: { // Immediate
@@ -739,20 +719,8 @@ static void set_address(CPU *cpu, Instruction instruction) {
         cpu->pc++;
 
         // If we cross page boundaries, we increment cur_cycle by 1.
-        // However, this is not the case for some opcodes
-        if ((base_address & 0xFF00) != (cpu->address & 0xFF00)) {
-            switch (instruction.opcode) {
-            case STA:
-            case SLO:
-            case RLA:
-            case SRE:
-            case RRA:
-            case DCP:
-            case ISB:
-            case NOP: break;
-            default: cpu->cycles++;
-            }
-        }
+        if (crosses_page_borders_(base_address, cpu->address, instruction.opcode))
+            cpu->cycles++;
         break;
     }
     case REL: { // Relative
@@ -784,9 +752,9 @@ static void set_address(CPU *cpu, Instruction instruction) {
     }
 }
 
-
-void handle_interrupt(CPU *cpu){
-    if (cpu->pending_interrupt == NONE) return;
+void handle_interrupt(CPU *cpu) {
+    if (cpu->pending_interrupt == NONE)
+        return;
 
     if (get_flag(cpu, INTERRUPT) && cpu->pending_interrupt != NMI) {
         cpu->pending_interrupt = NONE;
@@ -797,19 +765,13 @@ void handle_interrupt(CPU *cpu){
     uint16_t address;
 
     switch (cpu->pending_interrupt) {
-    case NMI:
-        address = NMI_VECTOR_OFFSET;
-        break;
-    case IRQ:
-        address = IRQ_VECTOR_OFFSET;
-        break;
+    case NMI: address = NMI_VECTOR_OFFSET; break;
+    case IRQ: address = IRQ_VECTOR_OFFSET; break;
     case RSI:
         // TODO reset emulator
         printf("RESET INTERRUPT");
         exit(EXIT_FAILURE);
-    default:
-        printf("Error: invalid interrupt");
-        exit(EXIT_FAILURE);
+    default: printf("Error: invalid interrupt"); exit(EXIT_FAILURE);
     }
 
     mem_push_stack_16(cpu, cpu->pc);

@@ -12,7 +12,6 @@ static uint32_t calculate_synced_fps(Emulator *emulator);
 void handle_sdl(Emulator *emulator);
 #endif
 
-
 // --------------- PUBLIC FUNCTIONS ---------- ---------------- //
 void emulator_init(Emulator *emulator, uint8_t *rom) {
     // Set the rom
@@ -88,13 +87,11 @@ void emulator_nestest(Emulator *emulator) {
     } while (cpu->total_cycles <= NESTEST_MAX_CYCLES);
 }
 
-
 // --------------- STATIC FUNCTIONS --------------------------- //
-
 
 #ifndef RISC_V
 void handle_sdl(Emulator *emulator) {
-    //emulator->controller_input = sdl_poll_events();
+    // emulator->controller_input = sdl_poll_events();
 
     sdl_draw_frame();
     if (sdl_window_quit())
@@ -117,8 +114,6 @@ void handle_sdl(Emulator *emulator) {
 }
 #endif
 
-
-
 void synchronize_frames(Emulator *emulator) {
     uint32_t time_point_end = get_time_point();
     uint32_t elapsed_us = get_elapsed_us(emulator->time_point_start, time_point_end);
@@ -140,12 +135,13 @@ void synchronize_frames(Emulator *emulator) {
 uint32_t calculate_unsynced_fps(Emulator *emulator) {
     double sum = 0;
     for (int i = 0; i < NTSC_FRAME_RATE; i++) {
-        sum += (double) emulator->frame_times[i];
+        sum += (double)emulator->frame_times[i];
     }
     double average_frame_duration = sum / NTSC_FRAME_RATE / 1e6;
 
-    if (average_frame_duration == 0) return 0;
-    return (uint32_t) (1 / average_frame_duration);
+    if (average_frame_duration == 0)
+        return 0;
+    return (uint32_t)(1 / average_frame_duration);
 }
 
 uint32_t calculate_synced_fps(Emulator *emulator) {
@@ -156,6 +152,7 @@ uint32_t calculate_synced_fps(Emulator *emulator) {
     }
     double average_frame_duration = sum / NTSC_FRAME_RATE / 1e6;
 
-    if (average_frame_duration == 0) return 0;
-    return (uint32_t) (1 / average_frame_duration);
+    if (average_frame_duration == 0)
+        return 0;
+    return (uint32_t)(1 / average_frame_duration);
 }

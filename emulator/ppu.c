@@ -14,8 +14,6 @@ static uint32_t get_color_from_palette(PPU *ppu, uint8_t palette, uint8_t pixel)
 static void prepare_background_tile(PPU *ppu);
 static void draw_background_pixel(PPU *ppu);
 
-
-
 // --------------- PUBLIC FUNCTIONS --------------------------- //
 void ppu_init(Emulator *emulator) {
     PPU *ppu = &emulator->ppu;
@@ -44,7 +42,8 @@ void ppu_run_cycle(PPU *ppu) {
 
     // Handle visible scanlines (0 - 239)
     if (ppu->cur_scanline < 240) {
-        if (ppu->cur_dot == 0) {} // IDLE
+        if (ppu->cur_dot == 0) {
+        } // IDLE
 
         else if (ppu->cur_dot < 258) { // VISIBLE DOTS
             prepare_background_tile(ppu);
@@ -60,17 +59,20 @@ void ppu_run_cycle(PPU *ppu) {
             }
         }
 
-        else if (ppu->cur_dot < 321) {} // IDLE
+        else if (ppu->cur_dot < 321) {
+        } // IDLE
 
         else if (ppu->cur_dot < 337) { // Prepare next row
             prepare_background_tile(ppu);
         }
 
-        else if (ppu->cur_dot < 341) {} // IDLE
+        else if (ppu->cur_dot < 341) {
+        } // IDLE
     }
 
     // Handle post-render scanline (240)
-    else if (ppu->cur_scanline == 240) {} // IDLE SCANLINE
+    else if (ppu->cur_scanline == 240) {
+    } // IDLE SCANLINE
 
     // Handle vblank scanlines (241 - 260)
     else if (ppu->cur_scanline < 261) { // vblank
@@ -87,7 +89,8 @@ void ppu_run_cycle(PPU *ppu) {
 
     // Handle pre-render scanline (261)
     else {
-        if (ppu->cur_dot == 0) {} // IDLE
+        if (ppu->cur_dot == 0) {
+        } // IDLE
 
         else if (ppu->cur_dot < 258) {
             if (ppu->cur_dot == 1) {
@@ -108,13 +111,15 @@ void ppu_run_cycle(PPU *ppu) {
             }
         }
 
-        else if (ppu->cur_dot < 280) {} // IDLE
+        else if (ppu->cur_dot < 280) {
+        } // IDLE
 
         else if (ppu->cur_dot < 305) {
             reload_scroll_y(ppu);
         }
 
-        else if (ppu->cur_dot < 321) {} // IDLE
+        else if (ppu->cur_dot < 321) {
+        } // IDLE
 
         else if (ppu->cur_dot < 337) { // Prepare first row of next frame
             prepare_background_tile(ppu);
@@ -128,7 +133,6 @@ void ppu_run_cycle(PPU *ppu) {
 
     ppu->cycle_counter++;
 
-
     // Advance dot and scanline counters
     ppu->cur_dot++;
     if (ppu->cur_dot >= 341) {
@@ -137,7 +141,7 @@ void ppu_run_cycle(PPU *ppu) {
         if (ppu->cur_scanline >= 262) {
             ppu->cur_scanline = 0;
             ppu->frame_complete = 1;
-            //printf("frame %u, PPU cycle count: %lu\n", ppu->emulator->cur_frame, ppu->cycle_counter);
+            // printf("frame %u, PPU cycle count: %lu\n", ppu->emulator->cur_frame, ppu->cycle_counter);
             ppu->cycle_counter = 0;
         }
     }
@@ -273,7 +277,8 @@ uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address) {
 
 // --------------- STATIC FUNCTIONS --------------------------- //
 static void increment_scroll_x(PPU *ppu) {
-    if (!ppu->mask.render_background && !ppu->mask.render_sprites) return;
+    if (!ppu->mask.render_background && !ppu->mask.render_sprites)
+        return;
 
     if (ppu->vram_addr.coarse_x == 31) {
         ppu->vram_addr.coarse_x = 0;
@@ -283,9 +288,9 @@ static void increment_scroll_x(PPU *ppu) {
     }
 }
 
-
 static void increment_scroll_y(PPU *ppu) {
-    if (!ppu->mask.render_background && !ppu->mask.render_sprites) return;
+    if (!ppu->mask.render_background && !ppu->mask.render_sprites)
+        return;
 
     if (ppu->vram_addr.fine_y < 7) {
         ppu->vram_addr.fine_y++;
@@ -309,14 +314,15 @@ static void increment_scroll_y(PPU *ppu) {
 }
 
 static void reload_scroll_x(PPU *ppu) {
-    if (!ppu->mask.render_background && !ppu->mask.render_sprites) return;
+    if (!ppu->mask.render_background && !ppu->mask.render_sprites)
+        return;
     ppu->vram_addr.nametable_x = ppu->temp_addr.nametable_x;
     ppu->vram_addr.coarse_x = ppu->temp_addr.coarse_x;
-
 }
 
 static void reload_scroll_y(PPU *ppu) {
-    if (!ppu->mask.render_background && !ppu->mask.render_sprites) return;
+    if (!ppu->mask.render_background && !ppu->mask.render_sprites)
+        return;
     ppu->vram_addr.fine_y = ppu->temp_addr.fine_y;
     ppu->vram_addr.nametable_y = ppu->temp_addr.nametable_y;
     ppu->vram_addr.coarse_y = ppu->temp_addr.coarse_y;
@@ -339,9 +345,11 @@ static void update_shifters(PPU *ppu) {
 }
 
 uint16_t calculate_vram_index(Mapper *mapper, uint16_t address) {
-    if (address < 0x2000 || address > 0x3FFF) return 0;
+    if (address < 0x2000 || address > 0x3FFF)
+        return 0;
 
-    if (address > 0x3000) address -= 0x1000;
+    if (address > 0x3000)
+        address -= 0x1000;
 
     int nametable_index = (address - 0x2000) / 0x0400;
     uint16_t base_address = mapper->nametable_map[nametable_index];
@@ -369,28 +377,28 @@ void prepare_background_tile(PPU *ppu) {
     }
     case 3: {
         // fetch next tile attribute
-        uint16_t addr = 0x23C0 | (ppu->vram_addr.nametable_y << 11
-            | ppu->vram_addr.nametable_x << 10
-            | ((ppu->vram_addr.coarse_y >> 2) << 3)
-            | (ppu->vram_addr.coarse_x >> 2));
+        uint16_t addr = 0x23C0 | (ppu->vram_addr.nametable_y << 11 | ppu->vram_addr.nametable_x << 10 |
+                                  ((ppu->vram_addr.coarse_y >> 2) << 3) | (ppu->vram_addr.coarse_x >> 2));
         ppu->next_tile_attr = ppu_const_read_vram_data(ppu, addr);
-        if (ppu->vram_addr.coarse_y & 0x02) ppu->next_tile_attr >>= 4;
-        if (ppu->vram_addr.coarse_x & 0x02) ppu->next_tile_attr >>= 2;
+        if (ppu->vram_addr.coarse_y & 0x02)
+            ppu->next_tile_attr >>= 4;
+        if (ppu->vram_addr.coarse_x & 0x02)
+            ppu->next_tile_attr >>= 2;
         ppu->next_tile_attr &= 0x03;
         break;
     }
     case 5: {
         // fetch next pattern table tile row (LSB)
-        ppu->next_tile_lsb = ppu_const_read_vram_data(ppu, (ppu->crtl.pattern_background << 12)
-            + ((uint16_t) ppu->next_tile_id << 4)
-            + (ppu->vram_addr.fine_y) + 0);
+        ppu->next_tile_lsb = ppu_const_read_vram_data(ppu, (ppu->crtl.pattern_background << 12) +
+                                                               ((uint16_t)ppu->next_tile_id << 4) +
+                                                               (ppu->vram_addr.fine_y) + 0);
         break;
     }
     case 7: {
         // fetch next pattern table tile row (MSB)
-        ppu->next_tile_msb = ppu_const_read_vram_data(ppu, (ppu->crtl.pattern_background << 12)
-            + ((uint16_t) ppu->next_tile_id << 4)
-            + (ppu->vram_addr.fine_y) + 8);
+        ppu->next_tile_msb = ppu_const_read_vram_data(ppu, (ppu->crtl.pattern_background << 12) +
+                                                               ((uint16_t)ppu->next_tile_id << 4) +
+                                                               (ppu->vram_addr.fine_y) + 8);
         break;
     }
     case 0: // increment vram_addr to next nametable tile
