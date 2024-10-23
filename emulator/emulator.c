@@ -8,6 +8,9 @@
 static void synchronize_frames(Emulator *emulator);
 static uint32_t calculate_unsynced_fps(Emulator *emulator);
 static uint32_t calculate_synced_fps(Emulator *emulator);
+#ifndef RISC_V
+void handle_sdl(Emulator *emulator);
+#endif
 
 
 // --------------- PUBLIC FUNCTIONS ---------- ---------------- //
@@ -48,38 +51,14 @@ void emulator_run(Emulator *emulator) {
 
         ppu->frame_complete = 0;
         cpu->total_cycles = 0;
+
 #ifndef RISC_V
-        emulator_handle_sdl(emulator);
+        handle_sdl(emulator);
 #endif
 
         synchronize_frames(emulator);
     }
 }
-
-#ifndef RISC_V
-void emulator_handle_sdl(Emulator *emulator) {
-    //emulator->controller_input = sdl_poll_events();
-
-    sdl_draw_frame();
-    if (sdl_window_quit())
-        emulator->is_running = FALSE;
-
-    // Clear screen and draw debug info only every 10th frame.
-    // Otherwise the rendering gets to intensive
-    if (emulator->cur_frame % 10 == 0) {
-        sdl_clear_screen();
-        debug_draw_screen(emulator);
-    }
-
-    if (emulator->cur_frame == 0) {
-        uint32_t fps_synced = calculate_synced_fps(emulator);
-        uint32_t fps_unsynced = calculate_unsynced_fps(emulator);
-        char title[256];
-        snprintf(title, sizeof(title), "NES Emulator - FPS: %u - UNSYNCED FPS: %u", fps_synced, fps_unsynced);
-        sdl_set_window_title(title);
-    }
-}
-#endif
 
 #define NESTEST_MAX_CYCLES 26554
 #define NESTEST_START_CYCLE 7
@@ -111,6 +90,33 @@ void emulator_nestest(Emulator *emulator) {
 
 
 // --------------- STATIC FUNCTIONS --------------------------- //
+
+
+#ifndef RISC_V
+void handle_sdl(Emulator *emulator) {
+    //emulator->controller_input = sdl_poll_events();
+
+    sdl_draw_frame();
+    if (sdl_window_quit())
+        emulator->is_running = FALSE;
+
+    // Clear screen and draw debug info only every 10th frame.
+    // Otherwise the rendering gets to intensive
+    if (emulator->cur_frame % 10 == 0) {
+        sdl_clear_screen();
+        debug_draw_screen(emulator);
+    }
+
+    if (emulator->cur_frame == 0) {
+        uint32_t fps_synced = calculate_synced_fps(emulator);
+        uint32_t fps_unsynced = calculate_unsynced_fps(emulator);
+        char title[256];
+        snprintf(title, sizeof(title), "NES Emulator - FPS: %u - UNSYNCED FPS: %u", fps_synced, fps_unsynced);
+        sdl_set_window_title(title);
+    }
+}
+#endif
+
 
 
 void synchronize_frames(Emulator *emulator) {

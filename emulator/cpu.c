@@ -50,20 +50,20 @@ void cpu_run_cycle(CPU *cpu) {
     MEM *mem = &cpu->emulator->mem;
 
     if (cpu->cycles == 0) {
+        if (cpu->pending_interrupt != NONE) {
+            handle_interrupt(cpu); // might add 7 cycles
+        }
+
 #ifndef RISC_V
         if (cpu->is_logging) debug_log_instruction(cpu);
 #endif // RISC_V
 
         uint8_t byte = mem_read_8(mem, cpu->pc++);
         cpu->cycles += cycle_lookup[byte];
-        set_flag(cpu, UNUSED_MASK, TRUE);
+        set_flag(cpu, UNUSED, TRUE);
         Instruction instruction = instruction_lookup[byte];
         set_address(cpu, instruction); // might add 1 cycle
         execute_instruction(cpu, instruction); // might add 1 cycle
-
-        if (cpu->pending_interrupt != NONE) {
-            handle_interrupt(cpu); // might add 7 cycles
-        }
 
         cpu->total_cycles += cpu->cycles;
     }
@@ -92,8 +92,8 @@ static void set_flag(CPU *cpu, CPUFlag flag, int value) {
 // `value` integer. If value == 0 then Z is set If bit 7 in value is set then N
 // is set (indicating a negative number)
 static void set_ZN_flags(CPU *cpu, uint8_t value) {
-    set_flag(cpu, ZERO_MASK, value == 0);
-    set_flag(cpu, NEGATIVE_MASK, value & 0x80);
+    set_flag(cpu, ZERO, value == 0);
+    set_flag(cpu, NEGATIVE, value & 0x80);
 }
 
 int crosses_page_borders(uint16_t address_1, uint16_t address_2){
@@ -101,14 +101,14 @@ int crosses_page_borders(uint16_t address_1, uint16_t address_2){
 }
 
 uint8_t shift_left(CPU *cpu, uint8_t val){
-    set_flag(cpu, CARRY_MASK, val & 0x80);
+    set_flag(cpu, CARRY, val & 0x80);
     val <<= 1;
     set_ZN_flags(cpu, val);
     return val;
 }
 
 uint8_t shift_right(CPU *cpu, uint8_t val){
-    set_flag(cpu, CARRY_MASK, val & 0x01);
+    set_flag(cpu, CARRY, val & 0x01);
     val >>= 1;
     set_ZN_flags(cpu, val);
     return val;
@@ -116,16 +116,16 @@ uint8_t shift_right(CPU *cpu, uint8_t val){
 
 uint8_t rotate_left(CPU *cpu, uint8_t val) {
     uint8_t rotated = val << 1;
-    rotated |= cpu->sr & CARRY_MASK;
-    set_flag(cpu, CARRY_MASK, val & 0x80);
+    rotated |= cpu->sr & CARRY;
+    set_flag(cpu, CARRY, val & 0x80);
     set_ZN_flags(cpu, rotated);
     return rotated;
 }
 
 uint8_t rotate_right(CPU *cpu, uint8_t val) {
     uint8_t rotated = val >> 1;
-    rotated |= (cpu->sr & CARRY_MASK) << 7;
-    set_flag(cpu, CARRY_MASK, val & 0x01);
+    rotated |= (cpu->sr & CARRY) << 7;
+    set_flag(cpu, CARRY, val & 0x01);
     set_ZN_flags(cpu, rotated);
     return rotated;
 }
@@ -153,10 +153,10 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
     case ADC: {
         uint16_t A = cpu->ac;
         uint16_t M = mem_read_8(mem, cpu->address);
-        uint16_t R = A + M + get_flag(cpu, CARRY_MASK);
+        uint16_t R = A + M + get_flag(cpu, CARRY);
         cpu->ac = R & 0xFF;
-        set_flag(cpu, CARRY_MASK, R > 0xFF);
-        set_flag(cpu, OVERFLOW_MASK, ((~(A ^ M) & (A ^ R) & 0x80) != 0));
+        set_flag(cpu, CARRY, R > 0xFF);
+        set_flag(cpu, OVERFLW, ((~(A ^ M) & (A ^ R) & 0x80) != 0));
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
@@ -177,94 +177,94 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
     }
     case BCC: {
         // Branch if Carry Clear (C flag = 0)
-        branch_if(cpu, !get_flag(cpu, CARRY_MASK));
+        branch_if(cpu, !get_flag(cpu, CARRY));
         break;
     }
     case BCS: {
         // Branch if Carry Set (C flag = 1)
-        branch_if(cpu, get_flag(cpu, CARRY_MASK));
+        branch_if(cpu, get_flag(cpu, CARRY));
         break;
     }
     case BEQ: {
         // Branch if Zero Set (Z flag = 1)
-        branch_if(cpu, get_flag(cpu, ZERO_MASK));
+        branch_if(cpu, get_flag(cpu, ZERO));
         break;
     }
     case BIT: {
         uint8_t op = mem_read_8(mem, cpu->address);
-        set_flag(cpu, ZERO_MASK, (cpu->ac & op) == 0);
-        set_flag(cpu, NEGATIVE_MASK, op & 0x80);
-        set_flag(cpu, OVERFLOW_MASK, op & 0x40);
+        set_flag(cpu, ZERO, (cpu->ac & op) == 0);
+        set_flag(cpu, NEGATIVE, op & 0x80);
+        set_flag(cpu, OVERFLW, op & 0x40);
         break;
     }
     case BMI: {
         // Branch if Negative Set (N flag = 1)
-        branch_if(cpu, get_flag(cpu, NEGATIVE_MASK));
+        branch_if(cpu, get_flag(cpu, NEGATIVE));
         break;
     }
     case BNE: {
         // Branch if Zero Clear (Z flag = 0)
-        branch_if(cpu, !get_flag(cpu, ZERO_MASK));
+        branch_if(cpu, !get_flag(cpu, ZERO));
         break;
     }
     case BPL: {
         // Branch if Negative Clear (N flag = 0)
-        branch_if(cpu, !get_flag(cpu, NEGATIVE_MASK));
+        branch_if(cpu, !get_flag(cpu, NEGATIVE));
         break;
     }
     case BRK: {
         cpu->pc++;
         mem_push_stack_16(cpu, cpu->pc);
-        mem_push_stack_8(cpu, cpu->sr | BREAK_MASK | UNUSED_MASK);
+        mem_push_stack_8(cpu, cpu->sr | BREAK | UNUSED);
         cpu->pc = mem_read_16(mem, IRQ_VECTOR_OFFSET);
-        set_flag(cpu, INTERRUPT_MASK, TRUE);
+        set_flag(cpu, INTERRUPT, TRUE);
         break;
     }
     case BVC: {
         // Branch if Overflow Clear (V flag = 0)
-        branch_if(cpu, !get_flag(cpu, OVERFLOW_MASK));
+        branch_if(cpu, !get_flag(cpu, OVERFLW));
         break;
     }
     case BVS: {
         // Branch if Overflow Set (V flag = 1)
-        branch_if(cpu, get_flag(cpu, OVERFLOW_MASK));
+        branch_if(cpu, get_flag(cpu, OVERFLW));
         break;
     }
     case CLC: {
-        set_flag(cpu, CARRY_MASK, FALSE);
+        set_flag(cpu, CARRY, FALSE);
         break;
     }
     case CLD: {
-        set_flag(cpu, DECIMAL_MASK, FALSE);
+        set_flag(cpu, DECIMAL, FALSE);
         break;
     }
     case CLI: {
-        set_flag(cpu, INTERRUPT_MASK, FALSE);
+        set_flag(cpu, INTERRUPT, FALSE);
         break;
     }
     case CLV: {
-        set_flag(cpu, OVERFLOW_MASK, FALSE);
+        set_flag(cpu, OVERFLW, FALSE);
         break;
     }
     case CMP: {
         uint16_t a = cpu->ac;
         uint16_t m = mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, (a - m) & 0xFF);
-        set_flag(cpu, CARRY_MASK, a >= m);
+        set_flag(cpu, CARRY, a >= m);
         break;
     }
     case CPX: {
         uint16_t x = cpu->x;
         uint16_t m = mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, (x - m) & 0xFF);
-        set_flag(cpu, CARRY_MASK, x >= m);
+        set_flag(cpu, CARRY, x >= m);
         break;
     }
     case CPY: {
         uint16_t y = cpu->y;
         uint16_t m = mem_read_8(mem, cpu->address);
         set_ZN_flags(cpu, (y - m) & 0xFF);
-        set_flag(cpu, CARRY_MASK, y >= m);
+        set_flag(cpu, CARRY, y >= m);
         break;
     }
     case DEC: {
@@ -355,7 +355,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
     case PHP: {
         // BREAK and UNUSED should be set to 1 when pushed
         // src: https://www.masswerk.at/6502/6502_instruction_set.html#PHP
-        mem_push_stack_8(cpu, cpu->sr | BREAK_MASK | UNUSED_MASK);
+        mem_push_stack_8(cpu, cpu->sr | BREAK | UNUSED);
         break;
     }
     case PLA: {
@@ -368,7 +368,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         // Except for BREAK and UNUSED as these should not be modified by the
         // pop operation src:
         // https://www.masswerk.at/6502/6502_instruction_set.html#PLP
-        cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) | (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
+        cpu->sr = (cpu->sr & (BREAK | UNUSED)) | (mem_pop_stack_8(cpu) & ~(BREAK | UNUSED));
         break;
     }
     case ROL: {
@@ -390,7 +390,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         break;
     }
     case RTI: {
-        cpu->sr = (cpu->sr & (BREAK_MASK | UNUSED_MASK)) | (mem_pop_stack_8(cpu) & ~(BREAK_MASK | UNUSED_MASK));
+        cpu->sr = (cpu->sr & (BREAK | UNUSED)) | (mem_pop_stack_8(cpu) & ~(BREAK | UNUSED));
         cpu->pc = pop_stack_16(cpu);
         break;
     }
@@ -404,23 +404,23 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         // Subtraction is addition of the two's complement of M
         uint16_t A = cpu->ac;
         uint16_t M = mem_read_8(mem, cpu->address);
-        uint16_t R = A + (M ^ 0xFF) + get_flag(cpu, CARRY_MASK);
+        uint16_t R = A + (M ^ 0xFF) + get_flag(cpu, CARRY);
         cpu->ac = R & 0xFF;
-        set_flag(cpu, CARRY_MASK, R > 0xFF);
-        set_flag(cpu, OVERFLOW_MASK, ((A ^ R) & (A ^ M) & 0x80) != 0);
+        set_flag(cpu, CARRY, R > 0xFF);
+        set_flag(cpu, OVERFLW, ((A ^ R) & (A ^ M) & 0x80) != 0);
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
     case SEC: {
-        set_flag(cpu, CARRY_MASK, TRUE);
+        set_flag(cpu, CARRY, TRUE);
         break;
     }
     case SED: {
-        set_flag(cpu, DECIMAL_MASK, TRUE);
+        set_flag(cpu, DECIMAL, TRUE);
         break;
     }
     case SEI: {
-        set_flag(cpu, INTERRUPT_MASK, TRUE);
+        set_flag(cpu, INTERRUPT, TRUE);
         break;
     }
     case STA: {
@@ -477,7 +477,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         uint8_t m = mem_read_8(mem, cpu->address);
         cpu->ac &= m;
         set_ZN_flags(cpu, cpu->ac);
-        set_flag(cpu, CARRY_MASK, cpu->ac & 0x80);
+        set_flag(cpu, CARRY, cpu->ac & 0x80);
         break;
     }
     case AN2: { // Illegal
@@ -495,8 +495,8 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
     case ARR: { // Illegal
         uint8_t x = cpu->ac & mem_read_8(mem, cpu->address);
         uint8_t rotated = rotate_right(cpu, x);
-        set_flag(cpu, CARRY_MASK, rotated & 0x40);
-        set_flag(cpu, OVERFLOW_MASK, ((rotated & 0x40) >> 1) ^ (rotated & 0x20));
+        set_flag(cpu, CARRY, rotated & 0x40);
+        set_flag(cpu, OVERFLW, ((rotated & 0x40) >> 1) ^ (rotated & 0x20));
         cpu->ac = rotated;
         break;
     }
@@ -507,7 +507,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         mem_write_8(mem, cpu->address, m);
         // Perform CMP
         uint8_t a = cpu->ac;
-        set_flag(cpu, CARRY_MASK, a >= m);
+        set_flag(cpu, CARRY, a >= m);
         set_ZN_flags(cpu, a - m);
         break;
     }
@@ -518,10 +518,10 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         mem_write_8(mem, cpu->address, M);
 
         // Perform SBC
-        uint16_t R = A + (M ^ 0xFF) + get_flag(cpu, CARRY_MASK);
+        uint16_t R = A + (M ^ 0xFF) + get_flag(cpu, CARRY);
         cpu->ac = R & 0xFF;
-        set_flag(cpu, CARRY_MASK, R > 0xFF);
-        set_flag(cpu, OVERFLOW_MASK, ((A ^ R) & (A ^ M) & 0x80) != 0);
+        set_flag(cpu, CARRY, R > 0xFF);
+        set_flag(cpu, OVERFLW, ((A ^ R) & (A ^ M) & 0x80) != 0);
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
@@ -547,8 +547,8 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
     case RLA: { // Illegal
         // Perform ROL
         uint8_t m = mem_read_8(mem, cpu->address);
-        uint8_t rotated = (m << 1) | get_flag(cpu, CARRY_MASK);
-        set_flag(cpu, CARRY_MASK, m & 0x80);
+        uint8_t rotated = (m << 1) | get_flag(cpu, CARRY);
+        set_flag(cpu, CARRY, m & 0x80);
         mem_write_8(mem, cpu->address, rotated);
         // Perform AND
         cpu->ac &= rotated;
@@ -558,15 +558,15 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
     case RRA: { // Illegal
         // Perform ROR
         uint8_t m = mem_read_8(mem, cpu->address);
-        uint8_t rotated = (get_flag(cpu, CARRY_MASK) << 7) | (m >> 1);
+        uint8_t rotated = (get_flag(cpu, CARRY) << 7) | (m >> 1);
         mem_write_8(mem, cpu->address, rotated);
-        set_flag(cpu, CARRY_MASK, m & 0x01);
+        set_flag(cpu, CARRY, m & 0x01);
         // Perform ADC
         uint16_t a = cpu->ac;
-        uint16_t r = a + rotated + get_flag(cpu, CARRY_MASK);
+        uint16_t r = a + rotated + get_flag(cpu, CARRY);
         cpu->ac = r & 0xFF;
-        set_flag(cpu, CARRY_MASK, r >= 0x100);
-        set_flag(cpu, OVERFLOW_MASK, (~(a ^ rotated) & (a ^ r) & 0x80) != 0);
+        set_flag(cpu, CARRY, r >= 0x100);
+        set_flag(cpu, OVERFLW, (~(a ^ rotated) & (a ^ r) & 0x80) != 0);
         set_ZN_flags(cpu, cpu->ac);
         break;
     }
@@ -579,7 +579,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
         uint16_t result = (cpu->ac & cpu->x) - operand;
         cpu->x = result;
         set_ZN_flags(cpu, cpu->x);
-        set_flag(cpu, CARRY_MASK, !(result & 0xFF00));
+        set_flag(cpu, CARRY, !(result & 0xFF00));
         break;
     }
     case SHA: { // Illegal
@@ -605,7 +605,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
     case SLO: { // Illegal
         // Perform ASL
         uint8_t m = mem_read_8(mem, cpu->address);
-        set_flag(cpu, CARRY_MASK, m & 0x80);
+        set_flag(cpu, CARRY, m & 0x80);
         uint8_t shifted = m << 1;
         mem_write_8(mem, cpu->address, shifted);
         // Perform ORA
@@ -616,7 +616,7 @@ void execute_instruction(CPU *cpu, Instruction instruction) {
     case SRE: { // Illegal
         // Perform LSR
         uint8_t m = mem_read_8(mem, cpu->address);
-        set_flag(cpu, CARRY_MASK, m & 0x1);
+        set_flag(cpu, CARRY, m & 0x1);
         uint8_t shifted = m >> 1;
         mem_write_8(mem, cpu->address, shifted);
         // Perform EOR
@@ -788,7 +788,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
 void handle_interrupt(CPU *cpu){
     if (cpu->pending_interrupt == NONE) return;
 
-    if (get_flag(cpu, INTERRUPT_MASK) && cpu->pending_interrupt != NMI) {
+    if (get_flag(cpu, INTERRUPT) && cpu->pending_interrupt != NMI) {
         cpu->pending_interrupt = NONE;
         return;
     }
@@ -814,7 +814,7 @@ void handle_interrupt(CPU *cpu){
 
     mem_push_stack_16(cpu, cpu->pc);
     mem_push_stack_8(cpu, cpu->sr);
-    set_flag(cpu, INTERRUPT_MASK, TRUE);
+    set_flag(cpu, INTERRUPT, TRUE);
     cpu->pc = mem_read_16(mem, address);
     cpu->cycles += 7;
     cpu->pending_interrupt = NONE;

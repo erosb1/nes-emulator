@@ -28,15 +28,10 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
         case 0x2000: // PPU_CONTROL
             ppu_set_ctrl(ppu, value);
             break;
-        case 0x2001: {
+        case 0x2001:
             // PPU_MASK
-            int pre = ppu->mask.render_background;
             ppu->mask.reg = value;
-            if (pre != ppu->mask.render_background) {
-                //printf("Setting render BG to %i\n", ppu->mask.render_background);
-            }
             break;
-        }
         case 0x2003: // OAM_ADDRESS
             ppu->oam_addr = value;
             break;

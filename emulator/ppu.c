@@ -24,7 +24,7 @@ void ppu_init(Emulator *emulator) {
 }
 
 void ppu_reset(PPU *ppu) {
-    ppu->control.reg = ppu->mask.reg = ppu->status.reg = 0x00;
+    ppu->crtl.reg = ppu->mask.reg = ppu->status.reg = 0x00;
     ppu->oam_addr = ppu->oam_data = 0x00;
     ppu->vram_addr.reg = ppu->temp_addr.reg = 0x0000;
     ppu->write_latch = ppu->data_read_buffer = ppu->fine_x = 0x00;
@@ -78,7 +78,7 @@ void ppu_run_cycle(PPU *ppu) {
         if (ppu->cur_scanline == 241 && ppu->cur_dot == 1) {
             // Set VBlank flag and trigger NMI if enabled
             ppu->status.vblank = TRUE;
-            if (ppu->control.enable_nmi) {
+            if (ppu->crtl.enable_nmi) {
                 cpu_set_interrupt(cpu, NMI);
             }
         }
@@ -144,9 +144,9 @@ void ppu_run_cycle(PPU *ppu) {
 }
 
 void ppu_set_ctrl(PPU *ppu, uint8_t value) {
-    ppu->control.reg = value;
-    ppu->temp_addr.nametable_x = ppu->control.nametable_x;
-    ppu->temp_addr.nametable_y = ppu->control.nametable_y;
+    ppu->crtl.reg = value;
+    ppu->temp_addr.nametable_x = ppu->crtl.nametable_x;
+    ppu->temp_addr.nametable_y = ppu->crtl.nametable_y;
 }
 
 uint8_t ppu_read_status(PPU *ppu) {
@@ -211,7 +211,7 @@ void ppu_write_vram_data(PPU *ppu, uint8_t value) {
         }
     }
 
-    ppu->vram_addr.reg += ppu->control.increment ? 32 : 1;
+    ppu->vram_addr.reg += ppu->crtl.increment ? 32 : 1;
 }
 
 uint8_t ppu_read_vram_data(PPU *ppu) {
@@ -240,7 +240,7 @@ uint8_t ppu_read_vram_data(PPU *ppu) {
         return ppu->palette[address];
     }
 
-    ppu->vram_addr.reg += ppu->control.increment ? 32 : 1;
+    ppu->vram_addr.reg += ppu->crtl.increment ? 32 : 1;
     return prev_buffer;
 }
 
@@ -360,31 +360,41 @@ void prepare_background_tile(PPU *ppu) {
     update_shifters(ppu);
 
     switch (ppu->cur_dot % 8) {
-    case 1: // fetch next nametable tile id
+    case 1: {
+        // fetch next nametable tile id
         load_shifters(ppu);
-        ppu->next_tile_id = ppu_const_read_vram_data(ppu, 0x2000 | (ppu->vram_addr.reg & 0x0FFF));
+        uint16_t addr = 0x2000 | (ppu->vram_addr.reg & 0x0FFF);
+        ppu->next_tile_id = ppu_const_read_vram_data(ppu, addr);
         break;
-    case 3: // fetch next tile attribute
-        ppu->next_tile_attr = ppu_const_read_vram_data(ppu, 0x23C0 | (ppu->vram_addr.nametable_y << 11)
+    }
+    case 3: {
+        // fetch next tile attribute
+        uint16_t addr = 0x23C0 | (ppu->vram_addr.nametable_y << 11
             | ppu->vram_addr.nametable_x << 10
             | ((ppu->vram_addr.coarse_y >> 2) << 3)
             | (ppu->vram_addr.coarse_x >> 2));
+        ppu->next_tile_attr = ppu_const_read_vram_data(ppu, addr);
         if (ppu->vram_addr.coarse_y & 0x02) ppu->next_tile_attr >>= 4;
         if (ppu->vram_addr.coarse_x & 0x02) ppu->next_tile_attr >>= 2;
         ppu->next_tile_attr &= 0x03;
         break;
-    case 5: // fetch next pattern table tile row (LSB)
-        ppu->next_tile_lsb = ppu_const_read_vram_data(ppu, (ppu->control.pattern_background << 12)
+    }
+    case 5: {
+        // fetch next pattern table tile row (LSB)
+        ppu->next_tile_lsb = ppu_const_read_vram_data(ppu, (ppu->crtl.pattern_background << 12)
             + ((uint16_t) ppu->next_tile_id << 4)
             + (ppu->vram_addr.fine_y) + 0);
         break;
-    case 7: // fetch next pattern table tile row (MSB)
-        ppu->next_tile_msb = ppu_const_read_vram_data(ppu, (ppu->control.pattern_background << 12)
+    }
+    case 7: {
+        // fetch next pattern table tile row (MSB)
+        ppu->next_tile_msb = ppu_const_read_vram_data(ppu, (ppu->crtl.pattern_background << 12)
             + ((uint16_t) ppu->next_tile_id << 4)
             + (ppu->vram_addr.fine_y) + 8);
         break;
+    }
     case 0: // increment vram_addr to next nametable tile
-        if (ppu->cur_dot != 0) increment_scroll_x(ppu);
+        increment_scroll_x(ppu);
         break;
     }
 }

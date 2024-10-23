@@ -34,30 +34,27 @@ typedef struct Emulator {
 } Emulator;
 
 /*
- * This function initialises the emulator and all of its components.
+ * Initializes the emulator and all of its components.
  *
  */
 void emulator_init(Emulator *emulator, uint8_t *rom);
 
 /*
- * This function runs the emulator.
- * The program will spend 99.99% of its execution time inside of this function.
+ * Runs the emulator.
+ *
+ * It contains the main frame loop that the program will spend
+ * 99,9% of its time inside.
  *
  */
 void emulator_run(Emulator *emulator);
 
-#ifndef RISC_V
-void emulator_handle_sdl(Emulator *emulator);
-#endif
-
-
 /*
- * This function tests the CPU using the `tests/nestest.nes` rom.
+ * Tests the CPU using the `tests/nestest.nes` rom.
  *
  * It runs the CPU for a maximum of 26554 cycles and outputs the
  * execution trace to the console.
  *
- * As of now, it doesn't do anything with the PPU (this might change later)
+ * It also runs the PPU to check that the cycle timing is correct.
  *
  */
 void emulator_nestest(Emulator *emulator);

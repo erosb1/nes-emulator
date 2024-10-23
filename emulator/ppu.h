@@ -76,6 +76,11 @@ typedef union {
     uint8_t reg;
 } PPU_STATUS_REGISTER;
 
+/*
+ * This is a bitfield for easy access into the PPU internal registers v, and t.
+ *
+ * It uses loopy arithmetic.
+ */
 typedef union {
     struct {
         uint16_t coarse_x : 5;
@@ -97,7 +102,7 @@ typedef struct Emulator Emulator;
 
 typedef struct PPU {
     // PPU Registers
-    PPU_CTRL_REGISTER control;
+    PPU_CTRL_REGISTER crtl;
     PPU_MASK_REGISTER mask;
     PPU_STATUS_REGISTER status;
     uint8_t oam_addr;
@@ -133,17 +138,83 @@ typedef struct PPU {
     uint8_t palette[0x20];
 } PPU;
 
+/*
+ * Initializes the PPU
+ *
+ * Sets most values to 0.
+ */
 void ppu_init(Emulator *emulator);
 void ppu_reset(PPU *ppu);
+
+/*
+ * Runs one cycle of the PPU.
+ *
+ * Each cycle corresponds to one pixel one the screen.
+ * This function is called 89342 times per frame.
+ * It is called three times as often as `cpu_run_cycle`
+ */
 void ppu_run_cycle(PPU *ppu);
 
+/*
+ * Sets the PPUCTRL register.
+ *
+ */
 void ppu_set_ctrl(PPU *ppu, uint8_t value);
+
+/*
+ * Reads the PPUSTATUS register.
+ *
+ * It also sets the vBlank flag and write_latch register to 0.
+ */
 uint8_t ppu_read_status(PPU *ppu);
+
+/*
+ * Sets one byte of the PPUSCROLL register.
+ *
+ * This function toggles between setting the high and low byte.
+ */
 void ppu_set_scroll(PPU *ppu, uint8_t value);
+
+/*
+ * Sets one byte of the PPUADDR register.
+ *
+ * This function toggles between setting the high and low byte.
+ */
 void ppu_set_vram_addr(PPU *ppu, uint8_t half_address);
+
+/*
+ * Writes to VRAM. The address is specified by vram_addr
+ *
+ * The behavior of this function depends greatly on what address is being written to,
+ * and what mapper is being used.
+ *
+ * It also increments vram_addr by either 32 or 1, depending on ppu->ctrl.increment
+ */
 void ppu_write_vram_data(PPU *ppu, uint8_t value);
 
-uint8_t ppu_read_vram_data(PPU *ppu);   // NON-CONST - modifies internal PPU state (used by emulator)
-uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address); // CONST - doesn't modify internal PPU state (used by debug screen)
+/*
+ * Reads from VRAM. The address is specified by vram_addr
+ *
+ * The behavior of this function depends greatly on what address is read from,
+ * and what mapper is being used.
+ *
+ * If reading from Palette memory, the value is returned directly.
+ * If reading from Pattern Tables or Nametables, the previously read value is returned,
+ *    and the currently read value gets buffered in ppu->data_read_buffer
+ *
+ * It also increments vram_addr by either 32 or 1, depending on ppu->ctrl.increment
+ */
+uint8_t ppu_read_vram_data(PPU *ppu);
+
+
+/*
+ * Reads from VRAM. Doesn't modify internal state.
+ *
+ * The behavior of this function depends greatly on what address is read from,
+ * and what mapper is being used.
+ *
+ * The value being read is returned directly, and is not buffered.
+ */
+uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address);
 
 #endif

@@ -52,13 +52,9 @@ typedef struct Mapper {
 /*
  * Initializes the mapper by reading emulator->rom.
  *
- * Sets upp the `read_prg` and `read_chr` function pointers
- * depending on mapper ID specified in the iNES header.
+ * Sets upp the function pointers depending on mapper ID specified in the iNES header.
  */
 void mapper_init(Emulator *emulator);
 
-
-
-uint16_t mapper_mirror_nametable_address(Mapper *mapper, uint16_t address);
 
 #endif
