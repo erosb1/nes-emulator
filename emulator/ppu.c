@@ -147,12 +147,14 @@ void ppu_run_cycle(PPU *ppu) {
     }
 }
 
+// src: https://www.nesdev.org/wiki/PPU_scrolling#$2000_(PPUCTRL)_write
 void ppu_set_ctrl(PPU *ppu, uint8_t value) {
     ppu->crtl.reg = value;
     ppu->temp_addr.nametable_x = ppu->crtl.nametable_x;
     ppu->temp_addr.nametable_y = ppu->crtl.nametable_y;
 }
 
+// src: https://www.nesdev.org/wiki/PPU_scrolling#$2002_(PPUSTATUS)_read
 uint8_t ppu_read_status(PPU *ppu) {
     uint8_t status = ppu->status.reg;
     ppu->write_latch = 0x00;
@@ -160,6 +162,7 @@ uint8_t ppu_read_status(PPU *ppu) {
     return status;
 }
 
+// src: https://www.nesdev.org/wiki/PPU_scrolling#$2005_(PPUSCROLL)_first_write_(w_is_0)
 void ppu_set_scroll(PPU *ppu, uint8_t value) {
     if (ppu->write_latch == 0) {
         // First write: Set X scroll value
@@ -174,10 +177,11 @@ void ppu_set_scroll(PPU *ppu, uint8_t value) {
     }
 }
 
+// src: https://www.nesdev.org/wiki/PPU_scrolling#$2006_(PPUADDR)_first_write_(w_is_0)
 void ppu_set_vram_addr(PPU *ppu, uint8_t half_address) {
     if (ppu->write_latch == 0) {
         // First write: Set the high byte (bits 8-14)
-        ppu->temp_addr.high = (half_address & 0x3F);
+        ppu->temp_addr.high = (half_address & 0x3F); // clears bit 15
         ppu->write_latch = 1;
     } else {
         // Second write: Set the low byte (bits 0-7)
@@ -276,18 +280,21 @@ uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address) {
 }
 
 // --------------- STATIC FUNCTIONS --------------------------- //
+
+// src: https://www.nesdev.org/wiki/PPU_scrolling#Coarse_X_increment
 static void increment_scroll_x(PPU *ppu) {
     if (!ppu->mask.render_background && !ppu->mask.render_sprites)
         return;
 
     if (ppu->vram_addr.coarse_x == 31) {
         ppu->vram_addr.coarse_x = 0;
-        ppu->vram_addr.nametable_x = ~ppu->vram_addr.nametable_x;
+        ppu->vram_addr.nametable_x ^= ppu->vram_addr.nametable_x;
     } else {
         ppu->vram_addr.coarse_x++;
     }
 }
 
+// src: https://www.nesdev.org/wiki/PPU_scrolling#Y_increment
 static void increment_scroll_y(PPU *ppu) {
     if (!ppu->mask.render_background && !ppu->mask.render_sprites)
         return;
