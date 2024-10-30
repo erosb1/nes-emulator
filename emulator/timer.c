@@ -3,33 +3,21 @@
 #ifdef RISC_V
 
 uint32_t get_time_point() {
-    // TODO: implement based on DTEKV timer
-    return 0;
+    uint32_t cycles;
+    asm volatile ("csrr %0, mcycle" : "=r"(cycles));
+    return cycles;
 }
 
 uint32_t get_elapsed_us(uint32_t time_point_start, uint32_t time_point_end) {
-    // TODO: implement based on DTEKV timer
-    return time_point_end - time_point_start;
+    return (time_point_end - time_point_start) / 30;
 }
 
 void sleep_us(uint32_t microseconds) {
-    const uint8_t cycles = microseconds * 30;
-    volatile uint32_t *status = (uint32_t *)0x04000020;
-    *status = 0; // clear timeout
-
-    volatile uint32_t *ctrl = (uint32_t *)(status + 4);
-    volatile uint32_t *periodl = (uint32_t *)(status + 8);
-    volatile uint32_t *periodh = (uint32_t *)(status + 16);
-    *periodl = cycles & 0xFFFF;
-    *periodh = cycles >> 16;
-
-    // STOP = 0; START = 1; CONT = 1; ITO = 0.
-    *ctrl = 0b0100;
+    uint32_t start = get_time_point();
 
     while (1) {
-        if (*status & 0x1) { // if timeout
-            return;
-        }
+        uint32_t cur = get_time_point();
+        if (get_elapsed_us(start, cur) >= microseconds) return;
     }
 }
 

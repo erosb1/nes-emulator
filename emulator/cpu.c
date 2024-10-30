@@ -27,7 +27,7 @@ static uint8_t rotate_left(CPU *cpu, uint8_t val);
 static uint8_t rotate_right(CPU *cpu, uint8_t val);
 static void execute_instruction(CPU *cpu, Instruction instruction);
 static void set_address(CPU *cpu, Instruction instruction);
-static void handle_interrupt(CPU *cpu);
+static void handle_nes_interrupt(CPU *cpu);
 
 // --------------- PUBLIC FUNCTIONS --------------------------- //
 void cpu_init(Emulator *emulator) {
@@ -50,7 +50,7 @@ void cpu_run_cycle(CPU *cpu) {
 
     if (cpu->cycles == 0) {
         if (cpu->pending_interrupt != NONE) {
-            handle_interrupt(cpu); // might add 7 cycles
+            handle_nes_interrupt(cpu); // might add 7 cycles
         }
 
 #ifndef RISC_V
@@ -752,7 +752,7 @@ static void set_address(CPU *cpu, Instruction instruction) {
     }
 }
 
-void handle_interrupt(CPU *cpu) {
+void handle_nes_interrupt(CPU *cpu) {
     if (cpu->pending_interrupt == NONE)
         return;
 

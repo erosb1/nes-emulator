@@ -62,7 +62,7 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
 #endif
             break;
         }
-        mem->apu_io_reg[address - PPU_MIRROR_END] = value;
+        //mem->apu_io_reg[address - PPU_MIRROR_END] = value;
         return;
     }
 
@@ -112,7 +112,7 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
 #endif
         }
         }
-        return mem->apu_io_reg[address - PPU_MIRROR_END];
+        //return mem->apu_io_reg[address - PPU_MIRROR_END];
     }
 
     if (address < PRG_RAM_END) {
