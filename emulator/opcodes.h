@@ -51,10 +51,6 @@ typedef struct Instruction {
 
 
 
-
-
-
-
 //---------------//
 // Lookup Tables //
 //---------------//
@@ -93,7 +89,6 @@ static const Instruction instruction_lookup[] = {
     {BEQ, REL}, {SBC, YIN}, {JAM, UNK}, {ISB, YIN}, {NOP, ZPX}, {SBC, ZPX}, {INC, ZPX}, {ISB, ZPX}, // 0xF0 - 0xF7
     {SED, IMP}, {SBC, ABY}, {NOP, IMP}, {ISB, ABY}, {NOP, ABX}, {SBC, ABX}, {INC, ABX}, {ISB, ABX}  // 0xF8 - 0xFF
 };
-
 
 static const uint8_t cycle_lookup[] = {
     7, 6, 0, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6,

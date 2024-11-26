@@ -36,21 +36,82 @@ typedef struct MEM {
     uint8_t apu_io_reg[APU_IO_REGISTER_SIZE];
     uint8_t cartridge_ram[PRG_RAM_SIZE];
     // PRG_ROM is accessed through the mapper
+
+    uint8_t controller_shift_register;
+
     Emulator *emulator;
 } MEM;
 
+/**
+ *  Initializes memory.
+ *
+ *  Sets most values to 0
+ */
 void init_cpu_mem(Emulator *emulator);
 
+/**
+ *  Writes a byte to memory.
+ *
+ *  Also handles memory mirroring.
+ */
 void mem_write_8(MEM *mem, uint16_t address, uint8_t value);
+
+/**
+ *  Reads a byte from memory.
+ *
+ *  Als handles memory mirroring. This function
+ *  might modify the state of other devices, especially
+ *  if reading from PPU registers.
+ */
 uint8_t mem_read_8(MEM *mem, uint16_t address);
 
+/**
+ *  Writes two bytes to memory in little-endian.
+ *
+ *  Calls `mem_write_8` two times.
+ */
 void mem_write_16(MEM *mem, uint16_t address, uint16_t value);
+
+/**
+ *  Reads two bytes from memory in little-endian.
+ *
+ *  Calls `mem_read_8` two times.
+ */
 uint16_t mem_read_16(MEM *mem, uint16_t address);
 
+/**
+ *  Pushes a byte to the stack.
+ *
+ *  The stack is located in mem->ram, starts at 0x0100,
+ *  and grows downwards.
+ */
 void mem_push_stack_8(CPU *cpu, uint8_t value);
+
+/**
+ *  Pops a byte from the stack.
+ *
+ *  The stack is located in mem->ram, starts at 0x0100,
+ *  and grows downwards.
+ */
 uint8_t mem_pop_stack_8(CPU *cpu);
 
+/**
+ *  Pushes two bytes to the stack in little-endian.
+ *
+ */
 void mem_push_stack_16(CPU *cpu, uint16_t value);
+
+/**
+ *  Pops two bytes from the stack in little-endian.
+ *
+ */
 uint16_t pop_stack_16(CPU *cpu);
+
+/**
+ *  Reads a byte from memory, without modifying any external state.
+ *
+ *  This function is mainly used for debugging purposes.
+ */
+uint8_t mem_const_read_8(const MEM *mem, uint16_t address);
 
 #endif // CPU_MEM_H

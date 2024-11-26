@@ -1,30 +1,28 @@
 
 #include "sdl-instance.h"
 #include "common.h"
-#include "emulator.h"
 
 // Global SDLInstance variable
 SDLInstance SDL_INSTANCE;
 
 // Setup window regions
-#define WINDOW_REGION_PADDING 50
 #define NES_SCREEN_SCALE_FACTOR 3
 
-#define DEBUG_SCREEN_SCALE_FACTOR 2
-#define DEBUG_SCREEN_WIDTH 128
-#define DEBUG_SCREEN_HEIGHT 336
+#define DEBUG_SCREEN_SCALE_FACTOR 1
+#define DEBUG_SCREEN_WIDTH 256
+#define DEBUG_SCREEN_HEIGHT SDL_WINDOW_HEIGHT
 
 WindowRegion NES_SCREEN = {
-    .top_coord = 50,
-    .left_coord = 50,
+    .top_coord = 0,
+    .left_coord = 0,
     .width = NES_SCREEN_WIDTH * NES_SCREEN_SCALE_FACTOR,
     .height = NES_SCREEN_HEIGHT * NES_SCREEN_SCALE_FACTOR,
     .scale_factor = NES_SCREEN_SCALE_FACTOR,
 };
 
 WindowRegion DEBUG_SCREEN = {
-    .top_coord = 50,
-    .left_coord = 868,
+    .top_coord = 0,
+    .left_coord = 768,
     .width = DEBUG_SCREEN_WIDTH * DEBUG_SCREEN_SCALE_FACTOR,
     .height = DEBUG_SCREEN_HEIGHT * DEBUG_SCREEN_SCALE_FACTOR,
     .scale_factor = DEBUG_SCREEN_SCALE_FACTOR,
@@ -81,50 +79,52 @@ void sdl_draw_frame() {
 }
 
 enum {
-    NES_A_BUTTON        = 1 << 0,
-    NES_B_BUTTON        = 1 << 1,
-    NES_SELECT_BUTTON   = 1 << 2,
-    NES_START_BUTTON    = 1 << 3,
-    NES_DPAD_UP         = 1 << 4,
-    NES_DPAD_DOWN       = 1 << 5,
-    NES_DPAD_LEFT       = 1 << 6,
-    NES_DPAD_RIGHT      = 1 << 7,
+    NES_DPAD_RIGHT = 1 << 0,
+    NES_DPAD_LEFT = 1 << 1,
+    NES_DPAD_DOWN = 1 << 2,
+    NES_DPAD_UP = 1 << 3,
+    NES_START_BUTTON = 1 << 4,
+    NES_SELECT_BUTTON = 1 << 5,
+    NES_B_BUTTON = 1 << 6,
+    NES_A_BUTTON = 1 << 7,
 };
 
 uint8_t sdl_poll_events() {
     SDL_Event sdl_event;
-    uint32_t event = 0;
+    uint8_t event = 0;
 
     while (SDL_PollEvent(&sdl_event)) {
-        const Uint8 *state = SDL_GetKeyboardState(NULL);
-        if (state[SDL_SCANCODE_X]) {
-            event |= NES_A_BUTTON;
-        }
-        if (state[SDL_SCANCODE_Z]) {
-            event |= NES_B_BUTTON;
-        }
-        if (state[SDL_SCANCODE_RSHIFT]) {
-            event |= NES_SELECT_BUTTON;
-        }
-        if (state[SDL_SCANCODE_RETURN]) {
-            event |= NES_START_BUTTON;
-        }
-        if (state[SDL_SCANCODE_UP]) {
-            event |= NES_DPAD_UP;
-        }
-        if (state[SDL_SCANCODE_DOWN]) {
-            event |= NES_DPAD_DOWN;
-        }
-        if (state[SDL_SCANCODE_LEFT]) {
-            event |= NES_DPAD_LEFT;
-        }
-        if (state[SDL_SCANCODE_RIGHT]) {
-            event |= NES_DPAD_RIGHT;
-        }
+    }
+
+    const uint8_t *state = SDL_GetKeyboardState(NULL);
+    if (state[SDL_SCANCODE_X]) {
+        event |= NES_A_BUTTON;
+    }
+    if (state[SDL_SCANCODE_Z]) {
+        event |= NES_B_BUTTON;
+    }
+    if (state[SDL_SCANCODE_RSHIFT]) {
+        event |= NES_SELECT_BUTTON;
+    }
+    if (state[SDL_SCANCODE_RETURN]) {
+        event |= NES_START_BUTTON;
+    }
+    if (state[SDL_SCANCODE_UP]) {
+        event |= NES_DPAD_UP;
+    }
+    if (state[SDL_SCANCODE_DOWN]) {
+        event |= NES_DPAD_DOWN;
+    }
+    if (state[SDL_SCANCODE_LEFT]) {
+        event |= NES_DPAD_LEFT;
+    }
+    if (state[SDL_SCANCODE_RIGHT]) {
+        event |= NES_DPAD_RIGHT;
     }
 
     return event;
 }
+void sdl_set_window_title(const char *title) { SDL_SetWindowTitle(SDL_INSTANCE.window, title); }
 
 int sdl_window_quit() {
     SDL_Event sdl_event;
@@ -166,3 +166,5 @@ void sdl_put_pixel_region(WindowRegion *window_region, int relative_x, int relat
         }
     }
 }
+
+void sdl_put_pixel_nes_screen(int x, int y, uint32_t color) { sdl_put_pixel_region(&NES_SCREEN, x, y, color); }

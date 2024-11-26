@@ -8,7 +8,11 @@ set(CMAKE_C_STANDARD 11)
 if(NOT RISC_V)
     message(STATUS "Building CMake for host system (development)")
 
-    add_compile_options("-Wall")
+
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -flto -march=native -mtune=native -ffast-math -fomit-frame-pointer -DNDEBUG")
+
+    # Set compiler flags for Debug builds
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0")
 
     # Include directories
     include_directories(${CMAKE_SOURCE_DIR}/dev)
@@ -30,7 +34,7 @@ if(NOT RISC_V)
     add_custom_target(nestest_cpu_only_diff
         COMMAND ${CMAKE_CURRENT_BINARY_DIR}/main ${CMAKE_SOURCE_DIR}/tests/nestest.nes --nestest > ${CMAKE_CURRENT_BINARY_DIR}/output.txt
         COMMAND echo "NESTEST Complete -- No Errors Detected" >> ${CMAKE_CURRENT_BINARY_DIR}/output.txt
-        COMMAND diff ${CMAKE_CURRENT_BINARY_DIR}/output.txt ${CMAKE_SOURCE_DIR}/tests/nestest_cpu_only.txt | head -n 2 | tail -n 1
+        COMMAND diff ${CMAKE_CURRENT_BINARY_DIR}/output.txt ${CMAKE_SOURCE_DIR}/tests/nestest.txt | head -n 2 | tail -n 1
         DEPENDS main
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Running NES Emulator tests and comparing logs..."
@@ -43,7 +47,6 @@ else()
     add_compile_definitions(RISC_V)
 
     # Set object directory
-    set(TOOLCHAIN "riscv32-unknown-elf-")
     set(OBJ_DIR "${CMAKE_SOURCE_DIR}/build")
 
     # Set toolchain and flags
@@ -66,7 +69,7 @@ else()
     set(ALL_SOURCES ${DTEKV_DRIVERS_SOURCES} ${EMULATOR_SOURCES} ${DTEKV_BUILD_SOURCES})
 
     # Specify any necessary compile flags
-    set(CMAKE_C_FLAGS "-Wall -nostdlib -O3 -mabi=ilp32 -march=rv32imzicsr")
+    set(CMAKE_C_FLAGS "-Wall -Wno-unused-variable -Wno-unused-function -Wno-array-bounds -nostdlib -O3 -mabi=ilp32 -march=rv32imzicsr")
 
     # Specify output ELF target
     add_executable(${TARGET_ELF} ${ALL_SOURCES})
@@ -80,15 +83,12 @@ else()
     # Ignore rwx warnings from the linker
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-warn-rwx-segments")
 
-
     # Generate .bin and disassemble RISC-V
-    # Also runs jtagd --user-start, cause why not?
     add_custom_command(
             TARGET ${TARGET_ELF}
             POST_BUILD
-            COMMAND ${TOOLCHAIN}objcopy --output-target=binary ${TARGET_ELF} ${TARGET_BIN}
-            COMMAND ${TOOLCHAIN}objdump -D ${TARGET_ELF} > ${TARGET_ELF}.txt
-            COMMAND jtagd --user-start
+            COMMAND ${CMAKE_OBJCOPY} --output-target=binary ${TARGET_ELF} ${TARGET_BIN}
+            COMMAND ${CMAKE_OBJDUMP} -D ${TARGET_ELF} > ${TARGET_ELF}.txt
             COMMENT "Generating binary file ${TARGET_BIN}"
     )
 endif()
