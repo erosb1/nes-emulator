@@ -35,6 +35,7 @@ size_t read_rom_from_file(uint8_t **buffer, const char *path) {
 int main(int argc, char *argv[]) {
 
 #ifdef RISC_V // This code will run on the DTEKV RISC-V board
+    input_setup();
     uint8_t *buffer = (uint8_t *)0x2000000;
     Emulator NES;
     emulator_init(&NES, buffer);

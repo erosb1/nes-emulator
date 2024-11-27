@@ -1,4 +1,5 @@
 #include "mem.h"
+#include "common.h"
 #include "cpu.h"
 #include "emulator.h"
 #include "mapper.h"
@@ -56,13 +57,13 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
         case 0x4016:
 #ifdef RISC_V
             // set latch pin
-            set_pin(LATCH_PIN_MASK, value & 1);
+            input_latch();
 #else
             mem->controller_shift_register = sdl_poll_events();
 #endif
             break;
         }
-        //mem->apu_io_reg[address - PPU_MIRROR_END] = value;
+        // mem->apu_io_reg[address - PPU_MIRROR_END] = value;
         return;
     }
 
@@ -102,17 +103,15 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
         case 0x4016: {
 #ifdef RISC_V
             // pulse clock pin
-            input_clock_pulse();
-            return get_pin(DATA_PIN_MASK);
+            return input_read();
 #else
-
             uint8_t data = (mem->controller_shift_register & 0x80) > 0;
             mem->controller_shift_register <<= 1;
             return data;
 #endif
         }
         }
-        //return mem->apu_io_reg[address - PPU_MIRROR_END];
+        // return mem->apu_io_reg[address - PPU_MIRROR_END];
     }
 
     if (address < PRG_RAM_END) {
