@@ -37,6 +37,7 @@
 #include "dtekv-lib.h"
 void exit(int code);
 #include "nes-controller.h"
+#include "vga-screen.h"
 
 #else
 
