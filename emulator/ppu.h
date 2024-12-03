@@ -118,7 +118,6 @@ typedef struct PPU {
     PPU_MASK_REGISTER mask;
     PPU_STATUS_REGISTER status;
     uint8_t oam_addr;
-    uint8_t oam_data;
     VRAM_ADDR_REGISTER vram_addr;
     VRAM_ADDR_REGISTER temp_addr;
     uint8_t write_latch;
@@ -147,6 +146,7 @@ typedef struct PPU {
     Emulator *emulator;
     uint8_t vram[0x2000];
     uint8_t palette[0x20];
+    uint8_t oam[0x100];
 } PPU;
 
 /**

@@ -37,7 +37,7 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
             ppu->oam_addr = value;
             break;
         case 0x2004: // OAM_DATA
-            ppu->oam_data = value;
+            ppu->oam[ppu->oam_addr] = value;
             break;
         case 0x2005: // PPU_SCROLL
             ppu_set_scroll(ppu, value);
@@ -89,7 +89,7 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
         case 0x2002: // PPU_STATUS
             return ppu_read_status(ppu);
         case 0x2004: // OAM_DATA
-            return ppu->oam_data;
+            return ppu->oam[ppu->oam_addr];
         case 0x2007: // PPU_DATA
             return ppu_read_vram_data(ppu);
         default:

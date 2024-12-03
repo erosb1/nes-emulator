@@ -24,7 +24,7 @@ void ppu_init(Emulator *emulator) {
 
 void ppu_reset(PPU *ppu) {
     ppu->crtl.reg = ppu->mask.reg = ppu->status.reg = 0x00;
-    ppu->oam_addr = ppu->oam_data = 0x00;
+    ppu->oam_addr = 0x00;
     ppu->vram_addr.reg = ppu->temp_addr.reg = 0x0000;
     ppu->write_latch = ppu->data_read_buffer = ppu->fine_x = 0x00;
     ppu->cur_scanline = ppu->cur_dot = 0;
@@ -36,6 +36,7 @@ void ppu_reset(PPU *ppu) {
     ppu->cycle_counter = 0;
     memset(ppu->vram, 0, sizeof(ppu->vram));
     memset(ppu->palette, 0, sizeof(ppu->palette));
+    memset(ppu->oam, 0, sizeof(ppu->oam));
 }
 
 void ppu_run_cycle(PPU *ppu) {
