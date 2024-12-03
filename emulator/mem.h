@@ -114,4 +114,6 @@ uint16_t pop_stack_16(CPU *cpu);
  */
 uint8_t mem_const_read_8(const MEM *mem, uint16_t address);
 
+uint8_t* mem_get_pointer(MEM *mem, uint16_t address);
+
 #endif // CPU_MEM_H

@@ -37,6 +37,7 @@ void cpu_init(Emulator *emulator) {
     cpu->ac = cpu->x = cpu->y = 0x00;
     cpu->total_cycles = 0;
     cpu->cycles = 0;
+    cpu->dma_cycles = 0;
     cpu->sr = SR_INIT_VALUE;
     cpu->sp = SP_INIT_VALUE;
     cpu->pending_interrupt = NONE;
@@ -47,6 +48,12 @@ void cpu_init(Emulator *emulator) {
 
 void cpu_run_cycle(CPU *cpu) {
     MEM *mem = &cpu->emulator->mem;
+
+    // If currently in OAM DMA
+    if (cpu->dma_cycles > 0) {
+        cpu->dma_cycles--;
+        return;
+    }
 
     if (cpu->cycles == 0) {
         if (cpu->pending_interrupt != NONE) {

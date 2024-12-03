@@ -227,4 +227,6 @@ uint8_t ppu_read_vram_data(PPU *ppu);
  */
 uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address);
 
+void ppu_dma(PPU *ppu, uint8_t page);
+
 #endif

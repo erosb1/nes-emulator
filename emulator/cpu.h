@@ -37,6 +37,7 @@ typedef struct CPU {
     uint8_t sp;       // stack pointer (wraps)
     size_t total_cycles;
     size_t cycles;
+    size_t dma_cycles;
     Interrupt pending_interrupt;
 
     // References to other devices

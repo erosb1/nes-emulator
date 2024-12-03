@@ -281,6 +281,24 @@ uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address) {
     return 0;
 }
 
+void ppu_dma(PPU *ppu, uint8_t page) {
+    MEM *mem = &ppu->emulator->mem;
+    CPU *cpu = &ppu->emulator->cpu;
+
+    uint8_t* ptr = mem_get_pointer(mem, (uint16_t)page << 8);
+    if (ptr == NULL) {
+        // TODO slow DMA
+        printf("SLOW DMA TRANSFER NOT IMPLEMENTED");
+        exit(EXIT_FAILURE);
+    } else {
+        memcpy(ppu->oam + ppu->oam_addr, ptr, 256 - ppu->oam_addr);
+        if(ppu->oam_addr)
+            memcpy(ppu->oam, ptr + (256 - ppu->oam_addr), ppu->oam_addr);
+    }
+
+    cpu->dma_cycles += 513 + cpu->total_cycles & 1;
+}
+
 // --------------- STATIC FUNCTIONS --------------------------- //
 
 // src: https://www.nesdev.org/wiki/PPU_scrolling#Coarse_X_increment
