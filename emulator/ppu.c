@@ -543,8 +543,8 @@ static void draw_background_pixel(PPU *ppu) {
             uint8_t sprite_attr  = ppu->sprite_scanline[i * 4 + 2];
 
             if (sprite_x == 0) {
-                uint8_t sprite_pixel_lo = (ppu->sprite_shifter_pattern_lo[i] & 0x80) > 1;
-                uint8_t sprite_pixel_hi = (ppu->sprite_shifter_pattern_hi[i] & 0x80) > 1;
+                uint8_t sprite_pixel_lo = (ppu->sprite_shifter_pattern_lo[i] & 0x80) > 0;
+                uint8_t sprite_pixel_hi = (ppu->sprite_shifter_pattern_hi[i] & 0x80) > 0;
                 sprite_pixel = (sprite_pixel_hi << 1) | sprite_pixel_lo;
 
                 sprite_palette = (sprite_attr & 0x03) + 0x04;
