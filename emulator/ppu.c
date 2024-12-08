@@ -9,11 +9,13 @@ static void reload_scroll_x(PPU *ppu);
 static void reload_scroll_y(PPU *ppu);
 static void load_shifters(PPU *ppu);
 static void update_shifters(PPU *ppu);
-uint16_t calculate_vram_index(Mapper *mapper, uint16_t address);
+static uint16_t calculate_vram_index(Mapper *mapper, uint16_t address);
 static uint32_t get_color_from_palette(PPU *ppu, uint8_t palette, uint8_t pixel);
 static uint8_t get_color_from_palette_8(PPU *ppu, uint8_t palette, uint8_t pixel);
 static void prepare_background_tile(PPU *ppu);
 static void draw_background_pixel(PPU *ppu);
+static void draw_foreground_scanline(PPU *ppu);
+static uint8_t reverse_bits(uint8_t n);
 
 // --------------- PUBLIC FUNCTIONS --------------------------- //
 void ppu_init(Emulator *emulator) {
@@ -23,7 +25,7 @@ void ppu_init(Emulator *emulator) {
 }
 
 void ppu_reset(PPU *ppu) {
-    ppu->crtl.reg = ppu->mask.reg = ppu->status.reg = 0x00;
+    ppu->ctrl.reg = ppu->mask.reg = ppu->status.reg = 0x00;
     ppu->oam_addr = 0x00;
     ppu->vram_addr.reg = ppu->temp_addr.reg = 0x0000;
     ppu->write_latch = ppu->data_read_buffer = ppu->fine_x = 0x00;
@@ -34,9 +36,11 @@ void ppu_reset(PPU *ppu) {
     ppu->shifter_pattern_lo = ppu->shifter_attr_hi = 0x0000;
     ppu->shifter_attr_lo = ppu->shifter_attr_hi = 0x0000;
     ppu->cycle_counter = 0;
+    ppu->sprite_count = 0;
     memset(ppu->vram, 0, sizeof(ppu->vram));
     memset(ppu->palette, 0, sizeof(ppu->palette));
     memset(ppu->oam, 0, sizeof(ppu->oam));
+    memset(ppu->sprite_scanline, 0, sizeof(ppu->sprite_scanline));
 }
 
 void ppu_run_cycle(PPU *ppu) {
@@ -82,7 +86,7 @@ void ppu_run_cycle(PPU *ppu) {
         if (ppu->cur_scanline == 241 && ppu->cur_dot == 1) {
             // Set VBlank flag and trigger NMI if enabled
             ppu->status.vblank = TRUE;
-            if (ppu->crtl.enable_nmi) {
+            if (ppu->ctrl.enable_nmi) {
                 cpu_set_interrupt(cpu, NMI);
             }
         }
@@ -99,6 +103,9 @@ void ppu_run_cycle(PPU *ppu) {
                 // Clear VBlank and sprite zero hit flags
                 ppu->status.vblank = FALSE;
                 ppu->status.sprite_zero_hit = FALSE;
+                ppu->status.sprite_overflow = FALSE;
+                memset(ppu->sprite_shifter_pattern_lo, 0, sizeof(ppu->sprite_shifter_pattern_lo));
+                memset(ppu->sprite_shifter_pattern_hi, 0, sizeof(ppu->sprite_shifter_pattern_hi));
             }
 
             prepare_background_tile(ppu);
@@ -147,13 +154,66 @@ void ppu_run_cycle(PPU *ppu) {
             ppu->cycle_counter = 0;
         }
     }
+
+    // Sprite rendering (scanline based)
+    if (ppu->cur_dot == 257) {
+        memset(ppu->sprite_scanline, 0xFF, sizeof(ppu->sprite_scanline));
+        ppu->sprite_count = 0;
+
+        for (size_t oam_entity_index = 0; oam_entity_index < 64 && ppu->sprite_count < 9; oam_entity_index++) {
+            uint8_t sprite_y = ppu->oam[oam_entity_index * 4];
+            size_t y_diff = (ppu->cur_scanline - (size_t) sprite_y);
+            if (y_diff <( ppu->ctrl.sprite_size ? 16 : 8)) {
+                if (ppu->sprite_count < 8) {
+                    memcpy(&ppu->sprite_scanline[ppu->sprite_count * 4], &ppu->oam[oam_entity_index * 4], 4);
+                    ppu->sprite_count++;
+                }
+            }
+        }
+        ppu->status.sprite_overflow = ppu->sprite_count;
+    }
+
+    if (ppu->cur_dot == 340) {
+        for (uint8_t i = 0; i < ppu->sprite_count; i++) {
+            uint16_t sprite_pattern_addr_lo;
+            uint8_t flipped_horizontal = ppu->sprite_scanline[i * 4 + 2] & 0x40;
+            uint8_t flipped_vertical = ppu->sprite_scanline[i * 4 + 2] & 0x80;
+            uint8_t sprite_y = ppu->sprite_scanline[i * 4];
+            uint16_t y_diff = ppu->cur_scanline - (uint16_t)sprite_y;
+            uint8_t sprite_id = ppu->sprite_scanline[i * 4 + 1];
+
+            if (!ppu->ctrl.sprite_size) {
+                // 8 pixel height
+                uint16_t row = flipped_vertical ? (7 - y_diff) : y_diff;
+                sprite_pattern_addr_lo = (ppu->ctrl.pattern_sprite << 12) | (sprite_id << 4) | row;
+            } else {
+                // 16 pixel height
+                uint16_t cell = y_diff < 8 ? (sprite_id & 0xFE) : (sprite_id & 0xFE) + 1;
+                uint16_t row = flipped_vertical ? (7 - (y_diff & 0x07)) : (y_diff & 0x07);
+                sprite_pattern_addr_lo = ((sprite_id & 0x01) << 12) | (cell << 4) | row;
+            }
+
+            uint16_t sprite_pattern_addr_hi = sprite_pattern_addr_lo + 1;
+            uint8_t sprite_pattern_bits_lo = ppu_const_read_vram_data(ppu, sprite_pattern_addr_lo);
+            uint8_t sprite_pattern_bits_hi = ppu_const_read_vram_data(ppu, sprite_pattern_addr_hi);
+
+            // if flipped horizontally we just reverse the bytes
+            if (flipped_horizontal) {
+                sprite_pattern_bits_lo = reverse_bits(sprite_pattern_bits_lo);
+                sprite_pattern_bits_hi = reverse_bits(sprite_pattern_bits_hi);
+            }
+
+            ppu->sprite_shifter_pattern_lo[i] = sprite_pattern_bits_lo;
+            ppu->sprite_shifter_pattern_hi[i] = sprite_pattern_bits_hi;
+        }
+    }
 }
 
 // src: https://www.nesdev.org/wiki/PPU_scrolling#$2000_(PPUCTRL)_write
 void ppu_set_ctrl(PPU *ppu, uint8_t value) {
-    ppu->crtl.reg = value;
-    ppu->temp_addr.nametable_x = ppu->crtl.nametable_x;
-    ppu->temp_addr.nametable_y = ppu->crtl.nametable_y;
+    ppu->ctrl.reg = value;
+    ppu->temp_addr.nametable_x = ppu->ctrl.nametable_x;
+    ppu->temp_addr.nametable_y = ppu->ctrl.nametable_y;
 }
 
 // src: https://www.nesdev.org/wiki/PPU_scrolling#$2002_(PPUSTATUS)_read
@@ -221,7 +281,7 @@ void ppu_write_vram_data(PPU *ppu, uint8_t value) {
         }
     }
 
-    ppu->vram_addr.reg += ppu->crtl.increment ? 32 : 1;
+    ppu->vram_addr.reg += ppu->ctrl.increment ? 32 : 1;
 }
 
 uint8_t ppu_read_vram_data(PPU *ppu) {
@@ -250,7 +310,7 @@ uint8_t ppu_read_vram_data(PPU *ppu) {
         return ppu->palette[address];
     }
 
-    ppu->vram_addr.reg += ppu->crtl.increment ? 32 : 1;
+    ppu->vram_addr.reg += ppu->ctrl.increment ? 32 : 1;
     return prev_buffer;
 }
 
@@ -369,9 +429,15 @@ static void update_shifters(PPU *ppu) {
         ppu->shifter_attr_lo <<= 1;
         ppu->shifter_attr_hi <<= 1;
     }
+
+    if (ppu->mask.render_sprites && 1 <= ppu->cur_dot && ppu->cur_dot < 258) {
+        for (int i = 0; i < ppu->sprite_count; i++) {
+
+        }
+    }
 }
 
-uint16_t calculate_vram_index(Mapper *mapper, uint16_t address) {
+static uint16_t calculate_vram_index(Mapper *mapper, uint16_t address) {
     if (address < 0x2000 || address > 0x3FFF)
         return 0;
 
@@ -396,7 +462,7 @@ static uint8_t get_color_from_palette_8(PPU *ppu, uint8_t palette, uint8_t pixel
     return nes_palette_8bit[index];
 }
 
-void prepare_background_tile(PPU *ppu) {
+static void prepare_background_tile(PPU *ppu) {
     update_shifters(ppu);
 
     switch (ppu->cur_dot % 8) {
@@ -421,14 +487,14 @@ void prepare_background_tile(PPU *ppu) {
     }
     case 5: {
         // fetch next pattern table tile row (LSB)
-        ppu->next_tile_lsb = ppu_const_read_vram_data(ppu, (ppu->crtl.pattern_background << 12) +
+        ppu->next_tile_lsb = ppu_const_read_vram_data(ppu, (ppu->ctrl.pattern_background << 12) +
                                                                ((uint16_t)ppu->next_tile_id << 4) +
                                                                (ppu->vram_addr.fine_y) + 0);
         break;
     }
     case 7: {
         // fetch next pattern table tile row (MSB)
-        ppu->next_tile_msb = ppu_const_read_vram_data(ppu, (ppu->crtl.pattern_background << 12) +
+        ppu->next_tile_msb = ppu_const_read_vram_data(ppu, (ppu->ctrl.pattern_background << 12) +
                                                                ((uint16_t)ppu->next_tile_id << 4) +
                                                                (ppu->vram_addr.fine_y) + 8);
         break;
@@ -439,7 +505,7 @@ void prepare_background_tile(PPU *ppu) {
     }
 }
 
-void draw_background_pixel(PPU *ppu) {
+static void draw_background_pixel(PPU *ppu) {
     uint8_t bg_pixel = 0x00;
     uint8_t bg_palette = 0x00;
 
@@ -455,11 +521,67 @@ void draw_background_pixel(PPU *ppu) {
         bg_palette = (pal1 << 1) | pal0;
     }
 
+    uint8_t sprite_pixel = 0x00;
+    uint8_t sprite_palette = 0x00;
+    uint8_t sprite_priority = 0x00;
+
+    if (ppu->mask.render_sprites) {
+        for (int i = 0; i < ppu->sprite_count; i++) {
+            uint8_t sprite_x = ppu->sprite_scanline[i * 4 + 3];
+            uint8_t sprite_attr  = ppu->sprite_scanline[i * 4 + 2];
+
+            if (sprite_x == 0) {
+                uint8_t sprite_pixel_lo = (ppu->sprite_shifter_pattern_lo[i] & 0x80) > 1;
+                uint8_t sprite_pixel_hi = (ppu->sprite_shifter_pattern_hi[i] & 0x80) > 1;
+                sprite_pixel = (sprite_pixel_hi << 1) | sprite_pixel_lo;
+
+                sprite_palette = (sprite_attr & 0x03) + 0x04;
+                sprite_priority = (sprite_attr & 0x20) == 0;
+
+                if (sprite_pixel != 0) break;
+            }
+        }
+    }
+
+    uint8_t pixel = 0x00;
+    uint8_t palette = 0x00;
+
+    if (sprite_pixel == 0 && bg_pixel == 0) {
+        pixel = 0x00;
+        palette = 0x00;
+    }
+    else if (sprite_pixel == 0 && bg_pixel > 0) {
+        pixel = bg_pixel;
+        palette = bg_palette;
+    } else if (sprite_pixel > 0 && bg_pixel == 0) {
+        pixel = sprite_pixel;
+        palette = sprite_palette;
+    } else {
+        if (sprite_priority) {
+            pixel = sprite_pixel;
+            palette = sprite_palette;
+        } else {
+            pixel = bg_pixel;
+            palette = bg_palette;
+        }
+    }
+
 #ifdef RISC_V
     uint8_t color = get_color_from_palette_8(ppu, bg_palette, bg_pixel);
     vga_screen_put_pixel(ppu->cur_dot, ppu->cur_scanline, color);
 #else
-    uint32_t color = get_color_from_palette(ppu, bg_palette, bg_pixel);
+    uint32_t color = get_color_from_palette(ppu, palette, pixel);
     sdl_put_pixel_nes_screen(ppu->cur_dot, ppu->cur_scanline, color);
 #endif
+}
+
+static void draw_foreground_scanline(PPU *ppu){
+
+}
+
+static uint8_t reverse_bits(uint8_t n) {
+    n = (n & 0xF0) >> 4 | (n & 0x0F) << 4; // Swap halves
+    n = (n & 0xCC) >> 2 | (n & 0x33) << 2; // Swap pairs
+    n = (n & 0xAA) >> 1 | (n & 0x55) << 1; // Swap individual bits
+    return n;
 }

@@ -282,7 +282,7 @@ static void draw_nametable(const Emulator *emulator, uint16_t base_address, int 
     assert(base_address == 0x2000 || base_address == 0x2400 || base_address == 0x2800 || base_address == 0x2C00);
 
     const PPU *ppu = &emulator->ppu;
-    const uint16_t PATTERN_TABLE_BG_BASE_ADDRESS = ppu->crtl.pattern_background ? 0x1000 : 0x0000;
+    const uint16_t PATTERN_TABLE_BG_BASE_ADDRESS = ppu->ctrl.pattern_background ? 0x1000 : 0x0000;
 
     // calculate end_address, exclude the attribute table
     uint16_t end_address = base_address + NAMETABLE_BYTE_SIZE - ATTRIBUTE_TABLE_BYTE_SIZE;

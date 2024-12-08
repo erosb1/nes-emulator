@@ -114,7 +114,7 @@ typedef struct Emulator Emulator;
 
 typedef struct PPU {
     // PPU Registers
-    PPU_CTRL_REGISTER crtl;
+    PPU_CTRL_REGISTER ctrl;
     PPU_MASK_REGISTER mask;
     PPU_STATUS_REGISTER status;
     uint8_t oam_addr;
@@ -147,6 +147,10 @@ typedef struct PPU {
     uint8_t vram[0x2000];
     uint8_t palette[0x20];
     uint8_t oam[0x100];
+    uint8_t sprite_scanline[0x40];
+    uint8_t sprite_count;
+    uint8_t sprite_shifter_pattern_lo[8];
+    uint8_t sprite_shifter_pattern_hi[8];
 } PPU;
 
 /**
