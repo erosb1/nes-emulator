@@ -37,6 +37,8 @@ void ppu_reset(PPU *ppu) {
     ppu->shifter_attr_lo = ppu->shifter_attr_hi = 0x0000;
     ppu->cycle_counter = 0;
     ppu->sprite_count = 0;
+    ppu->sprite_zero_hit_possible = 0;
+    ppu->sprite_zero_hit_rendering = 0;
     memset(ppu->vram, 0, sizeof(ppu->vram));
     memset(ppu->palette, 0, sizeof(ppu->palette));
     memset(ppu->oam, 0, sizeof(ppu->oam));
@@ -100,7 +102,6 @@ void ppu_run_cycle(PPU *ppu) {
 
         else if (ppu->cur_dot < 258) {
             if (ppu->cur_dot == 1) {
-                // Clear VBlank and sprite zero hit flags
                 ppu->status.vblank = FALSE;
                 ppu->status.sprite_zero_hit = FALSE;
                 ppu->status.sprite_overflow = FALSE;
@@ -155,19 +156,18 @@ void ppu_run_cycle(PPU *ppu) {
         }
     }
 
-    if (ppu->emulator->cur_frame == 40 && ppu->cur_dot == 4 && ppu->cur_scanline == 15) {
-        int x = 0;
-    }
-
     // Sprite rendering (scanline based)
     if (ppu->cur_dot == 257 && ppu->cur_scanline != 261) {
         memset(ppu->sprite_scanline, 0xFF, sizeof(ppu->sprite_scanline));
         ppu->sprite_count = 0;
+        ppu->sprite_zero_hit_possible = FALSE;
 
         for (size_t oam_entity_index = 0; oam_entity_index < 64 && ppu->sprite_count < 9; oam_entity_index++) {
             uint8_t sprite_y = ppu->oam[oam_entity_index * 4];
             size_t y_diff = (ppu->cur_scanline - (size_t) sprite_y);
             if (y_diff < (ppu->ctrl.sprite_size ? 16 : 8)) {
+                if (oam_entity_index == 0)
+                    ppu->sprite_zero_hit_possible = TRUE;
                 if (ppu->sprite_count < 8) {
                     memcpy(&ppu->sprite_scanline[ppu->sprite_count * 4], &ppu->oam[oam_entity_index * 4], 4);
                     ppu->sprite_count++;
@@ -538,6 +538,8 @@ static void draw_background_pixel(PPU *ppu) {
     uint8_t sprite_priority = 0x00;
 
     if (ppu->mask.render_sprites) {
+        ppu->sprite_zero_hit_rendering = FALSE;
+
         for (int i = 0; i < ppu->sprite_count; i++) {
             uint8_t sprite_x = ppu->sprite_scanline[i * 4 + 3];
             uint8_t sprite_attr  = ppu->sprite_scanline[i * 4 + 2];
@@ -550,7 +552,12 @@ static void draw_background_pixel(PPU *ppu) {
                 sprite_palette = (sprite_attr & 0x03) + 0x04;
                 sprite_priority = (sprite_attr & 0x20) == 0;
 
-                if (sprite_pixel != 0) break;
+                if (sprite_pixel != 0) {
+                    if (i == 0) {
+                        ppu->sprite_zero_hit_rendering = TRUE;
+                    }
+                    break;
+                }
             }
         }
     }
@@ -575,6 +582,16 @@ static void draw_background_pixel(PPU *ppu) {
         } else {
             pixel = bg_pixel;
             palette = bg_palette;
+        }
+
+        if (ppu->sprite_zero_hit_possible && ppu->sprite_zero_hit_rendering) {
+            if (ppu->mask.render_background & ppu->mask.render_sprites) {
+                if (ppu->mask.render_background_left & ppu->mask.render_sprites_left) {
+                    if (9 <= ppu->cur_dot && ppu->cur_dot < 258) ppu->status.sprite_zero_hit = TRUE;
+                } else {
+                    if (1 <= ppu->cur_dot && ppu->cur_dot < 258) ppu->status.sprite_zero_hit = TRUE;
+                }
+            }
         }
     }
 

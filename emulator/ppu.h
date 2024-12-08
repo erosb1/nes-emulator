@@ -146,11 +146,15 @@ typedef struct PPU {
     Emulator *emulator;
     uint8_t vram[0x2000];
     uint8_t palette[0x20];
+
+    // Sprite rendering
     uint8_t oam[0x100];
     uint8_t sprite_scanline[0x40];
     uint8_t sprite_count;
     uint8_t sprite_shifter_pattern_lo[8];
     uint8_t sprite_shifter_pattern_hi[8];
+    uint8_t sprite_zero_hit_possible;
+    uint8_t sprite_zero_hit_rendering;
 } PPU;
 
 /**
