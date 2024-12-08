@@ -155,22 +155,26 @@ void ppu_run_cycle(PPU *ppu) {
         }
     }
 
+    if (ppu->emulator->cur_frame == 40 && ppu->cur_dot == 4 && ppu->cur_scanline == 15) {
+        int x = 0;
+    }
+
     // Sprite rendering (scanline based)
-    if (ppu->cur_dot == 257) {
+    if (ppu->cur_dot == 257 && ppu->cur_scanline != 261) {
         memset(ppu->sprite_scanline, 0xFF, sizeof(ppu->sprite_scanline));
         ppu->sprite_count = 0;
 
         for (size_t oam_entity_index = 0; oam_entity_index < 64 && ppu->sprite_count < 9; oam_entity_index++) {
             uint8_t sprite_y = ppu->oam[oam_entity_index * 4];
             size_t y_diff = (ppu->cur_scanline - (size_t) sprite_y);
-            if (y_diff <( ppu->ctrl.sprite_size ? 16 : 8)) {
+            if (y_diff < (ppu->ctrl.sprite_size ? 16 : 8)) {
                 if (ppu->sprite_count < 8) {
                     memcpy(&ppu->sprite_scanline[ppu->sprite_count * 4], &ppu->oam[oam_entity_index * 4], 4);
                     ppu->sprite_count++;
                 }
             }
         }
-        ppu->status.sprite_overflow = ppu->sprite_count;
+        ppu->status.sprite_overflow = (ppu->sprite_count > 8);
     }
 
     if (ppu->cur_dot == 340) {
@@ -432,7 +436,15 @@ static void update_shifters(PPU *ppu) {
 
     if (ppu->mask.render_sprites && 1 <= ppu->cur_dot && ppu->cur_dot < 258) {
         for (int i = 0; i < ppu->sprite_count; i++) {
-
+            if (ppu->sprite_scanline[i * 4 + 3] > 0)
+            {
+                ppu->sprite_scanline[i * 4 + 3]--;
+            }
+            else
+            {
+                ppu->sprite_shifter_pattern_lo[i] <<= 1;
+                ppu->sprite_shifter_pattern_hi[i] <<= 1;
+            }
         }
     }
 }

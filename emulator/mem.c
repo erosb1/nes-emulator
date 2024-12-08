@@ -37,6 +37,7 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
             break;
         case 0x2004: // OAM_DATA
             ppu->oam[ppu->oam_addr] = value;
+            ppu->oam_addr++;
             break;
         case 0x2005: // PPU_SCROLL
             ppu_set_scroll(ppu, value);
@@ -54,7 +55,7 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
     if (address < APU_IO_REGISTER_END) {
         switch (address) {
         case 0x4014:
-            ppu_dma(ppu, address);
+            ppu_dma(ppu, value);
         case 0x4016:
 #ifdef RISC_V
             // set latch pin
