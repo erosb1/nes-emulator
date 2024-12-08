@@ -11,10 +11,11 @@ static void load_shifters(PPU *ppu);
 static void update_shifters(PPU *ppu);
 static uint16_t calculate_vram_index(Mapper *mapper, uint16_t address);
 static uint32_t get_color_from_palette(PPU *ppu, uint8_t palette, uint8_t pixel);
+#ifdef RISC_V
 static uint8_t get_color_from_palette_8(PPU *ppu, uint8_t palette, uint8_t pixel);
+#endif
 static void prepare_background_tile(PPU *ppu);
-static void draw_background_pixel(PPU *ppu);
-static void draw_foreground_scanline(PPU *ppu);
+static void draw_pixel(PPU *ppu);
 static uint8_t reverse_bits(uint8_t n);
 
 // --------------- PUBLIC FUNCTIONS --------------------------- //
@@ -55,7 +56,7 @@ void ppu_run_cycle(PPU *ppu) {
 
         else if (ppu->cur_dot < 258) { // VISIBLE DOTS
             prepare_background_tile(ppu);
-            draw_background_pixel(ppu);
+            draw_pixel(ppu);
 
             if (ppu->cur_dot == 256) {
                 increment_scroll_y(ppu);
@@ -360,7 +361,7 @@ void ppu_dma(PPU *ppu, uint8_t page) {
             memcpy(ppu->oam, ptr + (256 - ppu->oam_addr), ppu->oam_addr);
     }
 
-    cpu->dma_cycles += 513 + cpu->total_cycles & 1;
+    cpu->dma_cycles += 513 + (cpu->total_cycles & 1);
 }
 
 // --------------- STATIC FUNCTIONS --------------------------- //
@@ -442,8 +443,10 @@ static void update_shifters(PPU *ppu) {
             }
             else
             {
-                ppu->sprite_shifter_pattern_lo[i] <<= 1;
-                ppu->sprite_shifter_pattern_hi[i] <<= 1;
+                uint8_t pattern_lo = ppu->sprite_shifter_pattern_lo[i];
+                uint8_t pattern_hi = ppu->sprite_shifter_pattern_hi[i];
+                ppu->sprite_shifter_pattern_lo[i] = pattern_lo << 1;
+                ppu->sprite_shifter_pattern_hi[i] = pattern_hi << 1;
             }
         }
     }
@@ -469,10 +472,12 @@ static uint32_t get_color_from_palette(PPU *ppu, uint8_t palette, uint8_t pixel)
     return nes_palette_rgb[index];
 }
 
+#ifdef RISC_V
 static uint8_t get_color_from_palette_8(PPU *ppu, uint8_t palette, uint8_t pixel) {
     uint32_t index = ppu_const_read_vram_data(ppu, (0x3F00 + (palette << 2) + pixel)) & 0x3F;
     return nes_palette_8bit[index];
 }
+#endif
 
 static void prepare_background_tile(PPU *ppu) {
     update_shifters(ppu);
@@ -517,7 +522,7 @@ static void prepare_background_tile(PPU *ppu) {
     }
 }
 
-static void draw_background_pixel(PPU *ppu) {
+static void draw_pixel(PPU *ppu) {
     uint8_t bg_pixel = 0x00;
     uint8_t bg_palette = 0x00;
 
@@ -596,16 +601,12 @@ static void draw_background_pixel(PPU *ppu) {
     }
 
 #ifdef RISC_V
-    uint8_t color = get_color_from_palette_8(ppu, bg_palette, bg_pixel);
+    uint8_t color = get_color_from_palette_8(ppu, palette, pixel);
     vga_screen_put_pixel(ppu->cur_dot, ppu->cur_scanline, color);
 #else
     uint32_t color = get_color_from_palette(ppu, palette, pixel);
     sdl_put_pixel_nes_screen(ppu->cur_dot, ppu->cur_scanline, color);
 #endif
-}
-
-static void draw_foreground_scanline(PPU *ppu){
-
 }
 
 static uint8_t reverse_bits(uint8_t n) {

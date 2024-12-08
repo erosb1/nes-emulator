@@ -5,6 +5,9 @@ Copyright (c) 2024, Pedro Antunes
 If you're a student, and you have modified one or more files,
 you must add your name here.
 
+Elias Rosberg & Aws Majed
+ -- Modified and added some more helper functions to dtekv-lib.h and dtekv-lib.c
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:

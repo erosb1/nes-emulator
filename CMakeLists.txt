@@ -69,7 +69,7 @@ else()
     set(ALL_SOURCES ${DTEKV_DRIVERS_SOURCES} ${EMULATOR_SOURCES} ${DTEKV_BUILD_SOURCES})
 
     # Specify any necessary compile flags
-    set(CMAKE_C_FLAGS "-Wall -Wno-unused-variable -Wno-unused-function -Wno-array-bounds -nostdlib -O3 -mabi=ilp32 -march=rv32imzicsr")
+    set(CMAKE_C_FLAGS "-Wall -Wno-stringop-overflow -Wno-unused-variable -Wno-unused-function -Wno-array-bounds -nostdlib -O3 -mabi=ilp32 -march=rv32imzicsr")
 
     # Specify output ELF target
     add_executable(${TARGET_ELF} ${ALL_SOURCES})
