@@ -4,7 +4,7 @@
 
 uint32_t get_time_point() {
     uint32_t cycles;
-    asm volatile ("csrr %0, mcycle" : "=r"(cycles));
+    asm volatile("csrr %0, mcycle" : "=r"(cycles));
     return cycles;
 }
 
@@ -17,7 +17,8 @@ void sleep_us(uint32_t microseconds) {
 
     while (1) {
         uint32_t cur = get_time_point();
-        if (get_elapsed_us(start, cur) >= microseconds) return;
+        if (get_elapsed_us(start, cur) >= microseconds)
+            return;
     }
 }
 

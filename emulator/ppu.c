@@ -11,6 +11,7 @@ static void load_shifters(PPU *ppu);
 static void update_shifters(PPU *ppu);
 uint16_t calculate_vram_index(Mapper *mapper, uint16_t address);
 static uint32_t get_color_from_palette(PPU *ppu, uint8_t palette, uint8_t pixel);
+static uint8_t get_color_from_palette_8(PPU *ppu, uint8_t palette, uint8_t pixel);
 static void prepare_background_tile(PPU *ppu);
 static void draw_background_pixel(PPU *ppu);
 
@@ -366,9 +367,14 @@ uint16_t calculate_vram_index(Mapper *mapper, uint16_t address) {
     return vram_index;
 }
 
-uint32_t get_color_from_palette(PPU *ppu, uint8_t palette, uint8_t pixel) {
+static uint32_t get_color_from_palette(PPU *ppu, uint8_t palette, uint8_t pixel) {
     uint32_t index = ppu_const_read_vram_data(ppu, (0x3F00 + (palette << 2) + pixel)) & 0x3F;
     return nes_palette_rgb[index];
+}
+
+static uint8_t get_color_from_palette_8(PPU *ppu, uint8_t palette, uint8_t pixel) {
+    uint32_t index = ppu_const_read_vram_data(ppu, (0x3F00 + (palette << 2) + pixel)) & 0x3F;
+    return nes_palette_8bit[index];
 }
 
 void prepare_background_tile(PPU *ppu) {
@@ -430,11 +436,11 @@ void draw_background_pixel(PPU *ppu) {
         bg_palette = (pal1 << 1) | pal0;
     }
 
-    uint32_t color = get_color_from_palette(ppu, bg_palette, bg_pixel);
-
 #ifdef RISC_V
-    // TODO draw to VGA screen
+    uint8_t color = get_color_from_palette_8(ppu, bg_palette, bg_pixel);
+    vga_screen_put_pixel(ppu->cur_dot, ppu->cur_scanline, color);
 #else
+    uint32_t color = get_color_from_palette(ppu, bg_palette, bg_pixel);
     sdl_put_pixel_nes_screen(ppu->cur_dot, ppu->cur_scanline, color);
 #endif
 }

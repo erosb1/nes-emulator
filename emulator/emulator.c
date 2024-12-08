@@ -117,9 +117,6 @@ void handle_sdl(Emulator *emulator) {
 void synchronize_frames(Emulator *emulator) {
     uint32_t time_point_end = get_time_point();
     uint32_t elapsed_us = get_elapsed_us(emulator->time_point_start, time_point_end);
-#ifdef RISC_V
-    dtekv_print("Frame duration: "); dtekv_print_dec(elapsed_us);
-#endif
     emulator->frame_times[emulator->cur_frame] = elapsed_us;
 
     emulator->cur_frame++;
