@@ -98,7 +98,7 @@ void handle_sdl(Emulator *emulator) {
         emulator->is_running = FALSE;
 
     // Clear screen and draw debug info only every 10th frame.
-    // Otherwise the rendering gets to intensive
+    // Otherwise the rendering gets too intensive
     if (emulator->cur_frame % 10 == 0) {
         sdl_clear_screen();
         debug_draw_screen(emulator);

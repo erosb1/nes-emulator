@@ -114,11 +114,10 @@ typedef struct Emulator Emulator;
 
 typedef struct PPU {
     // PPU Registers
-    PPU_CTRL_REGISTER crtl;
+    PPU_CTRL_REGISTER ctrl;
     PPU_MASK_REGISTER mask;
     PPU_STATUS_REGISTER status;
     uint8_t oam_addr;
-    uint8_t oam_data;
     VRAM_ADDR_REGISTER vram_addr;
     VRAM_ADDR_REGISTER temp_addr;
     uint8_t write_latch;
@@ -147,6 +146,15 @@ typedef struct PPU {
     Emulator *emulator;
     uint8_t vram[0x2000];
     uint8_t palette[0x20];
+
+    // Sprite rendering
+    uint8_t oam[0x100];
+    uint8_t sprite_scanline[0x40];
+    uint8_t sprite_count;
+    uint8_t sprite_shifter_pattern_lo[8];
+    uint8_t sprite_shifter_pattern_hi[8];
+    uint8_t sprite_zero_hit_possible;
+    uint8_t sprite_zero_hit_rendering;
 } PPU;
 
 /**
@@ -226,5 +234,7 @@ uint8_t ppu_read_vram_data(PPU *ppu);
  *  The value being read is returned directly, and is not buffered.
  */
 uint8_t ppu_const_read_vram_data(const PPU *ppu, uint16_t address);
+
+void ppu_dma(PPU *ppu, uint8_t page);
 
 #endif

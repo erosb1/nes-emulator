@@ -23,6 +23,9 @@
 
 [Easy 6502 (interactive)](http://skilldrick.github.io/easy6502)
 
+### javidx9 youtube emulator series
+https://www.youtube.com/watch?v=nViZg02IMQo&list=PLrOv9FMX8xJHqMvSGB_9G9nZZ_4IgteYf
+
 
 ## Building for the Host System
 

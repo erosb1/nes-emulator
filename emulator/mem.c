@@ -20,10 +20,9 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
         mem->ram[address & 0x07FF] = value; // Handle RAM mirroring
         return;
     }
-
+    PPU *ppu = &mem->emulator->ppu;
     if (address < PPU_MIRROR_END) {
         address = (address & 0x0007) + 0x2000;
-        PPU *ppu = &mem->emulator->ppu;
 
         switch (address) {
         case 0x2000: // PPU_CONTROL
@@ -37,7 +36,8 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
             ppu->oam_addr = value;
             break;
         case 0x2004: // OAM_DATA
-            ppu->oam_data = value;
+            ppu->oam[ppu->oam_addr] = value;
+            ppu->oam_addr++;
             break;
         case 0x2005: // PPU_SCROLL
             ppu_set_scroll(ppu, value);
@@ -54,6 +54,8 @@ void mem_write_8(MEM *mem, uint16_t address, uint8_t value) {
 
     if (address < APU_IO_REGISTER_END) {
         switch (address) {
+        case 0x4014:
+            ppu_dma(ppu, value);
         case 0x4016:
 #ifdef RISC_V
             // set latch pin
@@ -89,7 +91,7 @@ uint8_t mem_read_8(MEM *mem, uint16_t address) {
         case 0x2002: // PPU_STATUS
             return ppu_read_status(ppu);
         case 0x2004: // OAM_DATA
-            return ppu->oam_data;
+            return ppu->oam[ppu->oam_addr];
         case 0x2007: // PPU_DATA
             return ppu_read_vram_data(ppu);
         default:
@@ -167,7 +169,7 @@ uint8_t mem_const_read_8(const MEM *mem, uint16_t address) {
         case 0x2002: // PPU_STATUS
             return ppu->status.reg;
         case 0x2004: // OAM_DATA
-            return ppu->oam_data;
+            return ppu->oam[ppu->oam_addr];
         case 0x2007: // PPU_DATA
             return ppu_const_read_vram_data(ppu, address);
         default:
@@ -187,4 +189,11 @@ uint8_t mem_const_read_8(const MEM *mem, uint16_t address) {
     // else
     Mapper *mapper = &mem->emulator->mapper;
     return mapper->read_prg(mapper, address);
+}
+
+uint8_t *mem_get_pointer(MEM *mem, uint16_t address) {
+    if (address < 0x2000) {
+        return mem->ram + (address & 0x7ff);
+    }
+    return NULL;
 }
