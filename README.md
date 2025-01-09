@@ -1,4 +1,18 @@
-# dtek-project
+# Embedded RISC-V NES emulator
+This project contains a NES emulator that was developed for the [IS1500 Computer Organization and Components](https://www.kth.se/student/kurser/kurs/IS1500) 
+course at KTH. It's main purpose is to run on an embedded FGPA RISC-V board. However, it can also compile for the host system (more info below).
+
+This is a work-in-progress project. As of now, it supports the following:
+
+* Instruction-accurate 6502 CPU emulation.
+* Accurate PPU background rendering.
+* Semi-accurate PPU foreground/sprite rendering. (A bit glitchy)
+* Memory unit emulation.
+* NROM mapper chip.
+* Input from physical NES controller.
+* Graphics to VGA screen or SDL window (depending on how you compile)
+
+**Note** This is a forked repository from KTHs internal github. 
 
 ## Resources
 
